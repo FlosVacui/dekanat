@@ -88,20 +88,21 @@ items:
     owner: "Оркестратор (Fable 5.2)"
     review: "Тесты и check_all"
     plan: {start: 2026-11-10, end: 2026-11-10}
-    fact: {2026-11-10: "В работе"}
+    fact: {2026-11-10: "Выполнено"}
   - id: "0.3"
     title: "Роли субагентов, команды /start, /handoff, /gate, настройки"
     person: "А"
     owner: "Оркестратор (Fable 5.2)"
     review: "Ревьюер промптов (Sonnet 5.5 / high)"
     plan: {start: 2026-11-10, end: 2026-11-11}
-    fact: {2026-11-10: "В работе"}
+    fact: {2026-11-10: "Ждёт решения"}
   - id: "0.4"
     title: "GitHub: приватный репозиторий, приглашения, CI"
     person: "А"
     owner: "Оркестратор; создание — с подтверждения пользователя"
     review: "—"
     plan: {start: 2026-11-11, end: 2026-11-11}
+    fact: {2026-11-10: "Ждёт решения"}
   - id: "0.5"
     title: "Онбординг и передача смены"
     person: "А"
@@ -115,12 +116,14 @@ items:
     owner: "Оркестратор (Fable 5.2)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-10, end: 2026-11-10}
+    fact: {2026-11-10: "В работе"}
   - id: "0.7"
     title: "Ворота 0: чистый клон, холодный старт, зоны (Р-9)"
     person: "А"
     owner: "Приёмка (Opus 5.5 / high)"
     review: "Пользователь"
     plan: {start: 2026-11-11, end: 2026-11-11}
+    fact: {2026-11-10: "В работе"}
 
   - id: "1"
     title: "Этап 1. Ресерч и концепция"
@@ -397,8 +400,75 @@ history:
     what: "PROCESS, ONBOARDING, шаблоны, 10 ролей, команды start, handoff, gate; ревью промптов не проведено"
     who: "Участник А; оркестратор Fable 5.2"
     commit: "a0268c2"
+  - date: 2026-11-10
+    item: "0.6"
+    what: "Реестр промптов, ошибки ИИ, инструменты, сделано вручную, README, чек-лист сдачи"
+    who: "Участник А; оркестратор Fable 5.2"
+    commit: "6365d46"
+  - date: 2026-11-10
+    item: "0.2"
+    what: "Чистый клон проходит; исправлена ошибка bootstrap.ps1; check_all зелёный"
+    who: "Участник А; оркестратор Fable 5.2"
+    commit: "4059cd6"
+  - date: 2026-11-10
+    item: "0.3"
+    what: "Ревью промптов RV-0.3-1: 22 замечания, правки в ролях и командах внесены"
+    who: "prompt-reviewer, Sonnet 5.5 / high"
+    commit: "dbb5204"
+    rounds: 1
+    tokens: 134170
 
-reviews: []
+reviews:
+  - id: "R-0.3-1"
+    item: "0.3"
+    round: 1
+    severity: "существенное"
+    text: "CLAUDE.md не отделяет правила оркестратора от правил субагента"
+    repro: "CLAUDE.md:7, 25-30 против runner.md:23"
+    by: "prompt-reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-0.3-2"
+    item: "0.3"
+    round: 1
+    severity: "существенное"
+    text: "Сессия не узнаёт, какой участник работает и в какой зоне"
+    repro: "start/SKILL.md; в CLAUDE.md нет слова зона"
+    by: "prompt-reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-0.3-3"
+    item: "0.3"
+    round: 1
+    severity: "существенное"
+    text: "Слова разработчик и пользователь не определены"
+    repro: "CLAUDE.md:11 и :18; ROADMAP, колонка Исполнитель"
+    by: "prompt-reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-0.3-4"
+    item: "0.3"
+    round: 1
+    severity: "существенное"
+    text: "Снимок лимитов агент может не суметь снять; порог недельного лимита не задан числом"
+    repro: "CLAUDE.md:10, :32"
+    by: "prompt-reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-0.3-5"
+    item: "0.3"
+    round: 1
+    severity: "существенное"
+    text: "Шаги /handoff требуют хеш коммита раньше коммита"
+    repro: "handoff/SKILL.md, шаги 4-8 и последний абзац"
+    by: "prompt-reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в dbb5204"
+  - id: "R-0.3-6"
+    item: "0.3"
+    round: 1
+    severity: "существенное"
+    text: "Роль jury не может открыть прототип своими инструментами"
+    repro: "jury.md: tools без браузера"
+    by: "prompt-reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в dbb5204"
 
 decisions:
   - id: "Р-0"
