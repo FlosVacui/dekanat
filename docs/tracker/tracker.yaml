@@ -95,7 +95,7 @@ items:
     owner: "Оркестратор (Fable 5.2)"
     review: "Ревьюер промптов (Sonnet 5.5 / high)"
     plan: {start: 2026-11-10, end: 2026-11-11}
-    fact: {2026-11-10: "Ждёт решения"}
+    fact: {2026-11-10: "Выполнено"}
   - id: "0.4"
     title: "GitHub: приватный репозиторий, приглашения, CI"
     person: "А"
@@ -417,6 +417,17 @@ history:
     commit: "dbb5204"
     rounds: 1
     tokens: 134170
+  - date: 2026-11-10
+    item: "0.3"
+    what: "Ответы пользователя на шесть вопросов: правки CLAUDE.md по RV-0.3-1, пользователь — участник А, порога недельного лимита нет, запрещённые файлы .env по именам"
+    who: "Оркестратор Fable 5.2; участник А"
+    commit: "997fc33"
+    rounds: 1
+  - date: 2026-11-10
+    item: "0.7"
+    what: "Зоны подтверждены (Р-9); в ROADMAP исправлено число ворот: шесть"
+    who: "Оркестратор Fable 5.2; участник А"
+    commit: "997fc33"
 
 reviews:
   - id: "R-0.3-1"
@@ -426,7 +437,8 @@ reviews:
     text: "CLAUDE.md не отделяет правила оркестратора от правил субагента"
     repro: "CLAUDE.md:7, 25-30 против runner.md:23"
     by: "prompt-reviewer, Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "CLAUDE.md: разделы о начале и конце сессии — для оркестратора. Коммит 997fc33"
   - id: "R-0.3-2"
     item: "0.3"
     round: 1
@@ -434,7 +446,8 @@ reviews:
     text: "Сессия не узнаёт, какой участник работает и в какой зоне"
     repro: "start/SKILL.md; в CLAUDE.md нет слова зона"
     by: "prompt-reviewer, Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "CLAUDE.md: шаг «кто работает» и строка «Зоны». Коммит 997fc33"
   - id: "R-0.3-3"
     item: "0.3"
     round: 1
@@ -442,7 +455,8 @@ reviews:
     text: "Слова разработчик и пользователь не определены"
     repro: "CLAUDE.md:11 и :18; ROADMAP, колонка Исполнитель"
     by: "prompt-reviewer, Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "Пользователь — участник А; CLAUDE.md, PROCESS, глоссарий. Коммит 997fc33"
   - id: "R-0.3-4"
     item: "0.3"
     round: 1
@@ -450,7 +464,8 @@ reviews:
     text: "Снимок лимитов агент может не суметь снять; порог недельного лимита не задан числом"
     repro: "CLAUDE.md:10, :32"
     by: "prompt-reviewer, Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "(а) порядок снятия лимитов в CLAUDE.md; (б) отклонено пользователем: порога для недельного лимита нет. Коммит 997fc33"
   - id: "R-0.3-5"
     item: "0.3"
     round: 1
@@ -533,6 +548,8 @@ decisions:
     recommendation: "А — основа, Б — экраны, В — люди и материалы"
     deadline: 2026-11-11
     default: "Берём рекомендацию"
+    answer: "А — основа, Б — экраны, В — люди и материалы"
+    answer_date: 2026-11-10
 
 roles:
   - role: "Оркестратор"
