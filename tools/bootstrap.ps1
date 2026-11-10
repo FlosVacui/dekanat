@@ -104,7 +104,8 @@ try {
         Write-Warning "uv tool update-shell не сработал. Добавьте папку из «uv tool dir --bin» в PATH вручную."
     }
     # В этом терминале PATH ещё старый, поэтому pre-commit вызываем по полному пути.
-    $bin = (& uv tool dir --bin | Select-Object -First 1)
+    # Без «| Select-Object -First 1»: он обрывает uv до выхода, и код возврата становится -1.
+    $bin = @(& uv tool dir --bin)[0]
     if ($LASTEXITCODE -ne 0 -or -not $bin) {
         Stop-Setup "не удалось узнать папку программ uv (uv tool dir --bin)."
     }
