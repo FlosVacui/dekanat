@@ -3,7 +3,7 @@
 Источник правды — `docs/tracker/tracker.yaml`. Из него скрипт `tools/tracker.py` собирает Excel
 `График_работ.xlsx` (в git не хранится) и зеркалит пункты в Issues и на доску GitHub Projects.
 Excel и доску только смотрят. YAML меняется только командами скрипта: статусы своих пакетов отмечает участник,
-остальное — оркестратор. Порядок команд — `docs/PROCESS.md`, «Работа втроём с учётом».
+остальное — оркестратор. Порядок команд — `docs/PROCESS.md`, раздел «Учёт».
 
 Нужен [uv](https://docs.astral.sh/uv/): `tools/tracker.py` несёт зависимости (`openpyxl`, `PyYAML`) и версию Python в
 собственных метаданных (PEP 723), `uv run` сам поставит их в кэш при первом запуске. Системный Python и `pip` не нужны.
@@ -122,4 +122,4 @@ uv run --no-project --with pytest --with pyyaml --with openpyxl python -m pytest
 неё). Живой `docs/tracker/tracker.yaml` читается только в тестах «заголовок = `DEFAULT_HEADER`» и «побайтный
 проход». Команды работают на копиях во временной папке, `gh` подменяется (`subprocess.run`), сеть не нужна.
 
-Стиль: `uvx ruff check tools` и `uvx ruff format --check tools` (настройки — `ruff.toml` в корне штаба).
+Стиль: `uvx ruff check tools` и `uvx ruff format --check tools` (настройки — `ruff.toml` в корне репозитория).
