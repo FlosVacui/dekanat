@@ -1,0 +1,41 @@
+# Сборка и кэш
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+node_modules/
+.next/
+dist/
+coverage/
+playwright-report/
+test-results/
+
+# Временные файлы Office (замок открытого файла)
+~$*
+
+# График собирается локально из tracker.yaml (двоичный файл втроём не сливается)
+docs/tracker/*.xlsx
+docs/tracker/.backup/
+docs/tracker/.tmp_*
+
+# Тяжёлые материалы видео: исходники записей и рендеры храним вне git
+docs/submission/video/raw/
+docs/submission/video/render/
+*.mp4
+*.mkv
+*.wav
+
+# Секреты
+.env
+.env.*
+!.env.example
+
+# Личные настройки Claude Code и редакторов
+.claude/settings.local.json
+.vscode/
+.idea/
+
+# Файлы ОС
+.DS_Store
+Thumbs.db

@@ -1,0 +1,15 @@
+# Только локальные хуки: при первом коммите ничего не скачивается и не собирается.
+# Нужны gitleaks и uv в PATH — их ставит tools/bootstrap.
+repos:
+  - repo: local
+    hooks:
+      - id: gitleaks
+        name: gitleaks (секреты в индексе)
+        entry: gitleaks git --pre-commit --staged --redact --no-banner
+        language: system
+        pass_filenames: false
+      - id: check-clean
+        name: чистота (личные пути и почта)
+        entry: uv run tools/check_clean.py
+        language: system
+        pass_filenames: false

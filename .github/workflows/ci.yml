@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  PYTHONUTF8: "1"
+
+jobs:
+  checks:
+    name: Проверки (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v7
+
+      - name: Ссылки в документах
+        run: uv run tools/check_links.py
+
+      - name: Чистота — личные пути и почта
+        run: uv run tools/check_clean.py
+
+      - name: Тесты инструментов
+        run: uv run --no-project --with pytest --with pyyaml --with openpyxl python -m pytest tools/tests -q
+
+      - name: Учёт — сроки читаются
+        run: uv run tools/tracker.py due
+
+      - name: Разбор bootstrap.ps1 (Windows PowerShell 5.1)
+        if: runner.os == 'Windows'
+        shell: powershell
+        run: |
+          $t = $null; $e = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile("$PWD\tools\bootstrap.ps1", [ref]$t, [ref]$e)
+          if ($e.Count -ne 0) { $e | ForEach-Object { Write-Host $_.Message }; exit 1 }
+          Write-Host "bootstrap.ps1 parsed without errors"
+
+      - name: Синтаксис bootstrap.sh
+        if: runner.os != 'Windows'
+        run: /bin/bash -n tools/bootstrap.sh
+
+      - name: Права на запуск и BOM скриптов
+        if: runner.os == 'Linux'
+        run: |
+          for f in tools/bootstrap.sh tools/tracker.py tools/check_links.py tools/check_clean.py tools/check_all.py; do
+            git ls-files -s "$f" | grep -q '^100755' || { echo "не исполняемый в git: $f"; exit 1; }
+          done
+          head -c3 tools/bootstrap.ps1 | od -An -tx1 | grep -q 'ef bb bf' || { echo "bootstrap.ps1 без BOM"; exit 1; }
+          echo "права и BOM в порядке"
+
+  secrets:
+    name: Секреты
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - name: Секреты (gitleaks)
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
