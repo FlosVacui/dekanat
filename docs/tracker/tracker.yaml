@@ -594,6 +594,12 @@ history:
     who: "Оркестратор Fable 5.2; security-auditor Opus 5.5 / high, два запуска"
     rounds: 2
     tokens: 320830
+  - date: 2026-11-11
+    item: "2.4"
+    what: "Этап 1: проект в app/, база, вход, слой доступа, модульные тесты; проверки зелёные"
+    who: "builder Sonnet 5.5 / high"
+    commit: "b1e1cdd"
+    tokens: 235602
 
 reviews:
   - id: "R-0.3-1"
