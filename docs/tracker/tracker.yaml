@@ -515,6 +515,11 @@ history:
     who: "reviewer, Sonnet 5.5 / high"
     tokens: 89420
     link: "docs/reviews/RV-1.5-2.md"
+  - date: 2026-11-11
+    item: "1.5"
+    what: "PR №6 слит в main сжатием по слову пользователя: второй раунд ревью R-1.5; ветка docs/1-research-4 оставлена ради хешей из журнала"
+    who: "оркестратор, Fable 5.2"
+    commit: "326e948"
 
 reviews:
   - id: "R-0.3-1"
