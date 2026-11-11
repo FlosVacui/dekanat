@@ -162,6 +162,7 @@ items:
     owner: "Исследователь (Sonnet 5.5 / high)"
     review: "Оркестратор"
     plan: {start: 2026-11-11, end: 2026-11-12}
+    fact: {2026-11-11: "В работе"}
   - id: "1.6"
     title: "Реалии вуза: структура, справки, расписание, оценки"
     person: "В"
@@ -473,6 +474,30 @@ history:
     what: "PR №2 слит в main сжатием по слову пользователя; ветка docs/1-research-2 оставлена ради хешей из журнала"
     who: "оркестратор, Fable 5.2"
     commit: "fea4437"
+  - date: 2026-11-11
+    item: "1.3"
+    what: "Ревью, раунд 1: доработать; 13 замечаний, существенных 3; числа отчёта подтверждены"
+    who: "reviewer, Sonnet 5.5 / high"
+    tokens: 185315
+    link: "docs/reviews/RV-1.3-1.md"
+  - date: 2026-11-11
+    item: "1.6"
+    what: "Ревью, раунд 1: доработать; 12 замечаний, блокирующих 3"
+    who: "reviewer, Sonnet 5.5 / high"
+    tokens: 178630
+    link: "docs/reviews/RV-1.6-1.md"
+  - date: 2026-11-11
+    item: "1.5"
+    what: "Ресерч: отчёт R-1.5, 64 проверки безопасности, десять обязательных; отправлен на ревью"
+    who: "researcher, Sonnet 5.5 / high"
+    tokens: 192378
+    link: "docs/research/R-1.5.md"
+  - date: 2026-11-11
+    item: "1.5"
+    what: "Ревью, раунд 1: доработать; 14 замечаний, существенных 5; из 44 утверждений не совпало 2"
+    who: "reviewer, Sonnet 5.5 / high"
+    tokens: 175879
+    link: "docs/reviews/RV-1.5-1.md"
 
 reviews:
   - id: "R-0.3-1"
@@ -704,6 +729,104 @@ reviews:
     round: 1
     severity: "предложение"
     text: "R-1.6, раздел 9: оценка «сильный довод для Р-2» вместо описания; добавить определение верхней недели"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-1"
+    item: "1.5"
+    round: 1
+    severity: "существенное"
+    text: "R-1.5, В-01: признак провала бракует корректные параметры Argon2id и scrypt из списка OWASP"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-2"
+    item: "1.5"
+    round: 1
+    severity: "существенное"
+    text: "R-1.5: роль «сотрудник» названа неясной, хотя она есть в ЯД-4 и пакетах 3.8–3.9; нет проверки области сотрудника"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-3"
+    item: "1.5"
+    round: 1
+    severity: "существенное"
+    text: "R-1.5, В-02: пример частого пароля короче порога длины — проверка чёрного списка не может сработать"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-4"
+    item: "1.5"
+    round: 1
+    severity: "существенное"
+    text: "R-1.5, В-04: порог 30 попыток противоречит оговорке отчёта; блокировка не связана с публичным паролем тестовых аккаунтов"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-5"
+    item: "1.5"
+    round: 1
+    severity: "существенное"
+    text: "R-1.5, С-01 и С-02: команды печатают значения секретов и читают .env"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-6"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5, F10: выпуск безопасности Next.js от 03.11.2026 передан неточно"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-7"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5, В-06: заголовок x-middleware-set-cookie привязан к находке, где его нет"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-8"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5: раздел о тестовых аккаунтах держится на мёртвой ссылке и слабых источниках"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-9"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5: пометка «метод автора» стоит не у всех собственных методов; у В-05 нет порога"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-10"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5: умолчания crypto.scrypt названы «не найдено», на странице Node.js они есть"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-11"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5: мелкие неточности — раздел PostgreSQL, SHOULD у 64 символов, «таблица Д»"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-12"
+    item: "1.5"
+    round: 1
+    severity: "незначительное"
+    text: "R-1.5, раздел 3: .gitignore даёт шаблон, а не Next.js; условных проверок больше, чем названо"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-13"
+    item: "1.5"
+    round: 1
+    severity: "предложение"
+    text: "R-1.5: уведомления не входят в охват меток; оговорки у Н-03 и внешних сканеров"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.5-14"
+    item: "1.5"
+    round: 1
+    severity: "предложение"
+    text: "R-1.5: «учётка» и нерасшифрованные сокращения — привести к глоссарию"
     by: "reviewer, Sonnet 5.5 / high"
     status: "открыто"
 
