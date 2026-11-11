@@ -498,6 +498,12 @@ history:
     who: "reviewer, Sonnet 5.5 / high"
     tokens: 175879
     link: "docs/reviews/RV-1.5-1.md"
+  - date: 2026-11-11
+    item: "1.5"
+    what: "Доработка R-1.5 по RV-1.5-1: 66 проверок; второй раунд ревью не проводился"
+    who: "researcher, Sonnet 5.5 / high"
+    tokens: 98248
+    link: "docs/research/R-1.5.md"
 
 reviews:
   - id: "R-0.3-1"
