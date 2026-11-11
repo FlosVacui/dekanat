@@ -22,7 +22,7 @@ disable-model-invocation: true
    - `uv run tools/tracker.py mark <№> today "<статус>"` — для каждого затронутого пакета;
    - `uv run tools/tracker.py log --item <№> --what "…" --who "…" --commit <хеш> --tokens N`;
    - замечания ревью этой смены — `uv run tools/tracker.py review …`; решённые — `review-status …`.
-7. **HANDOFF.** Перепиши `docs/HANDOFF.md` целиком по шаблону `docs/templates/handoff.md`.
+7. **HANDOFF.** Перепиши `docs/HANDOFF.md` целиком по шаблону `docs/templates/handoff.md`. Это делает только смена участника А. Смена участника Б или В `HANDOFF.md` не трогает: её итог — запись журнала и описание PR (`docs/PROCESS.md`, раздел «Параллельная работа»).
 8. **Промпт для следующей сессии.** Новый файл `prompts/handoff/H-NNN.md`, номер — следующий по порядку. Промпт самодостаточный: кто ты, что прочитать, что сделать по порядку, чего не делать без подтверждения, чем закончить. Добавь строку в `prompts/INDEX.md`.
 9. **Второй коммит.** Учёт — отдельно: `chore(tracker): …`. Журнал, HANDOFF и промпт — `docs(handoff): …`.
 10. **Push.** Удалённый репозиторий есть — push ветки. Создание репозитория, первый push и смена доступа — только после подтверждения человека.
