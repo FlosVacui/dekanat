@@ -504,6 +504,11 @@ history:
     who: "researcher, Sonnet 5.5 / high"
     tokens: 98248
     link: "docs/research/R-1.5.md"
+  - date: 2026-11-11
+    item: "1.8"
+    what: "PR №5 слит в main сжатием по слову пользователя: ревью пакетов 1.3, 1.5, 1.6, промпты H-006 и H-007; ветка docs/1-research-3 оставлена ради хешей из журнала"
+    who: "оркестратор, Fable 5.2"
+    commit: "acfd26c"
 
 reviews:
   - id: "R-0.3-1"
