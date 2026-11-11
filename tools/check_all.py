@@ -117,7 +117,24 @@ def modes_and_bom() -> tuple[int | None, str]:
     return (1, "\n".join(bad)) if bad else (0, "права и BOM в порядке")
 
 
+def tracked_env_files(listing: str) -> list[str]:
+    """`listing` — вывод `git ls-files`. Файлы окружения в git; образец `.env.example` разрешён."""
+    out = []
+    for path in listing.splitlines():
+        name = path.rsplit("/", 1)[-1]
+        if (name == ".env" or name.startswith(".env.")) and name != ".env.example":
+            out.append(path)
+    return out
+
+
 def leaks() -> tuple[int | None, str]:
+    # Проверка С-07 из R-1.5: файл окружения не лежит в git. Идёт и без gitleaks.
+    code, listing = run(["git", "ls-files"])
+    if code != 0:
+        return code, listing
+    tracked = tracked_env_files(listing)
+    if tracked:
+        return 1, "файл окружения в git: " + ", ".join(tracked)
     if shutil.which("gitleaks") is None:
         return None, "нет gitleaks — пропущено"
     has_commits = run(["git", "rev-parse", "--verify", "HEAD"])[0] == 0

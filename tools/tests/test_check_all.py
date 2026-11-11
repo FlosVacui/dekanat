@@ -29,3 +29,8 @@ def test_modes_and_bom():
         "не исполняемый в git: tools/tracker.py",
         "bootstrap.ps1 без BOM",
     ]
+
+
+def test_env_files_in_git_are_found():
+    listing = "README.md\n.env.example\napp/.env.example\n.env\napp/.env.local\ndocs/env.md\napp/src/.envrc"
+    assert check_all.tracked_env_files(listing) == [".env", "app/.env.local"]
