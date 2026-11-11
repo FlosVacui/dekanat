@@ -207,19 +207,20 @@ items:
     owner: "Оркестратор"
     review: "Аудитор безопасности (Opus 5.5 / high)"
     plan: {start: 2026-11-12, end: 2026-11-13}
-    fact: {2026-11-11: "В работе"}
+    fact: {2026-11-11: "Выполнено"}
   - id: "2.4"
     title: "Сквозной сценарий: вход → расписание → оценки → заявка → статус"
     person: "А"
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-13, end: 2026-11-14}
+    fact: {2026-11-11: "Выполнено"}
   - id: "2.5"
     title: "Развёртывание: хостинг, домен, HTTPS, монитор доступности"
     person: "А"
     owner: "Оркестратор; оплата — пользователь"
     review: "Проверка с телефонов в трёх сетях"
-    plan: {start: 2026-11-13, end: 2026-11-14}
+    plan: {start: 2026-11-13, end: 2026-11-16}
   - id: "2.6"
     title: "Базовые тесты безопасности: чужие данные, пароли, ключи"
     person: "А"
@@ -231,7 +232,7 @@ items:
     person: "А"
     owner: "Приёмка; проверка на телефоне (Sonnet 5.5 / medium)"
     review: "Пользователь"
-    plan: {start: 2026-11-14, end: 2026-11-14}
+    plan: {start: 2026-11-14, end: 2026-11-16}
 
   - id: "3"
     title: "Этап 3. Ядро целиком"
@@ -298,7 +299,7 @@ items:
     plan: {start: 2026-11-17, end: 2026-11-17}
   - id: "3.11"
     title: "Первая отправка работы"
-    person: "В"
+    person: "А"
     owner: "Капитан команды вручную"
     review: "—"
     plan: {start: 2026-11-18, end: 2026-11-18}
@@ -389,7 +390,7 @@ items:
     comment: "Без документов всех троих отправка работы закрыта"
   - id: "6.2"
     title: "Финальная отправка работы до 15:00"
-    person: "В"
+    person: "А"
     owner: "Капитан команды вручную"
     review: "—"
     plan: {start: 2026-11-22, end: 2026-11-22}
@@ -587,6 +588,25 @@ history:
     what: "Обзор архитектуры и пять ADR написаны; аудит не запускался"
     who: "Оркестратор Fable 5.2"
     commit: "45eaae7"
+  - date: 2026-11-11
+    item: "2.3"
+    what: "Пять ADR приняты после двух раундов аудита: RV-2.3-1 — 24 замечания, RV-2.3-2 — 12; все внесены"
+    who: "Оркестратор Fable 5.2; security-auditor Opus 5.5 / high, два запуска"
+    rounds: 2
+    tokens: 320830
+  - date: 2026-11-11
+    item: "2.4"
+    what: "Этап 1: проект в app/, база, вход, слой доступа, модульные тесты; проверки зелёные"
+    who: "builder Sonnet 5.5 / high"
+    commit: "b1e1cdd"
+    tokens: 235602
+  - date: 2026-11-11
+    item: "2.4"
+    what: "Этап 2: экраны М0, сквозной тест Playwright на 360x800, снимки; ревью RV-2.4-1 — принять с правками; пять правок внесены; шаги продукта в check_all.py"
+    who: "builder Sonnet 5.5 / high x2; reviewer Sonnet 5.5 / high; оркестратор Fable 5.2"
+    commit: "eeabc0f"
+    rounds: 1
+    tokens: 470473
   - date: 2026-11-11
     item: "0.1"
     what: "Ревью RV-0.1-1: доработать; 19 замечаний, блокирующих 0, существенных 6. Необщие файлы исправлены; правки общих файлов ждут подтверждения пользователя"
@@ -1382,6 +1402,87 @@ reviews:
     by: "reviewer, Sonnet 5.5 / high"
     status: "исправлено"
     comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.4-1"
+    item: "2.4"
+    round: 1
+    severity: "незначительное"
+    text: "Двойной текст изменения расписания"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в eeabc0f"
+  - id: "R-2.4-2"
+    item: "2.4"
+    round: 1
+    severity: "незначительное"
+    text: "Дата «получите до» в статусе «Готова» не из источника"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "Принято как вымышленное значение; DECISIONS; пакет 3.4"
+  - id: "R-2.4-3"
+    item: "2.4"
+    round: 1
+    severity: "незначительное"
+    text: "Нет отметки «прочитано», счётчик уведомлений только растёт"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "IMP-015, пакет 3.5"
+  - id: "R-2.4-4"
+    item: "2.4"
+    round: 1
+    severity: "незначительное"
+    text: "Сквозной тест оставляет заявки в рабочей базе; дубли на снимках"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в eeabc0f"
+  - id: "R-2.4-5"
+    item: "2.4"
+    round: 1
+    severity: "незначительное"
+    text: "Тесты лежат в app/tests/e2e, ADR-0005 называет tests/e2e"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Отклонение принято; ADR-0005 исправлен в eeabc0f"
+  - id: "R-2.4-6"
+    item: "2.4"
+    round: 1
+    severity: "предложение"
+    text: "Остановка сервера в тесте на Linux; дата шага 8 считается отдельно"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "Дата шага 8 исправлена в eeabc0f; остановка на Linux — IMP-016"
+  - id: "R-2.4-7"
+    item: "2.4"
+    round: 1
+    severity: "предложение"
+    text: "Начало семестра придумано; номер недели растёт без предела"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "Принято как вымышленное значение; DECISIONS; пакет 3.2"
+  - id: "R-2.4-8"
+    item: "2.4"
+    round: 1
+    severity: "предложение"
+    text: "Шаг 10 не доказывает удаление сессии на сервере"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в eeabc0f"
+  - id: "R-2.4-9"
+    item: "2.4"
+    round: 1
+    severity: "предложение"
+    text: "Для пакета 2.5: права в образе, путь тома, проверка состояния, режим .env"
+    repro: "RV-2.4-1"
+    by: "reviewer Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "Режим .env исправлен в eeabc0f; остальное — IMP-016, пакет 2.5"
 
 decisions:
   - id: "Р-0"
