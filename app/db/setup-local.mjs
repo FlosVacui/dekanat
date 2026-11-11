@@ -104,7 +104,7 @@ if (existing) {
     'NEXT_TELEMETRY_DISABLED=1',
     '',
   ]
-  writeFileSync(ENV_FILE, lines.join('\n'), { flag: 'wx' })
+  writeFileSync(ENV_FILE, lines.join('\n'), { flag: 'wx', mode: 0o600 })
   console.log('Создан файл .env в корне репозитория. Значения не печатаются.')
 }
 console.log(`Роли: ${OWNER_ROLE}, ${APP_ROLE}. Базы: ${DATABASES.join(', ')}.`)

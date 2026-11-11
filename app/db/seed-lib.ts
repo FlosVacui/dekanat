@@ -1,7 +1,8 @@
 // Вставка набора вымышленных данных. Общий код для команды db:seed и для тестов (второй набор создают только тесты).
 // Скрипты в app/db/ — исключение из правил «база только в слое» и «process.env только в config.ts» (ADR-0002, ADR-0004).
 // Повторный запуск безопасен: у строк набора стабильные номера (UUID из хеша имени), вставка идёт «вставить или обновить».
-// Заявки и уведомления, появившиеся при работе приложения, скрипт не трогает и не удаляет.
+// Набор возвращается в исходное состояние: заявки, история статусов и уведомления студентов ЭТОГО набора,
+// которых нет в вымышленных данных (их создало приложение или сквозной тест), удаляются. Другие наборы не трогаются.
 import { createHash } from 'node:crypto'
 import type pg from 'pg'
 import { addDays } from '../src/lib/dates'
@@ -154,6 +155,8 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
     )
 
     // Студенты.
+    const keptRequestIds: string[] = []
+    const keptNotificationIds: string[] = []
     for (const [i, s] of spec.students.entries()) {
       const userId = detId('user', s.login)
       const gId = groupId.get(s.groupName)
@@ -181,6 +184,7 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
       }
       for (const r of s.requests) {
         const requestId = detId('request', userId, r.key)
+        keptRequestIds.push(requestId)
         const created = `now() - interval '${Math.trunc(r.daysAgo)} days'`
         await q(
           `INSERT INTO requests (id, student_id, kind, status, note, ip, created_at, updated_at)
@@ -188,6 +192,10 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
            ON CONFLICT (id) DO NOTHING`,
           [requestId, userId, r.kind, r.status, r.note],
         )
+        // У выданной заявки есть дата выдачи: текст статуса «Вы получили документ <дата>» без неё неполон.
+        await q(`UPDATE requests SET issued_on = created_at::date + 1 WHERE id = $1 AND status = 'issued' AND issued_on IS NULL`, [
+          requestId,
+        ])
         await q(
           `INSERT INTO request_events (id, request_id, status, by_user_id, created_at)
            VALUES ($1, $2, $3, $4, ${created}) ON CONFLICT (id) DO NOTHING`,
@@ -195,6 +203,7 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
         )
       }
       for (const n of s.notifications) {
+        keptNotificationIds.push(detId('notification', userId, n.key))
         await q(
           `INSERT INTO notifications (id, student_id, kind, title, body, link, read_at) VALUES ($1, $2, $3, $4, $5, $6, ${
             n.unread ? 'NULL' : 'now()'
@@ -203,6 +212,14 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
         )
       }
     }
+
+    // Возврат в исходное состояние: лишнее у студентов этого набора удаляется. История статусов уходит вместе с заявкой (ON DELETE CASCADE).
+    const cohortStudents = `SELECT id FROM users WHERE cohort = $1 AND role = 'student'`
+    await q(`DELETE FROM requests WHERE student_id IN (${cohortStudents}) AND id <> ALL($2::uuid[])`, [spec.cohort, keptRequestIds])
+    await q(`DELETE FROM notifications WHERE student_id IN (${cohortStudents}) AND id <> ALL($2::uuid[])`, [
+      spec.cohort,
+      keptNotificationIds,
+    ])
 
     for (const a of spec.announcements) {
       await q(

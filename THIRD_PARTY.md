@@ -45,6 +45,8 @@
 | Vitest 5.1.0 | Модульные тесты | MIT, [LICENSE](https://github.com/vitest-dev/vitest/blob/main/LICENSE) | 11.11.2026 |
 | tsx 4.23.15 | Запуск скриптов `app/db/` на TypeScript | MIT, [LICENSE](https://github.com/privatenumber/tsx/blob/master/LICENSE) | 11.11.2026 |
 | drizzle-kit 0.31.11 | Создание файлов миграций из схемы | MIT по метаданным пакета и `package.json` в репозитории. Отдельного файла лицензии у drizzle-kit нет; в корне репозитория — [Apache-2.0](https://github.com/drizzle-team/drizzle-orm/blob/main/LICENSE). Расхождение не разобрано | 11.11.2026 |
+| @playwright/test 1.65.0 | Сквозной тест на экране 360×800 и снимки экранов (`app/tests/e2e/`). Метка `latest` — 1.65.0; `next` и `beta` — предвыпускные, не используются | Apache-2.0, [LICENSE](https://github.com/microsoft/playwright/blob/main/LICENSE) — файл открыт 11.11.2026, версия 1.65.0 в ветке `v1.65.0` тот же | 11.11.2026 |
+| Chromium для Playwright (`playwright install chromium`) | Браузер для сквозного теста; скачивается в кэш пользователя, в репозиторий и в образ не входит | не проверено: лицензии сборки Chromium, которую скачивает Playwright, не сверялись | — |
 | @types/node 24.19.2, @types/react 19.3.0, @types/react-dom 19.3.0, @types/pg 8.23.1 | Описания типов | MIT, [LICENSE](https://github.com/DefinitelyTyped/DefinitelyTyped/blob/master/LICENSE) | 11.11.2026 |
 
 Лицензии инструментов `tools/` и CI по страницам самих проектов ещё не сверены. Сверка — в пакете 5.4; в колонку «Сверено» пишется дата и ссылка на файл лицензии. До сверки лицензия по памяти не записывается.

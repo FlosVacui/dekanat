@@ -12,7 +12,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ru">
       <body>
-        <div className="flex min-h-dvh flex-col">
+        {/* Нижняя панель вкладок не перекрывает подвал: у страницы с панелью внизу оставлен отступ. */}
+        <div className="flex min-h-dvh flex-col has-[[data-tabbar]]:pb-16">
           <div className="flex-1">{children}</div>
           <footer className="px-4 py-4 text-center text-xs text-neutral-600">
             Концепт для конкурса, не официальный сервис вуза

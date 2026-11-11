@@ -42,3 +42,58 @@ export function formatDate(iso: string): string {
   const [y, m, d] = iso.split('-')
   return `${d}.${m}.${y}`
 }
+
+const MONTHS_GENITIVE = [
+  'января',
+  'февраля',
+  'марта',
+  'апреля',
+  'мая',
+  'июня',
+  'июля',
+  'августа',
+  'сентября',
+  'октября',
+  'ноября',
+  'декабря',
+]
+const WEEKDAYS_SHORT = ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб']
+
+/** «2026-11-12» -> «12 ноября». */
+export function formatDayMonth(iso: string): string {
+  const [, m, d] = iso.split('-')
+  return `${Number(d)} ${MONTHS_GENITIVE[Number(m) - 1] ?? ''}`.trim()
+}
+
+/** «2026-11-12» -> «чт». */
+export function weekdayShort(iso: string): string {
+  return WEEKDAYS_SHORT[new Date(`${iso}T00:00:00Z`).getUTCDay()] ?? ''
+}
+
+/** Текущее время «ЧЧ:ММ» в часовом поясе вуза. */
+export function nowTimeIn(timezone: string, now: Date = new Date()): string {
+  return new Intl.DateTimeFormat('en-GB', { timeZone: timezone, hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).format(now)
+}
+
+/** Ближайшее воскресенье (конец учебной недели); если день — воскресенье, он сам. */
+export function endOfWeek(iso: string): string {
+  const dow = new Date(`${iso}T00:00:00Z`).getUTCDay()
+  return addDays(iso, dow === 0 ? 0 : 7 - dow)
+}
+
+/** Начало вымышленного семестра: от него считается номер учебной недели. Вымышленное значение (ТР-5). */
+export const SEMESTER_START = '2026-09-01'
+
+/** Понедельник недели, в которую попадает день. */
+function mondayOf(iso: string): string {
+  const dow = new Date(`${iso}T00:00:00Z`).getUTCDay()
+  return addDays(iso, dow === 0 ? -6 : 1 - dow)
+}
+
+/** Номер учебной недели и её вид: нечётные недели — верхние, чётные — нижние. До начала семестра — null. */
+export function weekInfo(iso: string): { number: number; kind: 'верхняя' | 'нижняя' } | null {
+  const days = (Date.parse(`${mondayOf(iso)}T00:00:00Z`) - Date.parse(`${mondayOf(SEMESTER_START)}T00:00:00Z`)) / 86_400_000
+  if (days < 0) return null
+  const number = Math.floor(days / 7) + 1
+  return { number, kind: number % 2 === 1 ? 'верхняя' : 'нижняя' }
+}

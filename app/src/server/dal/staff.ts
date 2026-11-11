@@ -118,6 +118,8 @@ export async function changeRequestStatus(
   // Срок «В работе» считается от дня, когда заявку взяли в работу, по виду заявки (решение проекта, S-2.1 раздел 5).
   const dueDateByKind = sql`case ${requests.kind} when 'dean_certificate' then ${computeDueDate('dean_certificate', today)}::date when 'tuition_certificate' then ${computeDueDate('tuition_certificate', today)}::date else ${computeDueDate('financial_aid', today)}::date end`
 
+  const pickupUntilByKind = sql`case ${requests.kind} when 'dean_certificate' then ${computePickupUntil('dean_certificate', today)}::date when 'tuition_certificate' then ${computePickupUntil('tuition_certificate', today)}::date else ${computePickupUntil('financial_aid', today)}::date end`
+
   return getDb().transaction(async (tx) => {
     const cohortStudents = tx.select({ id: users.id }).from(users).where(and(eq(users.cohort, cohort), eq(users.role, 'student')))
 
@@ -132,7 +134,7 @@ export async function changeRequestStatus(
               ...(target === 'in_progress' ? { dueDate: dueDateByKind } : {}),
               ...(target === 'rejected' ? { rejectReason: reason } : {}),
               ...(target === 'issued' ? { issuedOn: today } : {}),
-              ...(target === 'ready' ? { pickupUntil: computePickupUntil(today) } : {}),
+              ...(target === 'ready' ? { pickupUntil: pickupUntilByKind } : {}),
             })
             .where(
               and(

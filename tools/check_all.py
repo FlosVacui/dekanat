@@ -10,12 +10,18 @@
 Каждый шаг идёт до конца, даже если предыдущий упал; итог — таблица и код 1 при любой ошибке.
 Шаги, которым нужна другая ОС или программа (PowerShell 5.1, bash, gitleaks), без неё пропускаются
 с пометкой.
+
+После шагов CI идут четыре шага продукта — проверка типов, линтер, модульные и сквозной тесты
+в `app/`. В CI на GitHub их нет: там нет базы. Стенд не поднят — шаг получает «пропущено»,
+общий итог остаётся зелёным: ADR-0005, «Пропущено — не пройдено». Пакет с кодом продукта
+принимается только при «ок» у каждого шага; пропущенные шаги названы в итоге поимённо.
 """
 
 from __future__ import annotations
 
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -34,6 +40,15 @@ MODES = "Права на запуск и BOM скриптов"
 LEAKS = "Секреты (gitleaks)"
 STEP_NAMES = [LINKS, CLEAN, TESTS, DUE, PS1, SH, MODES, LEAKS]
 
+# Шаги продукта — только локально, в ci.yml их нет: ADR-0005.
+APP_TYPES = "Продукт — проверка типов"
+APP_LINT = "Продукт — линтер"
+APP_UNIT = "Продукт — модульные тесты"
+APP_E2E = "Продукт — сквозной тест на 360 пикселях"
+PRODUCT_STEP_NAMES = [APP_TYPES, APP_LINT, APP_UNIT, APP_E2E]
+APP = ROOT / "app"
+DB_ADDRESS = ("127.0.0.1", 5432)
+
 EXECUTABLE = [
     "tools/bootstrap.sh",
     "tools/tracker.py",
@@ -49,12 +64,12 @@ PS1_PARSE = (
 )
 
 
-def run(argv: list[str]) -> tuple[int, str]:
+def run(argv: list[str], cwd: Path = ROOT) -> tuple[int, str]:
     env = {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8"}
     try:
         r = subprocess.run(
             argv,
-            cwd=ROOT,
+            cwd=cwd,
             env=env,
             stdin=subprocess.DEVNULL,
             capture_output=True,
@@ -142,6 +157,44 @@ def leaks() -> tuple[int | None, str]:
     return run(["gitleaks", *scan, "--redact", "--no-banner"])
 
 
+def product_skip_reason(
+    has_npm: bool, has_modules: bool, needs_stand: bool = False, has_env: bool = True, db_up: bool = True
+) -> str | None:
+    """Почему шаг продукта пропускается; `None` — запускать. Стенд — файл окружения и локальная база."""
+    if not has_npm:
+        return "нет npm — пропущено"
+    if not has_modules:
+        return "зависимости продукта не установлены (npm ci в app/) — пропущено"
+    if needs_stand and not has_env:
+        return "нет файла окружения (npm run db:setup в app/) — пропущено"
+    if needs_stand and not db_up:
+        return f"локальная база не отвечает на {DB_ADDRESS[0]}:{DB_ADDRESS[1]} — пропущено"
+    return None
+
+
+def db_answers() -> bool:
+    try:
+        with socket.create_connection(DB_ADDRESS, timeout=2):
+            return True
+    except OSError:
+        return False
+
+
+def product(script: str, needs_stand: bool = False) -> tuple[int | None, str]:
+    # Файл окружения не читается: проверяется только, что он есть.
+    npm = shutil.which("npm")
+    reason = product_skip_reason(
+        npm is not None,
+        (APP / "node_modules").is_dir(),
+        needs_stand,
+        (ROOT / ".env").is_file(),
+        db_answers() if needs_stand else True,
+    )
+    if reason is not None:
+        return None, reason
+    return run([npm, "run", script], cwd=APP)
+
+
 CHECKS = {
     LINKS: links,
     CLEAN: clean,
@@ -151,24 +204,31 @@ CHECKS = {
     SH: sh,
     MODES: modes_and_bom,
     LEAKS: leaks,
+    APP_TYPES: lambda: product("typecheck"),
+    APP_LINT: lambda: product("lint"),
+    APP_UNIT: lambda: product("test", needs_stand=True),
+    APP_E2E: lambda: product("test:e2e", needs_stand=True),
 }
 
 
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     results = []
-    for name in STEP_NAMES:
+    for name in STEP_NAMES + PRODUCT_STEP_NAMES:
         print(f"→ {name}", flush=True)
         start = time.monotonic()
         code, out = CHECKS[name]()
         status = "пропущено" if code is None else "ок" if code == 0 else "ошибка"
         if status == "ошибка":
             print("\n".join(out.splitlines()[-25:]), flush=True)
-        results.append((name, status, time.monotonic() - start))
+        results.append((name, status, time.monotonic() - start, out if code is None else ""))
     print("\nИтог:")
-    for name, status, spent in results:
+    for name, status, spent, _ in results:
         print(f"  {status:<9} {name} ({spent:.0f} с)")
-    failed = [name for name, status, _ in results if status == "ошибка"]
+    skipped = [f"{name}: {reason}" for name, status, _, reason in results if status == "пропущено"]
+    if skipped:
+        print("Пропущено — не пройдено:\n  " + "\n  ".join(skipped))
+    failed = [name for name, status, _, _ in results if status == "ошибка"]
     if failed:
         print("Не прошло: " + ", ".join(failed))
         return 1

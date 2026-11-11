@@ -34,3 +34,21 @@ def test_modes_and_bom():
 def test_env_files_in_git_are_found():
     listing = "README.md\n.env.example\napp/.env.example\n.env\napp/.env.local\ndocs/env.md\napp/src/.envrc"
     assert check_all.tracked_env_files(listing) == [".env", "app/.env.local"]
+
+
+def test_product_steps_are_local_only_and_have_checks():
+    assert not set(check_all.PRODUCT_STEP_NAMES) & set(check_all.STEP_NAMES)
+    assert all(name not in CI for name in check_all.PRODUCT_STEP_NAMES)
+    assert set(check_all.CHECKS) == set(check_all.STEP_NAMES + check_all.PRODUCT_STEP_NAMES)
+
+
+def test_product_step_is_skipped_without_stand():
+    reason = check_all.product_skip_reason
+    assert "нет npm" in reason(False, True)
+    assert "не установлены" in reason(True, False)
+    assert reason(True, True) is None
+    assert reason(True, True, needs_stand=False, has_env=False, db_up=False) is None
+    assert "нет файла окружения" in reason(True, True, needs_stand=True, has_env=False, db_up=True)
+    assert "база не отвечает" in reason(True, True, needs_stand=True, has_env=True, db_up=False)
+    assert reason(True, True, needs_stand=True, has_env=True, db_up=True) is None
+    assert all(r.endswith("пропущено") for r in (reason(False, True), reason(True, False)))

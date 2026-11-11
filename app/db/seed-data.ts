@@ -20,7 +20,7 @@ export const MAIN_COHORT: CohortSpec = {
           kind: 'lecture',
           room: 'Б-311',
           teacher: 'Громов Е. В.',
-          change: { dayOffset: 1, kind: 'room_changed', note: 'Аудитория изменена: Б-311 → Б-312' },
+          change: { dayOffset: 1, kind: 'room_changed', note: 'Б-311 → Б-312' },
         },
         {
           start: '10:45',
@@ -76,7 +76,7 @@ export const MAIN_COHORT: CohortSpec = {
           kind: 'lecture',
           room: 'Ю-102',
           teacher: 'Ермолаев Т. А.',
-          change: { dayOffset: 1, kind: 'cancelled', note: 'Пара отменена, преподаватель на конференции' },
+          change: { dayOffset: 1, kind: 'cancelled', note: 'преподаватель на конференции' },
         },
         {
           start: '10:45',

@@ -3,7 +3,7 @@ import * as React from 'react'
 import { cn } from '@/lib/utils'
 
 // Кнопка в духе shadcn/ui, написана заново. Зона касания не ниже 44 пикселей (ЗД-5, ADR-0001): min-h-11 = 44 px.
-const buttonVariants = cva(
+export const buttonVariants = cva(
   'inline-flex min-h-11 min-w-11 items-center justify-center rounded px-4 text-base font-medium disabled:opacity-60',
   {
     variants: {

@@ -14,6 +14,11 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "node scripts/with-env.mjs ./node_modules/vitest/vitest.mjs run",
+    "test:e2e": "npm run db:seed && npm run build && playwright test",
+    "test:e2e:run": "playwright test",
+    "screenshots": "npm run db:seed && npm run build && node ./node_modules/tsx/dist/cli.mjs tests/e2e/screenshots.ts",
+    "check": "npm run typecheck && npm run lint && npm test",
+    "playwright:install": "playwright install chromium",
     "db:setup": "node db/setup-local.mjs",
     "db:generate": "node ./node_modules/drizzle-kit/bin.cjs generate --config=db/drizzle.config.ts",
     "db:migrate": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/migrate.ts",
@@ -31,6 +36,7 @@
     "tailwind-merge": "3.7.0"
   },
   "devDependencies": {
+    "@playwright/test": "1.65.0",
     "@tailwindcss/postcss": "4.3.5",
     "@types/node": "24.19.2",
     "@types/pg": "8.23.1",

@@ -103,9 +103,13 @@ export function computeDueDate(kind: RequestKind, today: string): string {
   return info.workingDays ? addWorkingDays(today, info.productionDays) : addDays(today, info.productionDays)
 }
 
-/** До какого дня забрать готовую справку: пять рабочих дней. Вымышленное значение. */
-export function computePickupUntil(today: string): string {
-  return addWorkingDays(today, 5)
+/**
+ * Дата «до <дата>» в тексте «Готова». Срока получения в источнике нет (S-2.1, раздел 5: «до <дата>»), поэтому берётся
+ * единственный срок из источника — срок вида заявки (2 рабочих дня, 10 рабочих дней, 10 дней), отсчёт от дня, когда
+ * сотрудник поставил «Готова». Число «5 рабочих дней» этапа 1 убрано: у него источника не было. Вопрос открыт — отчёт этапа 2.
+ */
+export function computePickupUntil(kind: RequestKind, today: string): string {
+  return computeDueDate(kind, today)
 }
 
 export interface StatusTextInput {
