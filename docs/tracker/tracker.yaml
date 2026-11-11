@@ -194,7 +194,7 @@ items:
     owner: "Оркестратор"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-12, end: 2026-11-13}
-    fact: {2026-11-11: "В работе"}
+    fact: {2026-11-11: "Выполнено"}
   - id: "2.2"
     title: "Дизайн-система и свой логотип"
     person: "Б"
@@ -570,6 +570,23 @@ history:
     commit: "9e904ca"
     rounds: 2
     tokens: 193961
+  - date: 2026-11-11
+    item: "1.8"
+    what: "Ворота 1 закрыты: решены Р-0, Р-2, Р-3, Р-4"
+    who: "Пользователь; оркестратор Fable 5.2"
+    commit: "45eaae7"
+  - date: 2026-11-11
+    item: "2.1"
+    what: "Сценарии и карта экранов; два раунда ревью, все замечания исправлены"
+    who: "Оркестратор Fable 5.2; ревью Sonnet 5.5 / high"
+    commit: "1882e77"
+    rounds: 2
+    tokens: 225541
+  - date: 2026-11-11
+    item: "2.3"
+    what: "Обзор архитектуры и пять ADR написаны; аудит не запускался"
+    who: "Оркестратор Fable 5.2"
+    commit: "45eaae7"
 
 reviews:
   - id: "R-0.3-1"
@@ -1284,6 +1301,62 @@ reviews:
     by: "reviewer, Sonnet 5.5 / high"
     status: "исправлено"
     comment: "Исправлено в смене 6: S-2.1, раздел 9"
+  - id: "R-2.1-15"
+    item: "2.1"
+    round: 2
+    severity: "существенное"
+    text: "Сотрудник «меняет только статус», а тексты статусов требуют срока, кабинета и причины"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.1-16"
+    item: "2.1"
+    round: 2
+    severity: "незначительное"
+    text: "Раскладка Э-4 и Э-9 по умолчанию не названа"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.1-17"
+    item: "2.1"
+    round: 2
+    severity: "незначительное"
+    text: "Срок оригиналов стоит не в том статусе"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.1-18"
+    item: "2.1"
+    round: 2
+    severity: "незначительное"
+    text: "Э-10 нет в сценарии М0"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.1-19"
+    item: "2.1"
+    round: 2
+    severity: "незначительное"
+    text: "Потеряны две оговорки сводки"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.1-20"
+    item: "2.1"
+    round: 2
+    severity: "предложение"
+    text: "Не назван источник правила допуска"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
+  - id: "R-2.1-21"
+    item: "2.1"
+    round: 2
+    severity: "предложение"
+    text: "Строки о втором раунде устарели; цитата усечена"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в смене 6: 1882e77"
 
 decisions:
   - id: "Р-0"
