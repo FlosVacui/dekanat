@@ -1,0 +1,48 @@
+{
+  "name": "dekanat-v-karmane",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Деканат в кармане: концепт личного кабинета студента для конкурса. Вымышленные данные.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "node scripts/with-env.mjs ./node_modules/next/dist/bin/next dev",
+    "build": "node scripts/with-env.mjs ./node_modules/next/dist/bin/next build",
+    "start": "node scripts/with-env.mjs ./node_modules/next/dist/bin/next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "node scripts/with-env.mjs ./node_modules/vitest/vitest.mjs run",
+    "db:setup": "node db/setup-local.mjs",
+    "db:generate": "node ./node_modules/drizzle-kit/bin.cjs generate --config=db/drizzle.config.ts",
+    "db:migrate": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/migrate.ts",
+    "db:seed": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/seed.ts"
+  },
+  "dependencies": {
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "drizzle-orm": "0.45.4",
+    "next": "16.4.6",
+    "pg": "8.23.1",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.7.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "4.3.5",
+    "@types/node": "24.19.2",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "drizzle-kit": "0.31.11",
+    "eslint": "10.14.0",
+    "eslint-config-next": "16.4.6",
+    "postcss": "8.5.32",
+    "tailwindcss": "4.3.5",
+    "tsx": "4.23.15",
+    "typescript": "6.0.3",
+    "vitest": "5.1.0"
+  }
+}

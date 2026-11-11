@@ -1,0 +1,79 @@
+# Compose для сервера. НЕ ЗАПУСКАЛСЯ: на ноутбуке разработки Docker нет (решение пользователя 11.11.2026).
+# Первая проверка — пакет 2.5. Здесь только приложение и база; обратный прокси и сертификат — пакет 2.5.
+#
+# Правила (ADR-0001, ADR-0004):
+#  - PostgreSQL той же основной версии, что и локально: 18. Порт базы наружу не публикуется.
+#  - Порт приложения наружу не публикуется: до него доходит только обратный прокси по внутренней сети.
+#  - Данные базы — в именованном томе: перезапуск и пересборка контейнеров их не стирают.
+#  - Приложение получает переменные поимённо. Весь .env целиком ему не передаётся.
+#  - Файл .env лежит рядом с этим файлом, в git его нет. Compose берёт из него только значения для подстановки.
+#
+# Первый запуск:
+#   docker compose build
+#   docker compose up -d db
+#   docker compose run --rm migrate                                                   # миграции
+#   docker compose run --rm migrate node ./node_modules/tsx/dist/cli.mjs db/seed.ts  # вымышленные данные
+#   docker compose up -d app
+name: dekanat
+
+services:
+  db:
+    image: postgres:18
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dekanat_owner
+      POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:?задайте POSTGRES_OWNER_PASSWORD в .env}
+      POSTGRES_DB: dekanat
+      APP_ROLE_PASSWORD: ${POSTGRES_APP_PASSWORD:?задайте POSTGRES_APP_PASSWORD в .env}
+    volumes:
+      # Начиная с образа PostgreSQL 18 том монтируется в /var/lib/postgresql (по знанию автора, не сверено с документацией образа).
+      - dbdata:/var/lib/postgresql
+      - ./app/db/docker-init/10-app-role.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dekanat_owner -d dekanat"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    networks: [internal]
+
+  migrate:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      target: runtime
+    # Одноразовая задача: миграции под владельцем базы и выдача прав роли приложения.
+    command: ["node", "./node_modules/tsx/dist/cli.mjs", "db/migrate.ts"]
+    restart: "no"
+    environment:
+      DATABASE_OWNER_URL: postgresql://dekanat_owner:${POSTGRES_OWNER_PASSWORD}@db:5432/dekanat
+      DATABASE_URL: postgresql://dekanat_app:${POSTGRES_APP_PASSWORD}@db:5432/dekanat
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+
+  app:
+    build:
+      context: .
+      dockerfile: app/Dockerfile
+      target: runtime
+    restart: unless-stopped
+    environment:
+      # Только строка подключения своей роли и настройки: пароль владельца базы приложению не передаётся.
+      DATABASE_URL: postgresql://dekanat_app:${POSTGRES_APP_PASSWORD}@db:5432/dekanat
+      CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+      NEXT_TELEMETRY_DISABLED: "1"
+    # Порт наружу не публикуется. Обратный прокси подключается к этой сети в пакете 2.5.
+    expose: ["3000"]
+    depends_on:
+      db:
+        condition: service_healthy
+    networks: [internal]
+
+networks:
+  internal: {}
+
+volumes:
+  dbdata: {}
