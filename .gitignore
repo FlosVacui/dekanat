@@ -39,3 +39,6 @@ docs/submission/video/render/
 # Файлы ОС
 .DS_Store
 Thumbs.db
+
+# Сборка Next.js и TypeScript
+*.tsbuildinfo

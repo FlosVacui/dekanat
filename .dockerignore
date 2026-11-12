@@ -1,0 +1,22 @@
+# Секреты и окружение никогда не входят в образ (ADR-0004).
+.env
+.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# Не нужно для сборки.
+.git
+.github
+.claude
+.venv
+**/node_modules
+**/.next
+**/coverage
+**/test-results
+**/playwright-report
+docs
+prompts
+tools
+**/tests
+*.md
