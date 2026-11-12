@@ -689,6 +689,12 @@ history:
     who: "оркестратор Fable 5.2"
     commit: "4a51900"
     link: "https://github.com/FlosVacui/dekanat/pull/13"
+  - date: 2026-11-13
+    item: "3.1"
+    what: "PR №13: пользователь ответил «Да, сливай»; общая проверка перед слиянием — 12 шагов «ок»"
+    who: "пользователь; оркестратор Fable 5.2"
+    commit: "59f4fdf"
+    link: "https://github.com/FlosVacui/dekanat/pull/13"
 
 reviews:
   - id: "R-0.3-1"
