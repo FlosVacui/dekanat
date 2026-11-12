@@ -345,7 +345,7 @@ export async function createMyRequest(
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`requests:${studentId}`}, 0))`)
     const counted = await tx.execute(sql`
       select count(*) filter (where ip = ${safeIp})::int as pair, count(*)::int as account
-      from requests where student_id = ${studentId} and created_at > now() - interval '1 day'
+      from requests where student_id = ${studentId} and created_at > clock_timestamp() - interval '1 day'
     `)
     const pair = Number(counted.rows[0]?.pair ?? 0)
     const account = Number(counted.rows[0]?.account ?? 0)

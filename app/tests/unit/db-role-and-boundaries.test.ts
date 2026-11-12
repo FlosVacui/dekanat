@@ -90,4 +90,41 @@ describe('роль базы у приложения (П-10, ADR-0002)', () => {
     await expect(asApp((c) => c.query(`update grades set points = 100`))).rejects.toThrow(/permission denied/)
     await expect(asApp((c) => c.query(`delete from requests`))).rejects.toThrow(/permission denied/)
   })
+
+  it('счётчики входа роль приложения пишет и чистит; права выдаёт migrate-lib.ts, а не миграция с именем роли (R-3.1-5)', async () => {
+    const probe = 'права-проверка-3-1'
+    await asApp(async (c) => {
+      const statements = [
+        {
+          table: 'login_attempts',
+          insert: `insert into login_attempts (ip, login, fails, next_allowed_at, last_attempt_at) values ($1, $1, 1, now(), now())`,
+          update: `update login_attempts set fails = 2 where ip = $1`,
+          remove: `delete from login_attempts where ip = $1`,
+        },
+        {
+          table: 'login_ip_windows',
+          insert: `insert into login_ip_windows (ip, window_start, attempts) values ($1, now(), 1)`,
+          update: `update login_ip_windows set attempts = 2 where ip = $1`,
+          remove: `delete from login_ip_windows where ip = $1`,
+        },
+        {
+          table: 'login_streaks',
+          insert: `insert into login_streaks (login, fails) values ($1, 1)`,
+          update: `update login_streaks set fails = 2 where login = $1`,
+          remove: `delete from login_streaks where login = $1`,
+        },
+      ]
+      for (const s of statements) {
+        await c.query(s.insert, [probe])
+        expect((await c.query(s.update, [probe])).rowCount, s.table).toBe(1)
+        expect((await c.query(s.remove, [probe])).rowCount, s.table).toBe(1)
+      }
+    })
+    const migrations = join(fileURLToPath(new URL('../../db/migrations', import.meta.url)))
+    for (const name of readdirSync(migrations).filter((n) => n.endsWith('.sql'))) {
+      expect(readFileSync(join(migrations, name), 'utf8'), name).not.toMatch(/dekanat_app|\bGRANT\b/i)
+    }
+    const lib = readFileSync(fileURLToPath(new URL('../../db/migrate-lib.ts', import.meta.url)), 'utf8')
+    expect(lib).toMatch(/GRANT INSERT, UPDATE, DELETE ON login_attempts, login_ip_windows, login_streaks TO \{role\}/)
+  })
 })

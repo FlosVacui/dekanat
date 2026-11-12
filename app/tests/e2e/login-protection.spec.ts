@@ -3,8 +3,9 @@
 // (В-03, Ж-02, Ж-03). Лимиты не выключаются: каждый тест шлёт свой адрес заголовком, как прокси (helpers/address.ts).
 import { expect, test, type Browser, type BrowserContext, type Page } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
-import { addressHeaders } from './helpers/address'
+import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
+import { holdPair } from './helpers/db'
 import { BASE_URL, startServer, stopServer, type RunningServer } from './helpers/server'
 
 const [student1, student2] = MAIN_COHORT.students
@@ -21,9 +22,10 @@ test.afterAll(async () => {
   server = null
 })
 
-async function visitor(browser: Browser): Promise<{ context: BrowserContext; page: Page }> {
-  const context = await browser.newContext({ extraHTTPHeaders: addressHeaders() })
-  return { context, page: await context.newPage() }
+async function visitor(browser: Browser): Promise<{ context: BrowserContext; page: Page; ip: string }> {
+  const ip = freshAddress()
+  const context = await browser.newContext({ extraHTTPHeaders: addressHeaders(ip) })
+  return { context, page: await context.newPage(), ip }
 }
 
 async function submitLogin(page: Page, login: string, password: string): Promise<void> {
@@ -46,7 +48,7 @@ async function expectNoHorizontalScroll(page: Page, where: string): Promise<void
 }
 
 test('Э-1: шесть неверных входов — на шестом «Повторите через…»; логин остаётся в поле, пароль нет', async ({ browser }) => {
-  const { context, page } = await visitor(browser)
+  const { context, page, ip } = await visitor(browser)
   try {
     await page.goto('/login')
     const alert = page.locator('form').getByRole('alert')
@@ -54,7 +56,9 @@ test('Э-1: шесть неверных входов — на шестом «П�
       await submitLogin(page, student1.login, `${CANARY}-${attempt}`)
       await expect(alert, `попытка ${attempt}`).toHaveText('Неверный логин или пароль')
     }
-    // Шестая попытка сразу за пятой: после пятой неверной пара ждёт секунду.
+    // После пятой неверной пара ждёт секунду. Шестая попытка не должна зависеть от того, успеет ли браузер за секунду:
+    // ожидание выставлено запросом к базе.
+    await holdPair(ip, student1.login, 30)
     await submitLogin(page, student1.login, `${CANARY}-6`)
     await expect(alert).toHaveText(/^Слишком много попыток\. Повторите через \d+ с$/)
     // Логин остался в поле, пароль очищен, сообщение связано с полями для экранных чтецов.

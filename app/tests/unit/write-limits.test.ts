@@ -3,7 +3,7 @@
 import { createHash } from 'node:crypto'
 import { afterAll, describe, expect, it } from 'vitest'
 import { authenticate } from '@/server/auth/login'
-import { resolveActor } from '@/server/auth/session'
+import { createSession, resolveActor } from '@/server/auth/session'
 import { closeDb } from '@/server/dal/client'
 import { RequestLimitError } from '@/server/dal/guards'
 import * as staffDal from '@/server/dal/staff'
@@ -43,6 +43,23 @@ describe('пределы сессий: 10 на пару «аккаунт и ад
     expect(await resolveActor(tokens[0]), 'самая старая сессия пары погашена').toBeNull()
     for (const token of tokens.slice(1)) expect(await resolveActor(token)).not.toBeNull()
     expect(await resolveActor(other), 'сессия с другого адреса жива').not.toBeNull()
+  })
+
+  it('15 одновременных входов одной пары: живых сессий не больше 10, ни одной ошибки (замок на аккаунт, R-3.1-3 а)', async () => {
+    // Хеш пароля дорог, а очередь хеша — восемь: 15 входов через authenticate часть отвергла бы как «сервер занят».
+    // Поэтому залп идёт прямо на выдачу сессии — ту самую, которую вход вызывает после проверки пароля.
+    const user = await withOwner((c) => c.query('select id from users where login = $1', [STUDENT_B.login]))
+    const userId = user.rows[0].id as string
+    for (let round = 0; round < 3; round += 1) {
+      const ip = freshIp()
+      const results = await Promise.allSettled(Array.from({ length: 15 }, () => createSession(userId, ip)))
+      expect(results.filter((r) => r.status === 'rejected'), `раунд ${round}: ошибки выдачи`).toEqual([])
+      expect(await liveSessions(STUDENT_B.login, ip), `раунд ${round}: живых сессий пары`).toBe(10)
+      // Живые — это именно выданные, а не лишние: каждая выжившая сессия узнаётся по своему токену.
+      const alive = results.filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof createSession>>> => r.status === 'fulfilled')
+      const found = (await Promise.all(alive.map((r) => resolveActor(r.value.token)))).filter((a) => a !== null)
+      expect(found).toHaveLength(10)
+    }
   })
 
   it('300 живых на аккаунт: следующий вход гасит самую старую сессию аккаунта', async () => {

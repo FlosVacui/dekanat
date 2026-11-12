@@ -132,11 +132,11 @@ export async function changeRequestStatus(
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`status:${staffId}:${safeIp}`}, 0))`)
     const recent = await tx.execute(sql`
       select count(*)::int as n from request_events
-      where by_user_id = ${staffId} and ip = ${safeIp} and created_at > now() - interval '1 minute'
+      where by_user_id = ${staffId} and ip = ${safeIp} and created_at > clock_timestamp() - interval '1 minute'
     `)
     if (Number(recent.rows[0]?.n ?? 0) >= STATUS_CHANGES_PER_MINUTE) return { ok: false, reason: 'rate_limited' } as const
 
-    const cohortStudents =tx.select({ id: users.id }).from(users).where(and(eq(users.cohort, cohort), eq(users.role, 'student')))
+    const cohortStudents = tx.select({ id: users.id }).from(users).where(and(eq(users.cohort, cohort), eq(users.role, 'student')))
 
     const updated =
       allowedFrom.length === 0

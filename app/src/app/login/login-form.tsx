@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from 'react'
+import { useActionState, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { loginAction, type LoginState } from './actions'
 
@@ -9,6 +9,10 @@ const ERROR_ID = 'login-error'
 
 export function LoginForm() {
   const [state, action, pending] = useActionState(loginAction, initial)
+  // Номер попытки: каждый ответ сервера — новый объект состояния. Абзац с отказом получает по нему новый ключ и
+  // создаётся заново, поэтому тот же текст отказа два раза подряд читается экранным чтецом снова (R-3.1-13).
+  const [attempt, setAttempt] = useState({ state, count: 0 })
+  if (attempt.state !== state) setAttempt({ state, count: attempt.count + 1 })
   // Сообщение об отказе связано с обоими полями для экранных чтецов (aria-describedby) и объявляется само (role="alert").
   const describedBy = state.error ? ERROR_ID : undefined
   return (
@@ -42,7 +46,7 @@ export function LoginForm() {
         />
       </label>
       {state.error ? (
-        <p id={ERROR_ID} role="alert" className="text-sm text-red-700">
+        <p key={attempt.count} id={ERROR_ID} role="alert" className="text-sm text-red-700">
           {state.error}
         </p>
       ) : null}

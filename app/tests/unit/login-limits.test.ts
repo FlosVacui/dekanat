@@ -5,8 +5,9 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authenticate, type LoginOutcome } from '@/server/auth/login'
 import * as password from '@/server/auth/password'
 import { closeDb } from '@/server/dal/client'
+import { recordPairAttempt } from '@/server/dal/login-limits'
 import { ALT_STUDENT, STUDENT_A } from './fixtures'
-import { freshIp, freshNet6, withOwner } from './helpers'
+import { freshIp, freshNet6, holdPair, withOwner } from './helpers'
 
 vi.mock('@/server/auth/password', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@/server/auth/password')>()
@@ -30,7 +31,8 @@ function refusal(outcome: LoginOutcome): Refusal {
 async function pairRow(ip: string, login: string) {
   const res = await withOwner((c) =>
     c.query(
-      `select fails, extract(epoch from (next_allowed_at - last_attempt_at))::float as wait, next_allowed_at > now() as waiting
+      // Метки ставятся часами базы в момент выполнения (clock_timestamp), поэтому разность округляется до секунды.
+      `select fails, round(extract(epoch from (next_allowed_at - last_attempt_at)))::int as wait, next_allowed_at > now() as waiting
        from login_attempts where ip = $1 and login = $2`,
       [ip, login],
     ),
@@ -51,11 +53,15 @@ describe('пара «адрес и логин»: пять попыток без 
     for (let i = 1; i <= 5; i += 1) {
       expect(await authenticate(STUDENT_A.login, WRONG, ip), `попытка ${i}`).toEqual({ ok: false, reason: 'invalid' })
     }
+    // Первое ожидание — 1 с: проверяется по метке в базе, а не по часам.
     expect(await pairRow(ip, STUDENT_A.login)).toMatchObject({ fails: 5, wait: 1 })
+    // Метка сдвинута запросом: шестая попытка не должна успеть «до конца секунды».
+    await holdPair(ip, STUDENT_A.login, 30)
     verifySpy.mockClear()
     const waiting = refusal(await authenticate(STUDENT_A.login, STUDENT_A.password, ip))
     expect(waiting.reason).toBe('wait')
-    expect(waiting.reason === 'wait' && waiting.retryAfterSeconds).toBe(1)
+    expect(waiting.reason === 'wait' && waiting.retryAfterSeconds).toBeGreaterThanOrEqual(29)
+    expect(waiting.reason === 'wait' && waiting.retryAfterSeconds).toBeLessThanOrEqual(30)
     expect(verifySpy, 'хеш для отказа «подождите» не считается').not.toHaveBeenCalled()
 
     // Шестая, седьмая, восьмая попытки после ожидания: 2, 4, 8 секунд.
@@ -96,12 +102,14 @@ describe('пара «адрес и логин»: пять попыток без 
     for (let i = 0; i < 5; i += 1) {
       expect(await authenticate(STUDENT_A.login, WRONG, ip)).toEqual({ ok: false, reason: 'invalid' })
     }
+    await holdPair(ip, STUDENT_A.login, 30)
     expect(refusal(await authenticate(STUDENT_A.login, WRONG, ip)).reason).toBe('wait')
   })
 
   it('15 минут тишины сбрасывают счётчик', async () => {
     const ip = freshIp()
     for (let i = 0; i < 5; i += 1) await authenticate(STUDENT_A.login, WRONG, ip)
+    await holdPair(ip, STUDENT_A.login, 30)
     expect(refusal(await authenticate(STUDENT_A.login, WRONG, ip)).reason).toBe('wait')
     await withOwner((c) =>
       c.query(
@@ -148,6 +156,38 @@ describe('пара «адрес и логин»: пять попыток без 
   })
 })
 
+describe('время в запросах счётчиков — часы базы, а не начало запроса (R-3.1-1)', () => {
+  it('40 одновременных попыток одной пары при нулевом счётчике: ложных «подождите» нет, пока неверных меньше пяти', async () => {
+    // Несколько раундов: гонка плавающая, один раунд на старом коде проходил бы иногда.
+    for (let round = 0; round < 5; round += 1) {
+      const ip = freshIp()
+      const outcomes = await Promise.all(Array.from({ length: 40 }, () => recordPairAttempt(ip, STUDENT_A.login)))
+      const allowed = outcomes.filter((o) => o.allowed).length
+      // Свободны первые пять попыток: четыре без задержки и пятая, после которой ставится ожидание.
+      expect(allowed, `раунд ${round}: принято попыток`).toBeGreaterThanOrEqual(5)
+      const row = await pairRow(ip, STUDENT_A.login)
+      expect(row?.fails, `раунд ${round}: счётчик равен числу принятых`).toBe(allowed)
+      // Отказано ровно столько, сколько не принято, и каждому отказу назван срок не меньше секунды.
+      for (const o of outcomes) if (!o.allowed) expect(o.retryAfterSeconds).toBeGreaterThanOrEqual(1)
+    }
+  })
+
+  it('40 пар, у каждой пять одновременных попыток: все пять приняты, ложного «подождите» нет ни у одной', async () => {
+    // Пять попыток свободны. Отказ у любой из них — отказ при счётчике меньше пяти, то есть ложный.
+    const ips = Array.from({ length: 40 }, () => freshIp())
+    const outcomes = await Promise.all(ips.flatMap((ip) => Array.from({ length: 5 }, () => recordPairAttempt(ip, STUDENT_A.login))))
+    expect(outcomes.filter((o) => !o.allowed).length, 'ложных отказов при счётчике меньше пяти').toBe(0)
+  })
+
+  it('то же через вход: три одновременных верных входа одной пары принимаются все', async () => {
+    for (let round = 0; round < 5; round += 1) {
+      const ip = freshIp()
+      const outcomes = await Promise.all(Array.from({ length: 3 }, () => authenticate(STUDENT_A.login, STUDENT_A.password, ip)))
+      expect(outcomes.map((o) => (o.ok ? 'ok' : o.reason)), `раунд ${round}`).toEqual(['ok', 'ok', 'ok'])
+    }
+  })
+})
+
 describe('параллельный залп (В-04)', () => {
   it('50 одновременных неверных попыток на одну пару: хеш считается не больше чем для пяти', async () => {
     const ip = freshIp()
@@ -170,6 +210,69 @@ describe('параллельный залп (В-04)', () => {
   })
 })
 
+describe('залпы на счётчики адреса и логина (R-3.1-3 б, в)', () => {
+  it('50 одновременных попыток с одного адреса на разные логины: хеш считается не больше 30 раз, принято ровно 30', async () => {
+    const ip = freshIp()
+    const outcomes = await Promise.all(Array.from({ length: 50 }, (_, i) => authenticate(`выдуманный-адрес-залп-${i}`, WRONG, ip)))
+    // Считаем вызовы хеша, а не ответы: очередь хеша — восемь, часть входов получит «сервер занят», но и она хеша не считает.
+    expect(verifySpy.mock.calls.length, 'вызовов хеша').toBeLessThanOrEqual(30)
+    expect(verifySpy.mock.calls.length).toBeGreaterThanOrEqual(1)
+    const kinds = outcomes.map((o) => (o.ok ? 'ok' : o.reason))
+    expect(kinds.filter((k) => k === 'ip_limited'), 'отказов по лимиту адреса').toHaveLength(20)
+    expect(kinds.every((k) => ['invalid', 'busy', 'ip_limited'].includes(k))).toBe(true)
+    const row = await withOwner((c) => c.query('select attempts from login_ip_windows where ip = $1', [ip]))
+    expect(row.rows[0], 'счётчик адреса не потерял попыток и не вышел за предел').toEqual({ attempts: 30 })
+  })
+
+  it('100 одновременных неверных попыток на логин с неопубликованным паролем с разных адресов: счётчик логина не теряет попыток', async () => {
+    const login = ALT_STUDENT.login
+    await withOwner((c) => c.query('delete from login_streaks where login = $1', [login]))
+    try {
+      const outcomes = await Promise.all(Array.from({ length: 100 }, () => authenticate(login, WRONG, freshIp())))
+      const kinds = outcomes.map((o) => (o.ok ? 'ok' : o.reason))
+      expect(kinds.every((k) => k === 'invalid' || k === 'busy'), `виды отказов: ${[...new Set(kinds)].join(', ')}`).toBe(true)
+      // Счётчик логина растёт до хеша: «сервер занят» попытку не стирает. Хеш при этом считался не для всех.
+      expect(verifySpy.mock.calls.length, 'вызовов хеша').toBeLessThan(100)
+      const row = await withOwner((c) => c.query('select fails from login_streaks where login = $1', [login]))
+      expect(row.rows[0], 'сто попыток — сто в счётчике').toEqual({ fails: 100 })
+      // Сто неверных подряд закрывают вход: верный пароль теперь отвечает как неверный.
+      expect(await authenticate(login, ALT_STUDENT.password, freshIp())).toEqual({ ok: false, reason: 'invalid' })
+    } finally {
+      await withOwner((c) => c.query('delete from login_streaks where login = $1', [login]))
+    }
+  }, 120_000)
+
+  it('время ответа: неопубликованный логин с неверным паролем и выдуманный логин — медианы нижней половины различаются меньше чем на четверть', async () => {
+    // Лишняя запись счётчика логина (recordLoginStreak) у неопубликованного логина не должна быть заметна по времени.
+    const login = ALT_STUDENT.login
+    await withOwner((c) => c.query('delete from login_streaks where login = $1', [login]))
+    try {
+      await authenticate(login, WRONG, freshIp())
+      await authenticate('нет-такого-логина-3-1', WRONG, freshIp())
+      const real: number[] = []
+      const fake: number[] = []
+      for (let i = 0; i < 15; i += 1) {
+        let started = performance.now()
+        await authenticate(login, WRONG, freshIp())
+        real.push(performance.now() - started)
+        started = performance.now()
+        await authenticate('нет-такого-логина-3-1', WRONG, freshIp())
+        fake.push(performance.now() - started)
+      }
+      const median = (xs: number[]) => {
+        const lower = [...xs].sort((a, b) => a - b).slice(0, Math.ceil(xs.length / 2))
+        return lower[Math.floor(lower.length / 2)]!
+      }
+      const mReal = median(real)
+      const mFake = median(fake)
+      console.log(`Время ответа, неопубликованный логин: ${mReal.toFixed(0)} мс, нет логина ${mFake.toFixed(0)} мс, разность ${Math.abs(mReal - mFake).toFixed(0)} мс`)
+      expect(Math.abs(mReal - mFake)).toBeLessThan(Math.max(mReal, mFake) / 4)
+    } finally {
+      await withOwner((c) => c.query('delete from login_streaks where login = $1', [login]))
+    }
+  }, 120_000)
+})
+
 describe('одинаковый ответ на «нет логина», «неверный пароль», «логин закрыт» (В-05)', () => {
   it('по семь неверных попыток на настоящий и на выдуманный логин с разных адресов: виды отказа и секунды совпадают попарно', async () => {
     const realIp = freshIp()
@@ -180,6 +283,11 @@ describe('одинаковый ответ на «нет логина», «нев
     for (let i = 0; i < 7; i += 1) {
       real.push(describeOutcome(await authenticate(STUDENT_A.login, WRONG, realIp)))
       fake.push(describeOutcome(await authenticate('нет-такого-логина-3-1', WRONG, fakeIp)))
+      if (i === 4) {
+        // После пятой попытки обеим парам выставлено одинаковое ожидание запросом к базе: шестая и седьмая не зависят от часов.
+        await holdPair(realIp, STUDENT_A.login, 120)
+        await holdPair(fakeIp, 'нет-такого-логина-3-1', 120)
+      }
     }
     expect(fake).toEqual(real)
     // Пять «неверно», затем «подождите» с одним и тем же числом секунд.
@@ -219,7 +327,11 @@ describe('одинаковый ответ на «нет логина», «нев
       await authenticate('нет-такого-логина-3-1', WRONG, freshIp())
       fake.push(performance.now() - started)
     }
-    const median = (xs: number[]) => [...xs].sort((a, b) => a - b)[Math.floor(xs.length / 2)]!
+    // Медиана нижней половины замеров: выбросы от загруженной машины (сборка мусора, соседние процессы) в неё не попадают.
+    const median = (xs: number[]) => {
+      const lower = [...xs].sort((a, b) => a - b).slice(0, Math.ceil(xs.length / 2))
+      return lower[Math.floor(lower.length / 2)]!
+    }
     const mReal = median(real)
     const mFake = median(fake)
     console.log(`Время ответа: неверный пароль ${mReal.toFixed(0)} мс, нет логина ${mFake.toFixed(0)} мс, разность ${Math.abs(mReal - mFake).toFixed(0)} мс`)

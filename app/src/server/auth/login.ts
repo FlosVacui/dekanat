@@ -7,7 +7,7 @@ import {
   recordLoginStreak,
   recordPairAttempt,
 } from '../dal/login-limits'
-import { logSecurityEvent } from '../security-log'
+import { logSecurityEvent, newRequestId } from '../security-log'
 import { BusyError, hashGate } from './gate'
 import { normalizeIp } from './ip'
 import { MAX_PASSWORD_LENGTH, hashPassword, verifyPassword } from './password'
@@ -47,10 +47,36 @@ const INVALID = { ok: false, reason: 'invalid' } as const
  * Заготовка для несуществующего логина: хеш ненастоящего пароля считается в самом начале работы процесса,
  * а не при первом выдуманном логине, иначе первый такой вход занял бы вдвое больше времени.
  */
-const dummyHash: Promise<string> = hashPassword('нет-такого-пользователя')
-dummyHash.catch(() => undefined)
+let dummyHash: Promise<string> | null = null
 
-export async function authenticate(rawLogin: string, password: string, ip: string): Promise<LoginOutcome> {
+/**
+ * Заготовка одна на процесс, но отклонённый промис не остаётся навсегда: если счёт один раз упал (например, не хватило
+ * памяти), при следующем обращении заготовка считается заново. Иначе каждый вход по выдуманному логину бросал бы
+ * исключение, а по настоящему — нет, и «500 или неверно» выдавало бы, есть ли такой логин (R-3.1-10).
+ */
+function getDummyHash(): Promise<string> {
+  if (!dummyHash) {
+    const attempt = hashPassword('нет-такого-пользователя')
+    dummyHash = attempt
+    attempt.catch(() => {
+      if (dummyHash === attempt) dummyHash = null
+    })
+  }
+  return dummyHash
+}
+// Счёт начинается при загрузке модуля.
+void getDummyHash()
+
+/**
+ * `requestId` — номер запроса для журнала: один на вызов действия, его создаёт действие (R-3.1-8). Не передан —
+ * создаётся один на этот вызов, так что события одного входа всё равно несут один номер.
+ */
+export async function authenticate(
+  rawLogin: string,
+  password: string,
+  ip: string,
+  requestId: string = newRequestId(),
+): Promise<LoginOutcome> {
   const login = normalizeLogin(rawLogin)
   if (!login || login.length > MAX_LOGIN_LENGTH || !password || password.length > MAX_PASSWORD_LENGTH) {
     return INVALID
@@ -60,12 +86,12 @@ export async function authenticate(rawLogin: string, password: string, ip: strin
   try {
     const window = await recordAddressAttempt(address)
     if (!window.allowed) {
-      logSecurityEvent('login_ip_limited', { ip: address })
+      logSecurityEvent('login_ip_limited', { ip: address, requestId })
       return { ok: false, reason: 'ip_limited', retryAfterSeconds: window.retryAfterSeconds }
     }
     const pair = await recordPairAttempt(address, login)
     if (!pair.allowed) {
-      logSecurityEvent('login_wait', { ip: address })
+      logSecurityEvent('login_wait', { ip: address, requestId })
       return { ok: false, reason: 'wait', retryAfterSeconds: pair.retryAfterSeconds }
     }
 
@@ -75,11 +101,11 @@ export async function authenticate(rawLogin: string, password: string, ip: strin
     const streak = record && !record.passwordPublished ? await recordLoginStreak(login) : 0
     const closed = streak > LOGIN_CLOSE_AFTER
 
-    const stored = record?.passwordHash ?? (await dummyHash)
+    const stored = record?.passwordHash ?? (await getDummyHash())
     const matches = await hashGate.run(() => verifyPassword(password, stored))
     if (!record || !matches || closed) {
-      if (record && !matches && streak === LOGIN_CLOSE_AFTER) logSecurityEvent('login_closed', { userId, ip: address })
-      logSecurityEvent('login_failed', { userId, ip: address })
+      if (record && !matches && streak === LOGIN_CLOSE_AFTER) logSecurityEvent('login_closed', { userId, ip: address, requestId })
+      logSecurityEvent('login_failed', { userId, ip: address, requestId })
       return INVALID
     }
     const session = await createSession(record.userId, address)
@@ -87,7 +113,7 @@ export async function authenticate(rawLogin: string, password: string, ip: strin
     return { ok: true, token: session.token, expiresAt: session.expiresAt }
   } catch (error) {
     if (error instanceof BusyError) {
-      logSecurityEvent('login_busy', { userId, ip: address })
+      logSecurityEvent('login_busy', { userId, ip: address, requestId })
       return { ok: false, reason: 'busy' }
     }
     throw error

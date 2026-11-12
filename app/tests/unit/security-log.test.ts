@@ -3,9 +3,9 @@
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { authenticate } from '@/server/auth/login'
 import { closeDb } from '@/server/dal/client'
-import { logSecurityEvent } from '@/server/security-log'
+import { logSecurityEvent, newRequestId } from '@/server/security-log'
 import { ALT_STUDENT, STUDENT_A } from './fixtures'
-import { freshIp, withOwner } from './helpers'
+import { freshIp, holdPair, withOwner } from './helpers'
 
 afterAll(closeDb)
 
@@ -83,7 +83,10 @@ describe('журнал событий безопасности', () => {
 
   it('отказы «подождите» и «лимит адреса» записаны', async () => {
     const ip = freshIp()
-    for (let i = 0; i < 6; i += 1) await authenticate(STUDENT_A.login, 'неверный-пароль', ip)
+    for (let i = 0; i < 5; i += 1) await authenticate(STUDENT_A.login, 'неверный-пароль', ip)
+    // Шестая попытка получает «подождите» не потому, что уложилась в секунду, а потому что метка выставлена запросом.
+    await holdPair(ip, STUDENT_A.login, 30)
+    await authenticate(STUDENT_A.login, 'неверный-пароль', ip)
     await withOwner((c) => c.query(`insert into login_ip_windows (ip, window_start, attempts) values ($1, now(), 30) on conflict (ip) do update set attempts = 30`, [ip]))
     await authenticate(STUDENT_A.login, 'неверный-пароль', ip)
     expect(events()).toEqual(['login_failed', 'login_failed', 'login_failed', 'login_failed', 'login_failed', 'login_wait', 'login_ip_limited'])
@@ -96,6 +99,29 @@ describe('журнал событий безопасности', () => {
       await authenticate(login, 'неверный-пароль', freshIp())
       await authenticate(login, 'неверный-пароль', freshIp())
       expect(events()).toEqual(['login_closed', 'login_failed', 'login_failed'])
+    } finally {
+      await withOwner((c) => c.query('delete from login_streaks where login = $1', [login]))
+    }
+  })
+
+  it('номер запроса: переданный действием попадает в обе записи одного входа; не переданный — один на вызов (R-3.1-8)', async () => {
+    const login = ALT_STUDENT.login
+    await withOwner((c) => c.query(`insert into login_streaks (login, fails) values ($1, 99) on conflict (login) do update set fails = 99`, [login]))
+    try {
+      const given = newRequestId()
+      await authenticate(login, 'неверный-пароль', freshIp(), given)
+      let list = records()
+      expect(list.map((r) => r.event)).toEqual(['login_closed', 'login_failed'])
+      expect(list.map((r) => r.requestId)).toEqual([given, given])
+
+      // Номер не передан: событий два, номер у них один; следующий вызов получает другой.
+      await withOwner((c) => c.query(`update login_streaks set fails = 99 where login = $1`, [login]))
+      written = []
+      await authenticate(login, 'неверный-пароль', freshIp())
+      list = records()
+      expect(list.map((r) => r.event)).toEqual(['login_closed', 'login_failed'])
+      expect(list[0]!.requestId).toBe(list[1]!.requestId)
+      expect(list[0]!.requestId).not.toBe(given)
     } finally {
       await withOwner((c) => c.query('delete from login_streaks where login = $1', [login]))
     }

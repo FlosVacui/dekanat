@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation'
 import { authenticate } from '@/server/auth/login'
 import { getClientIp, logout, setSessionCookie } from '@/server/auth/cookie'
+import { newRequestId } from '@/server/security-log'
 import { EMPTY_FIELDS_TEXT, loginErrorText } from './messages'
 
 export interface LoginState {
@@ -23,7 +24,8 @@ export async function loginAction(_prev: LoginState, formData: FormData): Promis
   const echo = login.slice(0, MAX_LOGIN_ECHO)
   // Пустые поля: подсказка без обращения к базе.
   if (!login.trim() || !password) return { error: EMPTY_FIELDS_TEXT, login: echo }
-  const outcome = await authenticate(login, password, await getClientIp())
+  // Один номер запроса на вызов действия: события одного входа в журнале связаны им (R-3.1-8).
+  const outcome = await authenticate(login, password, await getClientIp(), newRequestId())
   if (!outcome.ok) return { error: loginErrorText(outcome), login: echo }
   await setSessionCookie(outcome.token, outcome.expiresAt)
   // Адрес возврата не принимается: после входа всегда на главную, роль выбирает сервер по сессии.

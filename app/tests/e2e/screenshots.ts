@@ -9,8 +9,9 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { MAIN_COHORT } from '../../db/seed-data'
 import { todayIn } from '../../src/lib/dates'
-import { addressHeaders } from './helpers/address'
+import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
+import { holdPair } from './helpers/db'
 import { BASE_URL, startServer, stopServer } from './helpers/server'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
@@ -24,9 +25,9 @@ const { login: studentLogin, password: studentPassword } = student1
 type Width = 360 | 1280
 const WIDTHS: Width[] = [360, 1280]
 
-async function newContext(browser: Browser, width: Width): Promise<BrowserContext> {
+async function newContext(browser: Browser, width: Width, ip?: string): Promise<BrowserContext> {
   // У каждого контекста свой адрес посетителя: лимиты входа не меняются, а снимки не мешают друг другу.
-  const extraHTTPHeaders = addressHeaders()
+  const extraHTTPHeaders = addressHeaders(ip)
   return browser.newContext(
     width === 360
       ? { baseURL: BASE_URL, extraHTTPHeaders, viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, locale: 'ru-RU', timezoneId: 'Europe/Moscow' }
@@ -116,12 +117,16 @@ async function main(): Promise<void> {
       await anon.close()
 
       // Экран входа с отказами (пакет 3.1): «неверная пара», затем пять неверных подряд и «подождите».
-      const refused = await newContext(browser, width)
+      const refusedIp = freshAddress()
+      const refused = await newContext(browser, width, refusedIp)
       const refusedPage = await refused.newPage()
       await refusedPage.goto(`${BASE_URL}/login`)
       await submitWrongLogin(refusedPage, 'неверный-пароль-1')
       await shootCurrent(refusedPage, width, 'login-invalid', /^Неверный логин или пароль$/)
-      for (let attempt = 2; attempt <= 6; attempt += 1) await submitWrongLogin(refusedPage, `неверный-пароль-${attempt}`)
+      for (let attempt = 2; attempt <= 5; attempt += 1) await submitWrongLogin(refusedPage, `неверный-пароль-${attempt}`)
+      // Ожидание после пятой попытки выставляется запросом к базе: шестая не зависит от того, успеет ли браузер за секунду.
+      await holdPair(refusedIp, studentLogin, 30)
+      await submitWrongLogin(refusedPage, 'неверный-пароль-6')
       await shootCurrent(refusedPage, width, 'login-wait', /^Слишком много попыток\. Повторите через \d+ с$/)
       await refused.close()
 

@@ -22,7 +22,7 @@ export class RequestLimitError extends Error {
   }
 }
 
-const UUID =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Не UUID — значит, такой записи нет: ответ тот же, что для чужой записи, и без ошибки базы. */
 export function isUuid(value: unknown): value is string {

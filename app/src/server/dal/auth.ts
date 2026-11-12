@@ -50,7 +50,7 @@ export async function insertSession(input: {
   const ip = input.ip.slice(0, 64)
   await getDb().transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`sessions:${input.userId}`}, 0))`)
-    await tx.execute(sql`delete from sessions where user_id = ${input.userId} and expires_at <= now()`)
+    await tx.execute(sql`delete from sessions where user_id = ${input.userId} and expires_at <= clock_timestamp()`)
     // Остаются самые новые на один меньше предела: вместе с новой сессией выйдет ровно предел.
     await tx.execute(sql`
       delete from sessions where id in (
@@ -62,7 +62,10 @@ export async function insertSession(input: {
         select id from sessions where user_id = ${input.userId}
         order by created_at desc, id offset ${MAX_SESSIONS_PER_ACCOUNT - 1})
     `)
-    await tx.insert(sessions).values({ tokenHash: input.tokenHash, userId: input.userId, expiresAt: input.expiresAt, ip })
+    // Метка создания — часы базы после замка, а не начало транзакции: порядок «самая старая» не должен зависеть от ожидания замка.
+    await tx
+      .insert(sessions)
+      .values({ tokenHash: input.tokenHash, userId: input.userId, expiresAt: input.expiresAt, ip, createdAt: sql`clock_timestamp()` })
   })
 }
 

@@ -58,3 +58,18 @@ export async function withOwner<T>(run: (client: pg.Client) => Promise<T>): Prom
     await client.end()
   }
 }
+
+/**
+ * Пара «адрес и логин» ждёт ещё `seconds` секунд, счётчик неверных — `fails`. Метка выставляется запросом к базе:
+ * тест не надеется, что шаги уложатся в секунду после пятой попытки (R-3.1-2). Строка пары должна уже существовать.
+ */
+export async function holdPair(ip: string, login: string, seconds = 120, fails = 5): Promise<void> {
+  const res = await withOwner((c) =>
+    c.query(
+      `update login_attempts set fails = $3, next_allowed_at = clock_timestamp() + $4 * interval '1 second', last_attempt_at = clock_timestamp()
+       where ip = $1 and login = $2`,
+      [ip, login, fails, seconds],
+    ),
+  )
+  if (res.rowCount !== 1) throw new Error('holdPair: строки пары нет, сначала нужна хотя бы одна попытка')
+}
