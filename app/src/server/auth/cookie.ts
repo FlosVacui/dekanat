@@ -2,6 +2,7 @@ import 'server-only'
 import { cookies, headers } from 'next/headers'
 import { isIP } from 'node:net'
 import { getConfig } from '../config'
+import { normalizeIp } from './ip'
 import { SESSION_TTL_MS, destroySession, resolveActor, type Actor } from './session'
 
 // Кука сессии и адрес посетителя. Кука: префикс `__Host-`, HttpOnly, Secure, SameSite=Lax, Path=/, без Domain, срок задан
@@ -49,5 +50,6 @@ export async function getClientIp(): Promise<string> {
   const value = (await headers()).get(name)
   if (!value) return 'unknown'
   const first = (value.split(',')[0] ?? '').trim()
-  return isIP(first) ? first : 'unknown'
+  // IPv6 приводится к сети /64 той же функцией, что и в слое доступа (ip.ts).
+  return isIP(first) ? normalizeIp(first) : 'unknown'
 }

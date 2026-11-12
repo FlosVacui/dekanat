@@ -69,6 +69,43 @@ export const sessions = pgTable(
   (t) => [index('sessions_user_idx').on(t.userId)],
 )
 
+/**
+ * Счётчики перебора входа (ADR-0003, «Защита от перебора»). Ключи — приведённая строка логина и адрес, а не номер
+ * пользователя: выдуманный логин получает те же задержки. Пишутся одной атомарной операцией до проверки пароля.
+ * Сбрасывает счётчики `npm run db:seed`; сами строки чистятся по давности.
+ */
+
+/** Пара «адрес и логин»: число попыток подряд и время, раньше которого следующая попытка не принимается. */
+export const loginAttempts = pgTable(
+  'login_attempts',
+  {
+    ip: text('ip').notNull(),
+    login: text('login').notNull(),
+    fails: integer('fails').notNull(),
+    nextAllowedAt: timestamp('next_allowed_at', { withTimezone: true }).notNull(),
+    lastAttemptAt: timestamp('last_attempt_at', { withTimezone: true }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.ip, t.login] }), index('login_attempts_last_idx').on(t.lastAttemptAt)],
+)
+
+/** Адрес: число попыток входа в текущем окне в 10 минут, верных и неверных вместе. */
+export const loginIpWindows = pgTable(
+  'login_ip_windows',
+  {
+    ip: text('ip').primaryKey(),
+    windowStart: timestamp('window_start', { withTimezone: true }).notNull(),
+    attempts: integer('attempts').notNull(),
+  },
+  (t) => [index('login_ip_windows_start_idx').on(t.windowStart)],
+)
+
+/** Логин с неопубликованным паролем: неверные попытки подряд. Сбрасывается только верным входом. */
+export const loginStreaks = pgTable('login_streaks', {
+  login: text('login').primaryKey(),
+  fails: integer('fails').notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+})
+
 export const lessons = pgTable(
   'lessons',
   {
@@ -194,9 +231,14 @@ export const requestEvents = pgTable(
     status: text('status').notNull(),
     byUserId: uuid('by_user_id').references(() => users.id, { onDelete: 'set null' }),
     note: text('note'),
+    /** Адрес, с которого сотрудник сменил статус: по нему считается лимит смены статуса. У прежних строк пусто. */
+    ip: text('ip'),
     createdAt: createdAt(),
   },
-  (t) => [index('request_events_request_idx').on(t.requestId, t.createdAt)],
+  (t) => [
+    index('request_events_request_idx').on(t.requestId, t.createdAt),
+    index('request_events_by_user_idx').on(t.byUserId, t.createdAt),
+  ],
 )
 
 export const announcements = pgTable('announcements', {

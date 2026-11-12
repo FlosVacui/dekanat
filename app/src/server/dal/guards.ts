@@ -9,7 +9,20 @@ export class ForbiddenError extends Error {
   }
 }
 
-const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+/**
+ * Лимит подачи заявок исчерпан (ADR-0003, «Лимит записи»): `pair` — на пару «аккаунт и адрес», `account` — на аккаунт.
+ * Исключение, а не результат: прежние вызовы `createMyRequest` ждут `{ id } | null`.
+ */
+export class RequestLimitError extends Error {
+  readonly scope: 'pair' | 'account'
+  constructor(scope: 'pair' | 'account') {
+    super('request_limit')
+    this.name = 'RequestLimitError'
+    this.scope = scope
+  }
+}
+
+const UUID =/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 /** Не UUID — значит, такой записи нет: ответ тот же, что для чужой записи, и без ошибки базы. */
 export function isUuid(value: unknown): value is string {

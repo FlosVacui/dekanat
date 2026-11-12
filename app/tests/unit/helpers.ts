@@ -1,10 +1,45 @@
+import { randomInt } from 'node:crypto'
 import pg from 'pg'
+import { vi } from 'vitest'
 import { authenticate } from '@/server/auth/login'
 import { resolveActor, type Actor } from '@/server/auth/session'
+import * as staffDal from '@/server/dal/staff'
+import * as studentDal from '@/server/dal/student'
+
+/** Свежий адрес из частной сети: каждый вызов — «новый посетитель» со своими счётчиками. Адреса не повторяются в прогоне. */
+const usedAddresses = new Set<string>()
+export function freshIp(): string {
+  for (;;) {
+    const ip = `10.${randomInt(0, 256)}.${randomInt(0, 256)}.${randomInt(1, 255)}`
+    if (!usedAddresses.has(ip)) {
+      usedAddresses.add(ip)
+      return ip
+    }
+  }
+}
+
+/** Свежая сеть IPv6 /64 из документационного диапазона: первые четыре группы адреса. */
+export function freshNet6(): string {
+  return `2001:db8:${randomInt(0, 0x10000).toString(16)}:${randomInt(0, 0x10000).toString(16)}`
+}
+
+// Стенд для прежних тестов слоя (пакет 3.1). Они подают заявки и меняют статусы с адресом 'test' или без адреса, и для
+// лимитов записи (10 заявок в сутки и 30 смен в минуту на пару «аккаунт и адрес») это один посетитель. Лимиты не
+// выключаются и не повышаются: прежним вызовам подставляется свежий адрес, как будто каждый вызов пришёл от нового
+// посетителя. Проверки в тестах те же. Вызовы с любым другим адресом идут как есть, поэтому тесты лимитов
+// передают свои адреса и подмены не замечают.
+const realCreateMyRequest = studentDal.createMyRequest
+vi.spyOn(studentDal, 'createMyRequest').mockImplementation((actor, input, ip) =>
+  realCreateMyRequest(actor, input, ip === 'test' ? freshIp() : ip),
+)
+const realChangeRequestStatus = staffDal.changeRequestStatus
+vi.spyOn(staffDal, 'changeRequestStatus').mockImplementation((actor, requestId, input, ip) =>
+  realChangeRequestStatus(actor, requestId, input, ip ?? freshIp()),
+)
 
 /** Вход настоящим путём: пароль, хеш, сессия в базе, действующее лицо из сессии. Другого способа получить Actor нет. */
-export async function actorFor(account: { login: string; password: string }): Promise<Actor> {
-  const outcome = await authenticate(account.login, account.password, 'test')
+export async function actorFor(account: { login: string; password: string }, ip: string = freshIp()): Promise<Actor> {
+  const outcome = await authenticate(account.login, account.password, ip)
   if (!outcome.ok) throw new Error(`Вход под ${account.login} не удался: ${outcome.reason}`)
   const actor = await resolveActor(outcome.token)
   if (!actor) throw new Error('Сессия не нашлась')

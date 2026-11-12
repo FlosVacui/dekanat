@@ -4,6 +4,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Browser, BrowserContext, Page } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
+import { addressHeaders } from '../e2e/helpers/address'
 import { fillLogin } from '../e2e/helpers/auth'
 import { BASE_URL } from '../e2e/helpers/server'
 
@@ -35,7 +36,8 @@ export interface Session {
 
 /** Вход через форму. Возвращает контекст браузера и значение куки сессии. */
 export async function login(browser: Browser, account: Account): Promise<Session> {
-  const context = await browser.newContext()
+  // Адрес посетителя шлёт тест, как прокси на сервере: у каждого входа свой, лимиты входа не меняются (пакет 3.1).
+  const context = await browser.newContext({ extraHTTPHeaders: addressHeaders() })
   const page = await context.newPage()
   let setCookie: string | null = null
   page.on('response', async (res) => {
@@ -63,7 +65,8 @@ export async function raw(
   path: string,
   options: { token?: string; method?: string; headers?: Record<string, string>; body?: BodyInit } = {},
 ): Promise<RawResponse> {
-  const headers = new Headers(options.headers)
+  // Адрес посетителя — заголовком, как его ставит прокси (пакет 3.1). Явный заголовок теста главнее.
+  const headers = new Headers({ ...addressHeaders(), ...options.headers })
   if (options.token !== undefined) headers.set('cookie', `${COOKIE}=${options.token}`)
   const res = await fetch(`${BASE_URL}${path}`, {
     method: options.method ?? 'GET',
