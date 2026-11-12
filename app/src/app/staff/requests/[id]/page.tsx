@@ -12,7 +12,7 @@ import {
   isRequestStatus,
   nextStatuses,
 } from '@/lib/requests'
-import { requireStaffActor } from '@/server/auth/page-guards'
+import { denyRecord, requireStaffActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
 import { getCohortRequest } from '@/server/dal/staff'
 import { StatusForm } from './status-form'
@@ -24,7 +24,9 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
   const actor = await requireStaffActor()
   const { id } = await params
   const request = await getCohortRequest(actor, id)
-  if (!request || !isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
+  // Слой вернул «не найдено»: заявка другого набора или такой нет. Событие пишется, страница отвечает 404 (R-3.1-4).
+  if (!request) return denyRecord(actor)
+  if (!isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
   const tz = getConfig().timezone
   const options = nextStatuses(request.status).map((status) => ({ status, label: STATUS_LABELS[status] }))
   const reasons = REJECT_REASONS.map((reason) => ({ status: reason, label: REJECT_REASON_LABELS[reason] }))

@@ -3,6 +3,7 @@
 // Данные — основной набор вымышленных аккаунтов (ТР-11); их пароли публичны по заданию (ТР-9.2).
 import { expect, request as playwrightRequest, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
+import { addressHeaders } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import { BASE_URL, startServer, stopServer, type RunningServer } from './helpers/server'
 
@@ -14,6 +15,10 @@ const lesson1 = group1?.dailyLessons[0]
 if (!lesson1) throw new Error('У группы первого студента нет пар')
 
 let server: RunningServer | null = null
+
+// Адрес посетителя шлёт тест, как обратный прокси на сервере (пакет 3.1): стенд читает его из заголовка.
+// Контексты браузера, созданные через browser.newContext(), получают этот заголовок тоже. Лимиты входа не меняются.
+test.use({ extraHTTPHeaders: addressHeaders() })
 
 test.beforeAll(async () => {
   server = await startServer()

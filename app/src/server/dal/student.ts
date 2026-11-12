@@ -2,9 +2,10 @@ import 'server-only'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { isIsoDate } from '@/lib/dates'
 import { isRequestKind, type RequestKind } from '@/lib/requests'
+import { normalizeIp } from '../auth/ip'
 import type { Actor } from '../auth/session'
 import { getDb } from './client'
-import { isUuid, requireStudent } from './guards'
+import { RequestLimitError, isUuid, requireStudent } from './guards'
 import {
   announcementReads,
   announcements,
@@ -321,10 +322,16 @@ export async function getMyRequest(actor: Actor, requestId: string): Promise<Req
   return { ...row, events }
 }
 
+/** Лимит записи (ADR-0003): заявок в сутки на пару «аккаунт и адрес» и на аккаунт. Числа — выбор проекта. */
+export const REQUESTS_PER_DAY_PAIR = 10
+export const REQUESTS_PER_DAY_ACCOUNT = 200
+
 /**
  * Подача заявки. Студент передаёт только вид; владелец и статус «Подана» ставит слой.
  * Адрес подачи записывается в заявку (ADR-0003, «Чистка спама»); значение «unknown» — заголовка нет.
- * Лимиты записи — пакет 3.1.
+ * Лимит записи: не больше 10 заявок в сутки на пару «аккаунт и адрес» и 200 на аккаунт. Проверка и вставка — одна
+ * транзакция под замком на аккаунт, поэтому залп одновременных подач лимит не проходит. Исчерпан лимит —
+ * `RequestLimitError`, заявка не создаётся.
  */
 export async function createMyRequest(
   actor: Actor,
@@ -333,15 +340,24 @@ export async function createMyRequest(
 ): Promise<{ id: string } | null> {
   const { studentId } = requireStudent(actor)
   if (!isRequestKind(input.kind)) return null
-  const safeIp = ip.trim().slice(0, 64) || 'unknown'
+  const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
   return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`requests:${studentId}`}, 0))`)
+    const counted = await tx.execute(sql`
+      select count(*) filter (where ip = ${safeIp})::int as pair, count(*)::int as account
+      from requests where student_id = ${studentId} and created_at > clock_timestamp() - interval '1 day'
+    `)
+    const pair = Number(counted.rows[0]?.pair ?? 0)
+    const account = Number(counted.rows[0]?.account ?? 0)
+    if (pair >= REQUESTS_PER_DAY_PAIR) throw new RequestLimitError('pair')
+    if (account >= REQUESTS_PER_DAY_ACCOUNT) throw new RequestLimitError('account')
     const inserted = await tx
       .insert(requests)
       .values({ studentId, kind: input.kind, status: 'submitted', ip: safeIp })
       .returning({ id: requests.id })
     const created = inserted[0]
     if (!created) return null
-    await tx.insert(requestEvents).values({ requestId: created.id, status: 'submitted', byUserId: studentId })
+    await tx.insert(requestEvents).values({ requestId: created.id, status: 'submitted', byUserId: studentId, ip: safeIp })
     return { id: created.id }
   })
 }

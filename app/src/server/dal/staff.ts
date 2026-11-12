@@ -12,6 +12,7 @@ import {
   isRequestStatus,
   type RequestStatus,
 } from '@/lib/requests'
+import { normalizeIp } from '../auth/ip'
 import type { Actor } from '../auth/session'
 import { getConfig } from '../config'
 import { getDb } from './client'
@@ -94,19 +95,26 @@ export async function getCohortRequest(actor: Actor, requestId: string): Promise
 
 export type ChangeStatusResult =
   | { ok: true; status: RequestStatus }
-  | { ok: false; reason: 'not_found' | 'invalid_transition' | 'invalid_input' }
+  | { ok: false; reason: 'not_found' | 'invalid_transition' | 'invalid_input' | 'rate_limited' }
+
+/** Лимит смены статуса (ADR-0002, ADR-0003): не больше 30 в минуту на пару «аккаунт сотрудника и адрес». */
+export const STATUS_CHANGES_PER_MINUTE = 30
 
 /**
  * Смена статуса: один запрос `UPDATE … WHERE` с номером, набором и статусом «из какого». Строк изменено ноль —
  * отказ. Сотрудник передаёт только целевой статус и, при отклонении, причину из списка; всё остальное
  * (сроки, кабинет) подставляет сервер. История статусов и уведомление владельцу пишутся в той же транзакции.
+ * Лимит: считаются уже сделанные за минуту смены этой пары (адрес записан в строке истории); проверка и смена —
+ * одна транзакция под замком на пару, поэтому залп одновременных смен лимит не проходит. Адрес не передан — «unknown».
  */
 export async function changeRequestStatus(
   actor: Actor,
   requestId: string,
   input: { target: RequestStatus; reason?: string },
+  ip = 'unknown',
 ): Promise<ChangeStatusResult> {
   const { staffId, cohort } = requireStaff(actor)
+  const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
   if (!isUuid(requestId)) return { ok: false, reason: 'not_found' }
   const target = input?.target
   if (!isRequestStatus(target)) return { ok: false, reason: 'invalid_input' }
@@ -121,6 +129,13 @@ export async function changeRequestStatus(
   const pickupUntilByKind = sql`case ${requests.kind} when 'dean_certificate' then ${computePickupUntil('dean_certificate', today)}::date when 'tuition_certificate' then ${computePickupUntil('tuition_certificate', today)}::date else ${computePickupUntil('financial_aid', today)}::date end`
 
   return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`status:${staffId}:${safeIp}`}, 0))`)
+    const recent = await tx.execute(sql`
+      select count(*)::int as n from request_events
+      where by_user_id = ${staffId} and ip = ${safeIp} and created_at > clock_timestamp() - interval '1 minute'
+    `)
+    if (Number(recent.rows[0]?.n ?? 0) >= STATUS_CHANGES_PER_MINUTE) return { ok: false, reason: 'rate_limited' } as const
+
     const cohortStudents = tx.select({ id: users.id }).from(users).where(and(eq(users.cohort, cohort), eq(users.role, 'student')))
 
     const updated =
@@ -162,6 +177,7 @@ export async function changeRequestStatus(
       status: target,
       byUserId: staffId,
       note: target === 'rejected' ? reason : null,
+      ip: safeIp,
     })
     const kindTitle = isRequestKind(changed.kind) ? REQUEST_KIND_INFO[changed.kind].title : 'Заявка'
     await tx.insert(notifications).values({

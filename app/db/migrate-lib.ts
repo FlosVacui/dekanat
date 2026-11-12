@@ -10,7 +10,7 @@ const MIGRATIONS_FOLDER = fileURLToPath(new URL('./migrations', import.meta.url)
 
 /**
  * Права роли приложения: читает всё, пишет только то, что приложению нужно (ADR-0002).
- * Удалять приложение может только сессии. Прав владельца и суперпользователя у роли нет.
+ * Удалять приложение может только сессии и счётчики входа. Прав владельца и суперпользователя у роли нет.
  */
 const GRANTS = [
   'GRANT USAGE ON SCHEMA public TO {role}',
@@ -20,6 +20,8 @@ const GRANTS = [
   'GRANT INSERT ON request_events TO {role}',
   'GRANT INSERT, UPDATE ON notifications TO {role}',
   'GRANT INSERT ON announcement_reads TO {role}',
+  // Счётчики входа (пакет 3.1): приложение пишет в них одной атомарной операцией и чистит строки по давности.
+  'GRANT INSERT, UPDATE, DELETE ON login_attempts, login_ip_windows, login_streaks TO {role}',
 ]
 
 export function roleFromUrl(url: string): string {
