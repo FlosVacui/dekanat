@@ -715,6 +715,13 @@ history:
     who: "оркестратор Fable 5.2; designer, Sonnet 5.5 / high — в работе"
     commit: "d2c1f2f"
     link: "docs/design/D-2.2-logo.md"
+  - date: 2026-11-13
+    item: "2.2"
+    what: "Дизайн-система варианта АВ сдана дизайнером: D-2.2-system, tokens.css, витрина, снимок; оркестратор открыл снимок и пересчитал три пары контраста; полной приёмки и ревью не было — лимит 91 %"
+    who: "designer, Sonnet 5.5 / high; оркестратор Fable 5.2"
+    commit: "1beb62c"
+    tokens: 208137
+    link: "docs/design/D-2.2-system.md"
 
 reviews:
   - id: "R-0.3-1"
