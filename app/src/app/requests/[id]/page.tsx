@@ -11,7 +11,7 @@ import {
   statusText,
   type RequestStatus,
 } from '@/lib/requests'
-import { requireStudentActor } from '@/server/auth/page-guards'
+import { denyRecord, requireStudentActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
 import { getMyRequest } from '@/server/dal/student'
 
@@ -24,7 +24,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   const actor = await requireStudentActor()
   const { id } = await params
   const request = await getMyRequest(actor, id)
-  if (!request || !isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
+  // Слой вернул «не найдено»: чужая заявка или такой нет. Событие пишется, страница отвечает 404 (R-3.1-4).
+  if (!request) return denyRecord(actor)
+  if (!isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
   const { kind, status } = request
   const rejected = status === 'rejected'
   const reached = new Set(request.events.map((e) => e.status))

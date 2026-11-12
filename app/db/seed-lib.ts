@@ -3,6 +3,7 @@
 // Повторный запуск безопасен: у строк набора стабильные номера (UUID из хеша имени), вставка идёт «вставить или обновить».
 // Набор возвращается в исходное состояние: заявки, история статусов и уведомления студентов ЭТОГО набора,
 // которых нет в вымышленных данных (их создало приложение или сквозной тест), удаляются. Другие наборы не трогаются.
+// Счётчики перебора входа (login_attempts, login_ip_windows, login_streaks) обнуляются целиком.
 import { createHash } from 'node:crypto'
 import type pg from 'pg'
 import { addDays } from '../src/lib/dates'
@@ -220,6 +221,12 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
       spec.cohort,
       keptNotificationIds,
     ])
+
+    // Счётчики перебора входа обнуляются: так стенд проверяет лимиты с чистого листа и прежний прогон не мешает
+    // следующему (ADR-0003, «Выключателя лимитов нет»). Это единственный способ сброса, кроме давности.
+    await q('DELETE FROM login_attempts')
+    await q('DELETE FROM login_ip_windows')
+    await q('DELETE FROM login_streaks')
 
     for (const a of spec.announcements) {
       await q(
