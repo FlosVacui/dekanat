@@ -227,6 +227,7 @@ items:
     owner: "Аудитор безопасности (Opus 5.5 / high)"
     review: "Оркестратор"
     plan: {start: 2026-11-13, end: 2026-11-14}
+    fact: {2026-11-12: "Выполнено"}
   - id: "2.7"
     title: "М0, ворота 2: сквозной сценарий на хостинге, с телефона"
     person: "А"
@@ -632,6 +633,13 @@ history:
     item: "0.7"
     what: "Ворота 0 закрыты пользователем 11.11.2026 с долгами: холодный старт — имитация субагентом; расход с бюджетом не сверен (IMP-009); строка ВН-02 придёт с PR №4. Чистый клон и bootstrap работают; зоны Б и В ведут нынешние участники"
     who: "Участник А; приёмка — оркестратор Fable 5.2"
+  - date: 2026-11-12
+    item: "2.6"
+    what: "Аудит защиты М0: отчёт SEC-2.6, атакующие тесты в app/tests/security; правки по четырём замечаниям; заголовки защиты"
+    who: "security-auditor, Opus / high; builder, Sonnet 5.5 / high"
+    commit: "352ee69"
+    rounds: 1
+    tokens: 267022
 
 reviews:
   - id: "R-0.3-1"
@@ -1483,6 +1491,42 @@ reviews:
     by: "reviewer Sonnet 5.5 / high"
     status: "отложено"
     comment: "Режим .env исправлен в eeabc0f; остальное — IMP-016, пакет 2.5"
+  - id: "R-2.6-1"
+    item: "2.6"
+    round: 1
+    severity: "существенное"
+    text: "В ответах нет заголовков защиты и запрета встраивания в рамку"
+    repro: "Тест R-2.6-1 З-02 в app/tests/security/headers-and-build.spec.ts"
+    by: "Opus / high"
+    status: "исправлено"
+    comment: "Исправлено в 352ee69"
+  - id: "R-2.6-2"
+    item: "2.6"
+    round: 1
+    severity: "незначительное"
+    text: "Проверку действующего лица isActor можно обойти подделкой прототипа"
+    repro: "Два теста R-2.6-2 в app/tests/security/dal-attacks.test.ts"
+    by: "Opus / high"
+    status: "исправлено"
+    comment: "Исправлено в 352ee69"
+  - id: "R-2.6-3"
+    item: "2.6"
+    round: 1
+    severity: "предложение"
+    text: "app/tests попадает в образ Docker; next build проверяет типы в тестах"
+    repro: "Чтение .dockerignore; Docker не запускался"
+    by: "Opus / high"
+    status: "исправлено"
+    comment: "dockerignore исправлен в 352ee69; проверка типов тестов при сборке — IMP-016, пункт 6"
+  - id: "R-2.6-4"
+    item: "2.6"
+    round: 1
+    severity: "предложение"
+    text: "parseHash принимает строку хеша с параметрами ниже таблицы F13"
+    repro: "Чтение app/src/server/auth/password.ts"
+    by: "Opus / high"
+    status: "исправлено"
+    comment: "Исправлено в 352ee69"
 
 decisions:
   - id: "Р-0"
