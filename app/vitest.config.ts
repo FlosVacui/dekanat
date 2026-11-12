@@ -11,7 +11,7 @@ const alias = {
 export default defineConfig({
   resolve: { alias },
   test: {
-    include: ['tests/unit/**/*.test.ts'],
+    include: ['tests/unit/**/*.test.ts', 'tests/security/**/*.test.ts'],
     globalSetup: ['tests/unit/global-setup.ts'],
     environment: 'node',
     testTimeout: 60_000,

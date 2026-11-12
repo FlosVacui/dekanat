@@ -18,5 +18,5 @@
 docs
 prompts
 tools
-tests
+**/tests
 *.md

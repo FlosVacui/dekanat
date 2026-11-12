@@ -1,3 +1,4 @@
+import { scryptSync } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
 import {
@@ -49,6 +50,27 @@ describe('хеш пароля', () => {
     expect(await verifyPassword('x', 'не-хеш')).toBe(false)
     expect(await verifyPassword('x', 'scrypt$N=3,r=8,p=2,l=64$AAAAAAAAAAAAAAAA$AAAA')).toBe(false)
     expect(await verifyPassword('x', 'md5$N=65536,r=8,p=2,l=64$AAAAAAAAAAAAAAAA$AAAA')).toBe(false)
+  })
+
+  // R-2.6-4: нижняя граница параметров по таблице F13 (R-1.5). Хеши настоящие: верный пароль не должен спасать слабую строку.
+  it('строка хеша с параметрами ниже таблицы F13 отклоняется, строка проекта принимается', async () => {
+    const make = (N: number, r: number, p: number): string => {
+      const salt = Buffer.from('0123456789abcdef')
+      const derived = scryptSync('пароль-границы', salt, 64, { N, r, p, maxmem: 256 * 1024 * 1024 })
+      return ['scrypt', `N=${N},r=${r},p=${p},l=64`, salt.toString('base64url'), derived.toString('base64url')].join('$')
+    }
+    const weak = make(2 ** 14, 8, 1)
+    expect(describeHash(weak)).toBeNull()
+    expect(await verifyPassword('пароль-границы', weak)).toBe(false)
+    // Ниже по r при достаточных N и p.
+    const lowR = make(2 ** 16, 4, 2)
+    expect(describeHash(lowR)).toBeNull()
+    expect(await verifyPassword('пароль-границы', lowR)).toBe(false)
+    // Набор проекта и другая строка таблицы проходят.
+    const project = make(2 ** 16, 8, 2)
+    expect(describeHash(project)).toEqual({ N: 65536, r: 8, p: 2, keylen: 64 })
+    expect(await verifyPassword('пароль-границы', project)).toBe(true)
+    expect(describeHash(make(2 ** 15, 8, 3))).not.toBeNull()
   })
 
   it('в коде нет синхронного scrypt и сравнения хешей обычным равенством', () => {
