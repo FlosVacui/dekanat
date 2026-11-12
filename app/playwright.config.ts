@@ -5,8 +5,9 @@ import { defineConfig } from '@playwright/test'
 const port = Number(process.env.E2E_PORT ?? 3100)
 
 export default defineConfig({
-  testDir: './tests/e2e',
-  testMatch: '**/*.spec.ts',
+  // Атакующие тесты аудитора лежат рядом со сценариями: tests/security/ (ADR-0005). Идут той же командой.
+  testDir: './tests',
+  testMatch: ['**/e2e/**/*.spec.ts', '**/security/**/*.spec.ts'],
   fullyParallel: false,
   workers: 1,
   retries: 0,

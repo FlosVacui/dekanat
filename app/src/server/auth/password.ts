@@ -16,6 +16,15 @@ export const MAX_PASSWORD_LENGTH = 256
 
 const ALGORITHM = 'scrypt'
 
+/** Наборы (N, p) при r = 8 из таблицы F13 (R-1.5, OWASP): строка хеша принимается, если не ниже одной из них. */
+const SCRYPT_FLOOR: readonly (readonly [number, number])[] = [
+  [2 ** 17, 1],
+  [2 ** 16, 2],
+  [2 ** 15, 3],
+  [2 ** 14, 5],
+  [2 ** 13, 10],
+]
+
 function scryptAsync(password: string, salt: Buffer, keylen: number, options: ScryptOptions): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     scrypt(password, salt, keylen, options, (error, derived) => {
@@ -74,6 +83,8 @@ function parseHash(stored: string): ParsedHash | null {
   if ((N & (N - 1)) !== 0 || N < 2 ** 14 || N > 2 ** 20 || r < 1 || r > 16 || p < 1 || p > 4 || keylen < 16 || keylen > 128) {
     return null
   }
+  // Нижняя граница по таблице F13 (R-1.5): r не ниже 8, пара (N, p) не ниже одной из строк.
+  if (r < 8 || !SCRYPT_FLOOR.some(([minN, minP]) => N >= minN && p >= minP)) return null
   const salt = Buffer.from(parts[2] ?? '', 'base64url')
   const hash = Buffer.from(parts[3] ?? '', 'base64url')
   if (salt.length < 8 || hash.length !== keylen) return null

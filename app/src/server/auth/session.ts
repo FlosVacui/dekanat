@@ -18,7 +18,8 @@ const MINT: unique symbol = Symbol('actor-mint')
 
 /**
  * Тот, кто спрашивает. Первый аргумент каждой функции слоя доступа.
- * Класс с закрытым полем: сверка по форме не пройдёт, а конструктор без метки бросает ошибку.
+ * Класс с закрытым полем: конструктор без метки бросает ошибку, а проверка `Actor.is` сверяет закрытое поле.
+ * Объект той же формы и объект с подменённым прототипом (`Object.create(Actor.prototype)`) её не пройдут.
  * Приведение `as` к этому типу и создание метки вне этого файла запрещены.
  */
 export class Actor {
@@ -38,11 +39,16 @@ export class Actor {
     this.groupId = row.role === 'student' ? row.groupId : null
     Object.freeze(this)
   }
+
+  /** Закрытое поле ставит только конструктор; прототип его не даёт. Для не-объектов — false. */
+  static is(value: unknown): value is Actor {
+    return typeof value === 'object' && value !== null && #sealed in value
+  }
 }
 
-/** Проверка на лету: объект с теми же полями, собранный руками, не пройдёт. */
+/** Проверка на лету: не `instanceof`, а закрытое поле. Объект, собранный руками, в том числе с прототипом Actor, не пройдёт. */
 export function isActor(value: unknown): value is Actor {
-  return value instanceof Actor
+  return Actor.is(value)
 }
 
 export function hashToken(token: string): string {
