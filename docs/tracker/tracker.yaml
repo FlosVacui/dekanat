@@ -201,6 +201,7 @@ items:
     owner: "Дизайнер (Sonnet 5.5 / high)"
     review: "Ревьюер; пользователь"
     plan: {start: 2026-11-12, end: 2026-11-13}
+    fact: {2026-11-13: "В работе"}
   - id: "2.3"
     title: "Архитектура и ADR: данные, вход, доступ, секреты"
     person: "А"
@@ -695,6 +696,20 @@ history:
     who: "пользователь; оркестратор Fable 5.2"
     commit: "59f4fdf"
     link: "https://github.com/FlosVacui/dekanat/pull/13"
+  - date: 2026-11-13
+    item: "1.7"
+    what: "Ревью PR №14: RV-1.7-1 — принять с замечаниями, семь замечаний приняты; сверка N-1.7 подтверждена выборочно"
+    who: "reviewer, Sonnet 5.5 / high"
+    commit: "333b0ab"
+    rounds: 1
+    tokens: 134550
+  - date: 2026-11-13
+    item: "2.2"
+    what: "Ревью по ветке docs/2.2-finish: RV-2.2-1 — принять с замечаниями, шесть замечаний приняты"
+    who: "reviewer, Sonnet 5.5 / high"
+    commit: "333b0ab"
+    rounds: 1
+    tokens: 179822
 
 reviews:
   - id: "R-0.3-1"
@@ -1773,6 +1788,110 @@ reviews:
     text: "ЯД-2: «консультация накануне» заменить на «не в день этого экзамена» — приказ № 290, п. 6.8"
     repro: "RV-1.6-2"
     by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-1"
+    item: "1.7"
+    round: 1
+    severity: "существенное"
+    text: "ВН-01: вопрос к участнику А подаёт дату 18.01.2027 как отмену идентификации через Госуслуги; это срок соглашений с регистраторами"
+    repro: "docs/reviews/RV-1.7-1.md; cctld.ru, новость 40971"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-2"
+    item: "1.7"
+    round: 1
+    severity: "незначительное"
+    text: "ВН-01: «страницы hostkey.ru нет» — страница есть, цена 560 ₽ на ней видна"
+    repro: "docs/reviews/RV-1.7-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-3"
+    item: "1.7"
+    round: 1
+    severity: "незначительное"
+    text: "ВН-01: RUVDS 149 ₽ подан как цена сервера на 2 ядра и 2 ГБ; на странице цен такая конфигурация стоит дороже"
+    repro: "docs/reviews/RV-1.7-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-4"
+    item: "1.7"
+    round: 1
+    severity: "незначительное"
+    text: "Две неточности в описании ошибок нейросети: слова «реестр» в ответе нет; 77 отзывов ДВФУ — число из ответа, на странице 98 оценок"
+    repro: "docs/reviews/RV-1.7-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-5"
+    item: "1.7"
+    round: 1
+    severity: "предложение"
+    text: "ВН-01: в списке нарушений формата нет пункта «не названа дата в начале ответа»"
+    repro: "docs/reviews/RV-1.7-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-6"
+    item: "1.7"
+    round: 1
+    severity: "предложение"
+    text: "ВН-01: запись о правке 6 (в) двусмысленна — правка запроса пришла тем же коммитом, что и ответы"
+    repro: "docs/reviews/RV-1.7-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-1.7-7"
+    item: "1.7"
+    round: 1
+    severity: "предложение"
+    text: "Вопросы к участнику А в ВН-01 и ВН-02 закрыты сверкой N-1.7, но в файлах ссылки нет; ответы не помечены как данные"
+    repro: "docs/reviews/RV-1.7-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-2.2-1"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "Дизайн-система обещает то, чего нет в файле и на витрине: tabular-nums у hero-time, подсказка у поля с ошибкой, состояние с плейсхолдером"
+    repro: "docs/reviews/RV-2.2-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-2.2-2"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "Образцы разметки поля противоречат правилу autocomplete"
+    repro: "docs/reviews/RV-2.2-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-2.2-3"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "Не названо переименование варианта кнопки secondary в ghost: пять вызовов в продукте и тип в link-button.tsx"
+    repro: "docs/reviews/RV-2.2-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-2.2-4"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "Три файла знака не описаны в таблице; отложенное и раздел 7 называют разные файлы для шапки"
+    repro: "docs/reviews/RV-2.2-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-2.2-5"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "Цвет второй строки знака вуза описан неверно: почти чёрный, не серый"
+    repro: "docs/reviews/RV-2.2-1.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-2.2-6"
+    item: "2.2"
+    round: 1
+    severity: "предложение"
+    text: "В дизайн-системе нет частей экрана заявки Э-8: шаги, блок «Что сделать вам», ссылка «назад», плашки трёх статусов, вид отклонённой заявки"
+    repro: "docs/reviews/RV-2.2-1.md"
+    by: "Sonnet 5.5 / high"
     status: "открыто"
 
 decisions:
