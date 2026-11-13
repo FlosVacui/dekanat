@@ -170,6 +170,8 @@ body{margin:0;background:#E4E8EF;color:#14213D;font-family:var(--font-sans);font
 /* ---------- добавлено системой: в макете этого нет ---------- */
 @media (min-width:781px){.pair .sheet:nth-last-child(n+3){margin-bottom:20px}}
 a.btn,a.back{text-decoration:none}
+.where{grid-template-columns:fit-content(50%) 1fr}
+.note{overflow-wrap:anywhere}
 .callout .c-title{margin:0 0 2px;font-size:var(--fs-md);font-weight:700;line-height:1.3;color:var(--accent-2-text)}
 .step.rej .mark{background:var(--error-bg);border-color:var(--error);color:var(--error)}
 .step.rej .s-tag{color:var(--error)}
@@ -258,10 +260,10 @@ a.btn,a.back{text-decoration:none}
 <section class="pair" aria-labelledby="sec-card"><h2 id="sec-card">Карточка</h2><p class="small">Обычная, список строк с нажатием и фокусом, блок «следующая пара».</p>
 <div class="sheet" role="group" aria-label="Карточка, светлая тема">
 <p class="cap">Карточка</p>
-<section class="card" aria-labelledby="cd1cardl"><h3 class="h2" id="cd1cardl">Заявка № 1042</h3><p class="meta">Справка об обучении. Подана 11 ноября.</p></section>
+<section class="card" aria-labelledby="cd1cardl"><h3 class="h2" id="cd1cardl">Справка из деканата</h3><p class="meta">Подана 11.11.2026</p></section>
 <p class="cap">Список строк: обычная, нажата, фокус</p>
 <div class="card flush rows">
-  <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>В работе</span><b>Справка об обучении</b><span class="meta">Готовим. Срок до 14 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>В работе</span><b>Справка из деканата</b><span class="meta">Пока ничего. Срок — до 16.11.2026</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
   <button class="row row-link is-pressed" type="button"><span class="row-main"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-flag"/></svg>Завтра</span><b>Лабораторная работа № 4</b><span class="meta">Физика · до пт, 13 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
   <button class="row row-link is-focus" type="button"><span class="row-main"><b>Консультация по базам данных</b><span class="meta">Перенесена в ауд. 207, пт, 16:00</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
 </div>
@@ -276,10 +278,10 @@ a.btn,a.back{text-decoration:none}
 </div>
 <div class="sheet dark" role="group" aria-label="Карточка, тёмная тема">
 <p class="cap">Карточка</p>
-<section class="card" aria-labelledby="cd1cardd"><h3 class="h2" id="cd1cardd">Заявка № 1042</h3><p class="meta">Справка об обучении. Подана 11 ноября.</p></section>
+<section class="card" aria-labelledby="cd1cardd"><h3 class="h2" id="cd1cardd">Справка из деканата</h3><p class="meta">Подана 11.11.2026</p></section>
 <p class="cap">Список строк: обычная, нажата, фокус</p>
 <div class="card flush rows">
-  <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>В работе</span><b>Справка об обучении</b><span class="meta">Готовим. Срок до 14 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>В работе</span><b>Справка из деканата</b><span class="meta">Пока ничего. Срок — до 16.11.2026</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
   <button class="row row-link is-pressed" type="button"><span class="row-main"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-flag"/></svg>Завтра</span><b>Лабораторная работа № 4</b><span class="meta">Физика · до пт, 13 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
   <button class="row row-link is-focus" type="button"><span class="row-main"><b>Консультация по базам данных</b><span class="meta">Перенесена в ауд. 207, пт, 16:00</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
 </div>
@@ -347,45 +349,43 @@ a.btn,a.back{text-decoration:none}
 <div class="sheet" role="group" aria-label="Шаги заявки, светлая тема">
 <p class="cap">В работе: сделано, сейчас, дальше</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 14 ноября.</p></div></li>
-  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Возьмите студенческий билет.</p>
-    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 16.11.2026.</p></div></li>
+  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Забрать в деканате лично, кабинет 120а, 1 корпус</p></div></li>
   <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
 </ol>
 <p class="cap">Отклонена</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b><p>12.11.2026, 09:40.</p></div></li>
 </ol>
 <p class="cap">Выдана: все шаги сделаны</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Готова</b></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Выдана</b><p>Вы получили документ 21 ноября.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b><p>12.11.2026, 09:20.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Готова</b><p>13.11.2026, 11:05.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Выдана</b><p>Вы получили документ 16.11.2026.</p></div></li>
 </ol>
 </div>
 <div class="sheet dark" role="group" aria-label="Шаги заявки, тёмная тема">
 <p class="cap">В работе: сделано, сейчас, дальше</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 14 ноября.</p></div></li>
-  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Возьмите студенческий билет.</p>
-    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 16.11.2026.</p></div></li>
+  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Забрать в деканате лично, кабинет 120а, 1 корпус</p></div></li>
   <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
 </ol>
 <p class="cap">Отклонена</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b><p>12.11.2026, 09:40.</p></div></li>
 </ol>
 <p class="cap">Выдана: все шаги сделаны</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Готова</b></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Выдана</b><p>Вы получили документ 21 ноября.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b><p>12.11.2026, 09:20.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Готова</b><p>13.11.2026, 11:05.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Выдана</b><p>Вы получили документ 16.11.2026.</p></div></li>
 </ol>
 </div>
 </section>
@@ -396,11 +396,11 @@ a.btn,a.back{text-decoration:none}
 <p class="cap">Ссылка «назад»: фокус</p>
 <a class="back is-focus" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
 <p class="cap">Что сделать вам: ждать</p>
-<section class="callout" aria-labelledby="c1l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c1l">Что сделать вам</h3><p>Пока ничего. Срок — до 14 ноября.</p></div></section>
+<section class="callout" aria-labelledby="c1l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c1l">Что сделать вам</h3><p>Пока ничего. Срок — до 16.11.2026</p></div></section>
 <p class="cap">Что сделать вам: прийти</p>
-<section class="callout" aria-labelledby="c2l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c2l">Что сделать вам</h3><p>Получите и заверьте в деканате, кабинет 105, до 21 ноября. Возьмите студенческий билет.</p></div></section>
+<section class="callout" aria-labelledby="c2l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c2l">Что сделать вам</h3><p>Получите и заверьте в деканате, кабинет 120а, 1 корпус, до 17.11.2026. Возьмите студенческий билет</p></div></section>
 <p class="cap">Что сделать вам: подать снова</p>
-<section class="callout" aria-labelledby="c3l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c3l">Что сделать вам</h3><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова.</p></div></section>
+<section class="callout" aria-labelledby="c3l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c3l">Что сделать вам</h3><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова</p></div></section>
 </div>
 <div class="sheet dark" role="group" aria-label="Блок «Что сделать вам» и ссылка «назад», тёмная тема">
 <p class="cap">Ссылка «назад»: обычная</p>
@@ -408,11 +408,11 @@ a.btn,a.back{text-decoration:none}
 <p class="cap">Ссылка «назад»: фокус</p>
 <a class="back is-focus" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
 <p class="cap">Что сделать вам: ждать</p>
-<section class="callout" aria-labelledby="c1d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c1d">Что сделать вам</h3><p>Пока ничего. Срок — до 14 ноября.</p></div></section>
+<section class="callout" aria-labelledby="c1d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c1d">Что сделать вам</h3><p>Пока ничего. Срок — до 16.11.2026</p></div></section>
 <p class="cap">Что сделать вам: прийти</p>
-<section class="callout" aria-labelledby="c2d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c2d">Что сделать вам</h3><p>Получите и заверьте в деканате, кабинет 105, до 21 ноября. Возьмите студенческий билет.</p></div></section>
+<section class="callout" aria-labelledby="c2d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c2d">Что сделать вам</h3><p>Получите и заверьте в деканате, кабинет 120а, 1 корпус, до 17.11.2026. Возьмите студенческий билет</p></div></section>
 <p class="cap">Что сделать вам: подать снова</p>
-<section class="callout" aria-labelledby="c3d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c3d">Что сделать вам</h3><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова.</p></div></section>
+<section class="callout" aria-labelledby="c3d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h3 class="c-title" id="c3d">Что сделать вам</h3><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова</p></div></section>
 </div>
 </section>
 <section class="pair" aria-labelledby="sec-rchip"><h2 id="sec-rchip">Плашки статусов заявки</h2><p class="small">Пять статусов продукта: слева имя в коде, справа плашка. Значок и слово у каждой.</p>
@@ -431,83 +431,133 @@ a.btn,a.back{text-decoration:none}
 <div class="demo"><span class="st">rejected</span><span class="chip err"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>Отклонена</span></div>
 </div>
 </section>
-<section class="pair" aria-labelledby="sec-req"><h2 id="sec-req">Экран заявки (Э-8): в работе, готова к выдаче, отклонена</h2><p class="small">Части из разделов выше, собранные в экран. Шапка и нижняя панель — в макете V-AC, здесь только содержимое. В каждой строке слева светлая тема, справа тёмная.</p>
+<section class="pair" aria-labelledby="sec-req"><h2 id="sec-req">Экран заявки (Э-8): подана, в работе, готова, выдана, отклонена</h2><p class="small">Части из разделов выше, собранные в экран; пример — справка из деканата. Шапка, нижняя панель и подвал — в макете V-AC, здесь только содержимое. Тексты и даты — из продукта и документа (5.8, 5.9, 5.12). В каждой строке слева светлая тема, справа тёмная.</p>
+<div class="sheet" role="group" aria-label="Заявка подана, светлая тема">
+<a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
+<span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg><span class="sr">Статус: </span>Подана</span>
+<section class="callout" aria-labelledby="rs-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rs-l">Что сделать вам</h4><p>Заявка у деканата. Пока ничего делать не нужно</p></div></section>
+<ol class="steps card" aria-label="Шаги заявки">
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>В работе</b></div></li>
+  <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Готова</b><p>Забрать в деканате лично, кабинет 120а, 1 корпус</p></div></li>
+  <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
+</ol>
+<a class="btn btn-ghost" href="#">К списку заявок</a>
+</div>
+<div class="sheet dark" role="group" aria-label="Заявка подана, тёмная тема">
+<a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
+<span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-inbox"/></svg><span class="sr">Статус: </span>Подана</span>
+<section class="callout" aria-labelledby="rs-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rs-d">Что сделать вам</h4><p>Заявка у деканата. Пока ничего делать не нужно</p></div></section>
+<ol class="steps card" aria-label="Шаги заявки">
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>В работе</b></div></li>
+  <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Готова</b><p>Забрать в деканате лично, кабинет 120а, 1 корпус</p></div></li>
+  <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
+</ol>
+<a class="btn btn-ghost" href="#">К списку заявок</a>
+</div>
 <div class="sheet" role="group" aria-label="Заявка в работе, светлая тема">
 <a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
-<div><h3 class="h1">Справка об обучении</h3><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
 <span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg><span class="sr">Статус: </span>В работе</span>
-<section class="callout" aria-labelledby="rw-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rw-l">Что сделать вам</h4><p>Пока ничего. Срок — до 14 ноября.</p></div></section>
+<section class="callout" aria-labelledby="rw-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rw-l">Что сделать вам</h4><p>Пока ничего. Срок — до 16.11.2026</p></div></section>
+<p class="meta note">Примечание: Нужна для предъявления по месту требования</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 14 ноября.</p></div></li>
-  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Возьмите студенческий билет.</p>
-    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 16.11.2026.</p></div></li>
+  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Забрать в деканате лично, кабинет 120а, 1 корпус</p></div></li>
   <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
 </ol>
 <a class="btn btn-ghost" href="#">К списку заявок</a>
 </div>
 <div class="sheet dark" role="group" aria-label="Заявка в работе, тёмная тема">
 <a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
-<div><h3 class="h1">Справка об обучении</h3><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
 <span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg><span class="sr">Статус: </span>В работе</span>
-<section class="callout" aria-labelledby="rw-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rw-d">Что сделать вам</h4><p>Пока ничего. Срок — до 14 ноября.</p></div></section>
+<section class="callout" aria-labelledby="rw-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rw-d">Что сделать вам</h4><p>Пока ничего. Срок — до 16.11.2026</p></div></section>
+<p class="meta note">Примечание: Нужна для предъявления по месту требования</p>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 14 ноября.</p></div></li>
-  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Возьмите студенческий билет.</p>
-    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>В работе</b><p>Срок — до 16.11.2026.</p></div></li>
+  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Готова</b><p>Забрать в деканате лично, кабинет 120а, 1 корпус</p></div></li>
   <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
 </ol>
 <a class="btn btn-ghost" href="#">К списку заявок</a>
 </div>
 <div class="sheet" role="group" aria-label="Заявка готова к выдаче, светлая тема">
 <a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
-<div><h3 class="h1">Справка об обучении</h3><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
 <span class="chip ok"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg><span class="sr">Статус: </span>Готова</span>
-<section class="callout" aria-labelledby="rr-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rr-l">Что сделать вам</h4><p>Получите и заверьте в деканате, кабинет 105, до 21 ноября. Возьмите студенческий билет.</p></div></section>
+<section class="callout" aria-labelledby="rr-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rr-l">Что сделать вам</h4><p>Получите и заверьте в деканате, кабинет 120а, 1 корпус, до 17.11.2026. Возьмите студенческий билет</p></div></section>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b><p>12.11.2026, 09:20.</p></div></li>
   <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>Готова</b>
-    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+    <dl class="where"><dt>Куда</dt><dd>120а, 1 корпус</dd><dt>До какого дня</dt><dd>17.11.2026</dd></dl></div></li>
   <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
 </ol>
 <a class="btn btn-ghost" href="#">К списку заявок</a>
 </div>
 <div class="sheet dark" role="group" aria-label="Заявка готова к выдаче, тёмная тема">
 <a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
-<div><h3 class="h1">Справка об обучении</h3><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
 <span class="chip ok"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg><span class="sr">Статус: </span>Готова</span>
-<section class="callout" aria-labelledby="rr-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rr-d">Что сделать вам</h4><p>Получите и заверьте в деканате, кабинет 105, до 21 ноября. Возьмите студенческий билет.</p></div></section>
+<section class="callout" aria-labelledby="rr-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rr-d">Что сделать вам</h4><p>Получите и заверьте в деканате, кабинет 120а, 1 корпус, до 17.11.2026. Возьмите студенческий билет</p></div></section>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b><p>12.11.2026, 09:20.</p></div></li>
   <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>Готова</b>
-    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+    <dl class="where"><dt>Куда</dt><dd>120а, 1 корпус</dd><dt>До какого дня</dt><dd>17.11.2026</dd></dl></div></li>
   <li class="step next"><span class="mark"></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ</span><b>Выдана</b></div></li>
+</ol>
+<a class="btn btn-ghost" href="#">К списку заявок</a>
+</div>
+<div class="sheet" role="group" aria-label="Заявка выдана, светлая тема">
+<a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
+<span class="chip ok"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg><span class="sr">Статус: </span>Выдана</span>
+<ol class="steps card" aria-label="Шаги заявки">
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b><p>12.11.2026, 09:20.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Готова</b><p>13.11.2026, 11:05.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Выдана</b><p>Вы получили документ 16.11.2026.</p></div></li>
+</ol>
+<a class="btn btn-ghost" href="#">К списку заявок</a>
+</div>
+<div class="sheet dark" role="group" aria-label="Заявка выдана, тёмная тема">
+<a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
+<span class="chip ok"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg><span class="sr">Статус: </span>Выдана</span>
+<ol class="steps card" aria-label="Шаги заявки">
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>В работе</b><p>12.11.2026, 09:20.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Готова</b><p>13.11.2026, 11:05.</p></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Выдана</b><p>Вы получили документ 16.11.2026.</p></div></li>
 </ol>
 <a class="btn btn-ghost" href="#">К списку заявок</a>
 </div>
 <div class="sheet" role="group" aria-label="Заявка отклонена, светлая тема">
 <a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
-<div><h3 class="h1">Справка об обучении</h3><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
 <span class="chip err"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg><span class="sr">Статус: </span>Отклонена</span>
-<section class="callout" aria-labelledby="rj-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rj-l">Что сделать вам</h4><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова.</p></div></section>
+<section class="callout" aria-labelledby="rj-l"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rj-l">Что сделать вам</h4><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова</p></div></section>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b><p>12.11.2026, 09:40.</p></div></li>
 </ol>
 <a class="btn btn-main" href="#">Подать снова</a>
 <a class="btn btn-ghost" href="#">К списку заявок</a>
 </div>
 <div class="sheet dark" role="group" aria-label="Заявка отклонена, тёмная тема">
 <a class="back" href="#"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</a>
-<div><h3 class="h1">Справка об обучении</h3><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<div><h3 class="h1">Справка из деканата</h3><p class="sub">Подана 11.11.2026</p></div>
 <span class="chip err"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg><span class="sr">Статус: </span>Отклонена</span>
-<section class="callout" aria-labelledby="rj-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rj-d">Что сделать вам</h4><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова.</p></div></section>
+<section class="callout" aria-labelledby="rj-d"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><h4 class="c-title" id="rj-d">Что сделать вам</h4><p>Заявка отклонена. Причина: Не хватает данных. Можно подать снова</p></div></section>
 <ol class="steps card" aria-label="Шаги заявки">
-  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
-  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b></div></li>
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Подана</b><p>11.11.2026, 10:42. Деканат её получил.</p></div></li>
+  <li class="step rej" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg></span><div class="s-body"><span class="s-tag">ОТКЛОНЕНО</span><b>Отклонена</b><p>12.11.2026, 09:40.</p></div></li>
 </ol>
 <a class="btn btn-main" href="#">Подать снова</a>
 <a class="btn btn-ghost" href="#">К списку заявок</a>
