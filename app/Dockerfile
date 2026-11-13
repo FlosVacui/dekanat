@@ -18,6 +18,8 @@ RUN node ./node_modules/next/dist/bin/next build
 # а тот же образ запускает миграции и вымышленные данные (tsx, drizzle). Размер образа не оптимизировался.
 FROM build AS runtime
 ENV NODE_ENV=production
+# Файлы после COPY и сборки принадлежат root, а процесс идёт от node: кэшу Next.js нужна запись (IMP-016, пункт 3).
+RUN mkdir -p .next/cache && chown -R node:node .next/cache
 USER node
 EXPOSE 3000
 CMD ["node", "./node_modules/next/dist/bin/next", "start", "-p", "3000", "-H", "0.0.0.0"]

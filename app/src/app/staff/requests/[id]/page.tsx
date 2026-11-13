@@ -11,6 +11,7 @@ import {
   isRequestKind,
   isRequestStatus,
   nextStatuses,
+  requestFieldView,
 } from '@/lib/requests'
 import { denyRecord, requireStaffActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
@@ -28,6 +29,7 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
   if (!request) return denyRecord(actor)
   if (!isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
   const tz = getConfig().timezone
+  const fieldView = requestFieldView(request.kind, request)
   const options = nextStatuses(request.status).map((status) => ({ status, label: STATUS_LABELS[status] }))
   const reasons = REJECT_REASONS.map((reason) => ({ status: reason, label: REJECT_REASON_LABELS[reason] }))
   return (
@@ -42,6 +44,12 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
             <dt className="text-neutral-700">Студент</dt>
             <dd className="text-base font-medium">{request.studentName}</dd>
           </div>
+          {fieldView ? (
+            <div>
+              <dt className="text-neutral-700">{fieldView.title}</dt>
+              <dd className="break-words">{fieldView.value}</dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-neutral-700">Группа</dt>
             <dd>{request.groupName}</dd>

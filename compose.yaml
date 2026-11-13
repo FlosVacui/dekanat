@@ -8,25 +8,37 @@
 #  - Приложение получает переменные поимённо. Весь .env целиком ему не передаётся.
 #  - Файл .env лежит рядом с этим файлом, в git его нет. Compose берёт из него только значения для подстановки.
 #
+#  - Обратный прокси с HTTPS — в отдельном файле compose.proxy.yaml: здесь портов наружу нет, это держит тест П-10.
+#    На сервере в .env стоит COMPOSE_FILE=compose.yaml:compose.proxy.yaml, и команды ниже берут оба файла.
+#  - Журнал каждого контейнера ограничен по размеру: поток неудачных входов не должен занять диск (IMP-016, R-3.1-8).
+#
 # Первый запуск:
 #   docker compose build
 #   docker compose up -d db
 #   docker compose run --rm migrate                                                   # миграции
 #   docker compose run --rm migrate node ./node_modules/tsx/dist/cli.mjs db/seed.ts  # вымышленные данные
-#   docker compose up -d app
+#   docker compose up -d                                                              # приложение и прокси
 name: dekanat
+
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
 
 services:
   db:
     image: postgres:18
     restart: unless-stopped
+    logging: *logging
     environment:
       POSTGRES_USER: dekanat_owner
       POSTGRES_PASSWORD: ${POSTGRES_OWNER_PASSWORD:?задайте POSTGRES_OWNER_PASSWORD в .env}
       POSTGRES_DB: dekanat
       APP_ROLE_PASSWORD: ${POSTGRES_APP_PASSWORD:?задайте POSTGRES_APP_PASSWORD в .env}
     volumes:
-      # Начиная с образа PostgreSQL 18 том монтируется в /var/lib/postgresql (по знанию автора, не сверено с документацией образа).
+      # Начиная с образа PostgreSQL 18 том монтируется в /var/lib/postgresql: сверено с описанием образа 13.11.2026 —
+      # github.com/docker-library/docs, postgres/content.md: «The defined VOLUME was changed in 18 and above to /var/lib/postgresql».
       - dbdata:/var/lib/postgresql
       - ./app/db/docker-init/10-app-role.sh:/docker-entrypoint-initdb.d/10-app-role.sh:ro
     healthcheck:
@@ -44,6 +56,7 @@ services:
     # Одноразовая задача: миграции под владельцем базы и выдача прав роли приложения.
     command: ["node", "./node_modules/tsx/dist/cli.mjs", "db/migrate.ts"]
     restart: "no"
+    logging: *logging
     environment:
       DATABASE_OWNER_URL: postgresql://dekanat_owner:${POSTGRES_OWNER_PASSWORD}@db:5432/dekanat
       DATABASE_URL: postgresql://dekanat_app:${POSTGRES_APP_PASSWORD}@db:5432/dekanat
@@ -65,8 +78,16 @@ services:
       CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       NEXT_TELEMETRY_DISABLED: "1"
-    # Порт наружу не публикуется. Обратный прокси подключается к этой сети в пакете 2.5.
+    # Порт наружу не публикуется. Обратный прокси из compose.proxy.yaml ходит сюда по внутренней сети.
     expose: ["3000"]
+    logging: *logging
+    healthcheck:
+      # Страница входа открыта без сессии: ответ 200 значит, что приложение поднялось. Прокси ждёт этой отметки.
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/login').then((r) => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
     depends_on:
       db:
         condition: service_healthy

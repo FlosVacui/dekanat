@@ -9,6 +9,7 @@ import {
   STATUS_LABELS,
   isRequestKind,
   isRequestStatus,
+  requestFieldLine,
   statusText,
 } from '@/lib/requests'
 import { requireStudentActor } from '@/server/auth/page-guards'
@@ -41,10 +42,12 @@ export default async function RequestsPage() {
           {items.map((r) => {
             const kind = isRequestKind(r.kind) ? r.kind : null
             const status = isRequestStatus(r.status) ? r.status : null
+            const fieldLine = kind ? requestFieldLine(kind, r) : null
             return (
               <li key={r.id}>
                 <Link href={`/requests/${r.id}`} className="block rounded-lg border border-neutral-300 bg-white p-4">
                   <span className="block text-base font-semibold">{kind ? REQUEST_KIND_INFO[kind].title : 'Заявка'}</span>
+                  {fieldLine ? <span className="block break-words text-sm text-neutral-700">{fieldLine}</span> : null}
                   <span className="block text-sm text-neutral-700">
                     Подана {formatDate(todayIn(getConfig().timezone, r.createdAt))}
                   </span>

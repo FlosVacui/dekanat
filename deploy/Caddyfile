@@ -1,0 +1,17 @@
+# Обратный прокси кабинета: пакет 2.5. Имя сайта приходит из переменной SITE_ADDRESS (файл .env на сервере).
+# Caddy сам получает и продлевает сертификат Let's Encrypt и сам перенаправляет http на https.
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		# ADR-0004: Strict-Transport-Security ставит прокси. Остальные заголовки защиты ставит приложение.
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+
+	reverse_proxy app:3000 {
+		# ADR-0003: адрес посетителя — в одном заголовке; значение, присланное посетителем, затирается.
+		# Сверено с документацией Caddy 13.11.2026: header_up «Имя значение» заменяет любые прежние значения.
+		header_up X-Real-IP {remote_host}
+	}
+}

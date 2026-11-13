@@ -250,7 +250,8 @@ describe('П-12: сотрудник одного набора не видит и
     const id = await newRequest(a)
     const card = await staffDal.getCohortRequest(staff, id)
     expect(Object.keys(card ?? {}).sort()).toEqual(
-      ['createdAt', 'dueDate', 'events', 'groupName', 'id', 'issuedOn', 'kind', 'pickupUntil', 'rejectReason', 'status', 'studentName', 'updatedAt'].sort(),
+      // Пакет 3.4, решение пользователя 13.11.2026: к двенадцати полям добавлены два поля заявки — paymentYear и purpose.
+      ['createdAt', 'dueDate', 'events', 'groupName', 'id', 'issuedOn', 'kind', 'paymentYear', 'pickupUntil', 'purpose', 'rejectReason', 'status', 'studentName', 'updatedAt'].sort(),
     )
   })
 })

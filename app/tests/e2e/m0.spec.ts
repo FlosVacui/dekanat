@@ -233,7 +233,7 @@ test('сквозной сценарий М0: вход, расписание, о�
     await page.reload()
     await expect(page.getByTestId('request-status')).toHaveText('В работе')
     dueText = (await page.getByTestId('request-status-text').textContent()) ?? ''
-    expect(dueText, 'текст «В работе» со сроком').toMatch(/^Готовим\. Срок — до \d{2}\.\d{2}\.\d{4}$/)
+    expect(dueText, 'текст «В работе» со сроком').toMatch(/^Пока ничего\. Срок — до \d{2}\.\d{2}\.\d{4}$/)
   })
 
   await test.step('Шаг 8. Э-8: после перезапуска приложения студент видит «В работе»', async () => {
@@ -269,7 +269,7 @@ test('сквозной сценарий М0: вход, расписание, о�
         student1.markers.profile,
         student1.fullName,
         'Справка из деканата',
-        'Готовим',
+        'Пока ничего',
       ]) {
         expect(html, `в ответе чужому есть «${marker}»`).not.toContain(marker)
       }

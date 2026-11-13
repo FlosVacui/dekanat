@@ -34,6 +34,8 @@ export interface StaffRequestItem {
 }
 
 export interface StaffRequestDetail extends StaffRequestItem {
+  purpose: string | null
+  paymentYear: number | null
   dueDate: string | null
   pickupUntil: string | null
   issuedOn: string | null
@@ -72,6 +74,8 @@ export async function getCohortRequest(actor: Actor, requestId: string): Promise
   const rows = await db
     .select({
       ...listColumns,
+      purpose: requests.purpose,
+      paymentYear: requests.paymentYear,
       dueDate: requests.dueDate,
       pickupUntil: requests.pickupUntil,
       issuedOn: requests.issuedOn,

@@ -1,0 +1,37 @@
+# Обратный прокси с HTTPS для сервера: пакет 2.5. Отдельный файл нарочно: compose.yaml портов наружу не публикует — тест П-10.
+#
+# Запуск вместе с основным файлом:
+#   docker compose -f compose.yaml -f compose.proxy.yaml up -d
+# На сервере проще: строка COMPOSE_FILE=compose.yaml:compose.proxy.yaml в .env — обычные команды docker compose берут оба файла.
+#
+# Правила (ADR-0001, ADR-0003, ADR-0004):
+#  - Наружу открыты только 80 и 443, только по IPv4: счётчики входа считают по адресу, у домена нет записи AAAA.
+#  - Сертификат Caddy получает сам у Let's Encrypt для имени из SITE_ADDRESS. Ключ и данные выпуска лежат в томе
+#    caddy_data — вне репозитория.
+#  - Адрес посетителя прокси кладёт в заголовок X-Real-IP и затирает то, что прислал посетитель. В .env: CLIENT_IP_HEADER=x-real-ip.
+services:
+  proxy:
+    image: caddy:2
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?задайте SITE_ADDRESS в .env}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      app:
+        condition: service_healthy
+    networks: [internal]
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  caddy_data: {}
+  caddy_config: {}
