@@ -742,6 +742,12 @@ history:
     who: "оркестратор Fable 5.2"
     commit: "adbd854"
     link: "docs/briefs/B-3.3-grades.md"
+  - date: 2026-11-13
+    item: "2.2"
+    what: "PR №16 открыт после «да» пользователя; PR №15 закрыт в его пользу; не слит"
+    who: "пользователь; оркестратор Fable 5.2"
+    commit: "11de916"
+    link: "https://github.com/FlosVacui/dekanat/pull/16"
 
 reviews:
   - id: "R-0.3-1"
