@@ -212,12 +212,29 @@ export const requests = pgTable(
     pickupUntil: date('pickup_until', { mode: 'string' }),
     issuedOn: date('issued_on', { mode: 'string' }),
     rejectReason: text('reject_reason'),
+    /** «Куда справка»: ключ из списка R-1.6, таблица 3.2. Заполнено только у справки из деканата. */
+    purpose: text('purpose'),
+    /** «Год оплаты»: не раньше 2024. Заполнено только у справки об оплате обучения. */
+    paymentYear: integer('payment_year'),
   },
   (t) => [
     index('requests_student_idx').on(t.studentId, t.createdAt),
     index('requests_ip_created_idx').on(t.ip, t.createdAt),
     check('requests_kind_check', sql`${t.kind} in ('dean_certificate', 'tuition_certificate', 'financial_aid')`),
     check('requests_status_check', sql`${t.status} in ('submitted', 'in_progress', 'ready', 'issued', 'rejected')`),
+    // Список ключей — тот же, что DEAN_PURPOSES в src/lib/requests.ts; совпадение проверяет тест (dal-student.test.ts).
+    check(
+      'requests_purpose_check',
+      sql`${t.purpose} is null or ${t.purpose} in ('pension_fund', 'passport_office', 'parents_workplace', 'student_workplace', 'tax_office', 'social_security', 'insurance', 'library', 'university', 'embassy', 'mosgortrans', 'traffic_police', 'on_demand', 'residence', 'railway_tickets', 'summons', 'study_period')`,
+    ),
+    // Год не раньше 2024 — PAYMENT_YEAR_MIN в src/lib/requests.ts.
+    check('requests_payment_year_check', sql`${t.paymentYear} is null or ${t.paymentYear} >= 2024`),
+    check(
+      'requests_fields_by_kind_check',
+      sql`(${t.kind} = 'dean_certificate' and ${t.purpose} is not null and ${t.paymentYear} is null)
+        or (${t.kind} = 'tuition_certificate' and ${t.purpose} is null and ${t.paymentYear} is not null)
+        or (${t.kind} = 'financial_aid' and ${t.purpose} is null and ${t.paymentYear} is null)`,
+    ),
   ],
 )
 

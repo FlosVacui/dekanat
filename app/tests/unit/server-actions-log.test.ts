@@ -135,8 +135,8 @@ describe('смена статуса по лимиту: текст на экра�
     state.ip = freshIp()
     const created = await withOwner((c) =>
       c.query(
-        `insert into requests (student_id, kind, status, ip)
-         select u.id, 'dean_certificate', 'submitted', 'bulk-status-log' from users u, generate_series(1, 31) where u.login = $1 returning id`,
+        `insert into requests (student_id, kind, status, ip, purpose)
+         select u.id, 'dean_certificate', 'submitted', 'bulk-status-log', 'on_demand' from users u, generate_series(1, 31) where u.login = $1 returning id`,
         [STUDENT_B.login],
       ),
     )

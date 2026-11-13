@@ -7,6 +7,7 @@
 import { createHash } from 'node:crypto'
 import type pg from 'pg'
 import { addDays } from '../src/lib/dates'
+import { defaultFields } from '../src/lib/requests'
 import { hashPassword } from '../src/server/auth/password'
 
 export interface LessonSpec {
@@ -187,11 +188,13 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
         const requestId = detId('request', userId, r.key)
         keptRequestIds.push(requestId)
         const created = `now() - interval '${Math.trunc(r.daysAgo)} days'`
+        // Поля вида (пакет 3.4): у вымышленных заявок значения по умолчанию; ограничение в базе требует их по виду.
+        const fields = defaultFields(r.kind, Number(today.slice(0, 4)))
         await q(
-          `INSERT INTO requests (id, student_id, kind, status, note, ip, created_at, updated_at)
-           VALUES ($1, $2, $3, $4, $5, 'seed', ${created}, ${created})
+          `INSERT INTO requests (id, student_id, kind, status, note, ip, created_at, updated_at, purpose, payment_year)
+           VALUES ($1, $2, $3, $4, $5, 'seed', ${created}, ${created}, $6, $7)
            ON CONFLICT (id) DO NOTHING`,
-          [requestId, userId, r.kind, r.status, r.note],
+          [requestId, userId, r.kind, r.status, r.note, fields.purpose, fields.paymentYear],
         )
         // У выданной заявки есть дата выдачи: текст статуса «Вы получили документ <дата>» без неё неполон.
         await q(`UPDATE requests SET issued_on = created_at::date + 1 WHERE id = $1 AND status = 'issued' AND issued_on IS NULL`, [

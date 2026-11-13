@@ -147,8 +147,8 @@ describe('лимит записи: 10 заявок в сутки на пару �
     const b = await actorFor(STUDENT_B)
     await withOwner((c) =>
       c.query(
-        `insert into requests (student_id, kind, status, ip)
-         select u.id, 'dean_certificate', 'submitted', 'bulk-' || g
+        `insert into requests (student_id, kind, status, ip, purpose)
+         select u.id, 'dean_certificate', 'submitted', 'bulk-' || g, 'on_demand'
          from users u, generate_series(1, 200 - (select count(*) from requests r where r.student_id = u.id and r.created_at > now() - interval '1 day')) g
          where u.login = $1`,
         [STUDENT_B.login],
@@ -180,8 +180,8 @@ describe('лимит смены статуса: 30 в минуту на пару
   async function newSubmitted(count: number): Promise<string[]> {
     const res = await withOwner((c) =>
       c.query(
-        `insert into requests (student_id, kind, status, ip)
-         select u.id, 'dean_certificate', 'submitted', 'bulk-status' from users u, generate_series(1, $2::int) where u.login = $1
+        `insert into requests (student_id, kind, status, ip, purpose)
+         select u.id, 'dean_certificate', 'submitted', 'bulk-status', 'on_demand' from users u, generate_series(1, $2::int) where u.login = $1
          returning id`,
         [STUDENT_B.login, count],
       ),
