@@ -1992,7 +1992,8 @@ reviews:
     text: "Дизайн-система обещает то, чего нет в файле и на витрине: tabular-nums у hero-time, подсказка у поля с ошибкой, состояние с плейсхолдером"
     repro: "docs/reviews/RV-2.2-1b.md"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "PR №16, в main с ad856ed. Правила цифр у .hero-time в макете и витрине нет — документ это говорит, правило добавит исполнитель по IMP-020 (коммит baa2921 линии 2.2). Подсказка у поля с ошибкой и пустое поле с плейсхолдером — D-2.2-system, 5.3, и витрина"
   - id: "R-2.2-6"
     item: "2.2"
     round: 1
@@ -2000,7 +2001,8 @@ reviews:
     text: "Образцы разметки поля противоречат правилу autocomplete"
     repro: "docs/reviews/RV-2.2-1b.md"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "PR №16, в main с ad856ed. autocomplete=\"username\" и \"current-password\" в образцах логина и пароля — в D-2.2-system и на витрине"
   - id: "R-2.2-7"
     item: "2.2"
     round: 1
@@ -2008,7 +2010,8 @@ reviews:
     text: "Не названо переименование варианта кнопки secondary в ghost: пять вызовов в продукте и тип в link-button.tsx"
     repro: "docs/reviews/RV-2.2-1b.md"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "PR №16, в main с ad856ed. Переименование secondary в ghost записано в D-2.2-system, 5.1, и в строке IMP-020: пять вызовов, тип в link-button.tsx, вопрос о w-full. В продукте не сделано — перенос по IMP-020"
   - id: "R-2.2-8"
     item: "2.2"
     round: 1
@@ -2016,7 +2019,8 @@ reviews:
     text: "Три файла знака не описаны в таблице; отложенное и раздел 7 называют разные файлы для шапки"
     repro: "docs/reviews/RV-2.2-1b.md"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "PR №16, в main с ad856ed. В таблице файлов знака D-2.2-logo все восемь файлов; шапка — owl-128.png, вход — owl-512.png"
   - id: "R-2.2-9"
     item: "2.2"
     round: 1
@@ -2024,7 +2028,8 @@ reviews:
     text: "Цвет второй строки знака вуза описан неверно: почти чёрный, не серый"
     repro: "docs/reviews/RV-2.2-1b.md"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "PR №16, в main с ad856ed. Цвет надписи в знаке вуза поправлен в D-2.2-logo: первое слово бордовое, второе почти чёрное (коммит baa2921 линии 2.2)"
   - id: "R-2.2-10"
     item: "2.2"
     round: 1
@@ -2032,7 +2037,8 @@ reviews:
     text: "В дизайн-системе нет частей экрана заявки Э-8: шаги, блок «Что сделать вам», ссылка «назад», плашки трёх статусов, вид отклонённой заявки"
     repro: "docs/reviews/RV-2.2-1b.md"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "PR №16, в main с ad856ed. Части экрана заявки Э-8 — подразделы 5.8–5.12 D-2.2-system и витрина docs/design/system/index.html"
   - id: "R-2.2-11"
     item: "2.2"
     round: 2
