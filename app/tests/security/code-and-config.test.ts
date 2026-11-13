@@ -79,8 +79,9 @@ describe('R-2.3-34: студент статус не передаёт; сотр�
     return [...text.matchAll(/formData\.get\('([^']+)'\)/g)].map((m) => m[1]!).sort()
   }
 
-  it('подача заявки читает из формы только вид; смена статуса — номер, целевой статус и причину', () => {
-    expect(formKeys('app/requests/new/actions.ts')).toEqual(['kind'])
+  it('подача заявки читает из формы только вид и два поля заявки; смена статуса — номер, целевой статус и причину', () => {
+    // Пакет 3.4, решение пользователя 13.11.2026: поля «Куда справка» и «Год оплаты». Владельца и статуса в форме по-прежнему нет.
+    expect(formKeys('app/requests/new/actions.ts')).toEqual(['kind', 'paymentYear', 'purpose'])
     expect(formKeys('app/staff/requests/[id]/actions.ts')).toEqual(['reason', 'requestId', 'target'])
     expect(formKeys('app/login/actions.ts')).toEqual(['login', 'password'])
   })

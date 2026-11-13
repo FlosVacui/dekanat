@@ -1,12 +1,14 @@
+import type pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { todayIn } from '@/lib/dates'
+import { DEAN_PURPOSE_KEYS, PAYMENT_YEAR_MIN, currentYearIn } from '@/lib/requests'
 import { Actor, type Actor as ActorType } from '@/server/auth/session'
 import { closeDb } from '@/server/dal/client'
 import { ForbiddenError } from '@/server/dal/guards'
 import * as staffDal from '@/server/dal/staff'
 import * as studentDal from '@/server/dal/student'
 import { ALT_STUDENT, STAFF_MAIN, STUDENT_A, STUDENT_B } from './fixtures'
-import { actorFor } from './helpers'
+import { actorFor, withOwner } from './helpers'
 
 let a: ActorType
 let b: ActorType
@@ -184,5 +186,142 @@ describe('подача заявки', () => {
     const detail = await studentDal.getMyRequest(a, created!.id)
     expect(detail?.status).toBe('submitted')
     expect(await studentDal.getMyRequest(b, created!.id)).toBeNull()
+  })
+})
+
+// Пакет 3.4: поля заявки. Проверка значения — в слое доступа, а не только на странице.
+describe('поля заявки: «Куда справка» и «Год оплаты»', () => {
+  const year = currentYearIn('Europe/Moscow')
+  const count = async () => (await studentDal.listMyRequests(a)).length
+
+  it('справка из деканата с назначением: создаётся и читается', async () => {
+    const created = await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'tax_office' }, 'test')
+    expect(created).not.toBeNull()
+    const detail = await studentDal.getMyRequest(a, created!.id)
+    expect(detail).toMatchObject({ kind: 'dean_certificate', purpose: 'tax_office', paymentYear: null })
+    const listed = (await studentDal.listMyRequests(a)).find((r) => r.id === created!.id)
+    expect(listed).toMatchObject({ purpose: 'tax_office', paymentYear: null })
+    // Чужой студент заявку с этим полем не видит.
+    expect(await studentDal.getMyRequest(b, created!.id)).toBeNull()
+  })
+
+  it('справка об оплате с годом: число и строка из формы принимаются', async () => {
+    const byNumber = await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: 2024 }, 'test')
+    const byString = await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: String(year) }, 'test')
+    expect(await studentDal.getMyRequest(a, byNumber!.id)).toMatchObject({ purpose: null, paymentYear: 2024 })
+    expect(await studentDal.getMyRequest(a, byString!.id)).toMatchObject({ purpose: null, paymentYear: year })
+  })
+
+  it('поле не передано — значение по умолчанию: «По месту требования» и прошлый год (не раньше 2024)', async () => {
+    const dean = await studentDal.createMyRequest(a, { kind: 'dean_certificate' }, 'test')
+    const tuition = await studentDal.createMyRequest(a, { kind: 'tuition_certificate' }, 'test')
+    expect(await studentDal.getMyRequest(a, dean!.id)).toMatchObject({ purpose: 'on_demand', paymentYear: null })
+    expect(await studentDal.getMyRequest(a, tuition!.id)).toMatchObject({ purpose: null, paymentYear: Math.max(2024, year - 1) })
+  })
+
+  it('материальная помощь: полей нет, оба пустые', async () => {
+    const created = await studentDal.createMyRequest(a, { kind: 'financial_aid' }, 'test')
+    expect(await studentDal.getMyRequest(a, created!.id)).toMatchObject({ purpose: null, paymentYear: null })
+  })
+
+  it('значение не из списка не принимается: заявка не создаётся', async () => {
+    const before = await count()
+    const refused = [
+      await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'выдуманное' }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'В налоговую инспекцию' }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: '' }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: "x'); drop table requests;--" }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: 2023 }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: year + 1 }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: 'abc' }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: '' }, 'test'),
+      await studentDal.createMyRequest(a, { kind: 'tuition_certificate', paymentYear: 2025.5 }, 'test'),
+    ]
+    expect(refused).toEqual(refused.map(() => null))
+    expect(await count()).toBe(before)
+  })
+
+  it('поле чужого вида отбрасывается, даже неверное: заявка создаётся без него', async () => {
+    const dean = await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'embassy', paymentYear: 1999 }, 'test')
+    const tuition = await studentDal.createMyRequest(a, { kind: 'tuition_certificate', purpose: 'выдуманное', paymentYear: 2024 }, 'test')
+    const aid = await studentDal.createMyRequest(a, { kind: 'financial_aid', purpose: 'embassy', paymentYear: 2024 }, 'test')
+    expect(await studentDal.getMyRequest(a, dean!.id)).toMatchObject({ purpose: 'embassy', paymentYear: null })
+    expect(await studentDal.getMyRequest(a, tuition!.id)).toMatchObject({ purpose: null, paymentYear: 2024 })
+    expect(await studentDal.getMyRequest(a, aid!.id)).toMatchObject({ purpose: null, paymentYear: null })
+  })
+
+  it('сотрудник видит поле заявки студента своего набора', async () => {
+    const created = await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'library' }, 'test')
+    const seen = await staffDal.getCohortRequest(staff, created!.id)
+    expect(seen).toMatchObject({ purpose: 'library', paymentYear: null })
+  })
+
+  it('лимиты записи работают как раньше: поля их не обходят', async () => {
+    const ip = '203.0.113.77'
+    const results: unknown[] = []
+    for (let i = 0; i < 10; i += 1) results.push(await studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'library' }, ip))
+    expect(results.every((r) => r !== null)).toBe(true)
+    await expect(studentDal.createMyRequest(a, { kind: 'dean_certificate', purpose: 'library' }, ip)).rejects.toMatchObject({ scope: 'pair' })
+  })
+})
+
+describe('поля заявки: ограничения в базе', () => {
+  const insert = (client: pg.Client, kind: string, purpose: string | null, paymentYear: number | null) =>
+    client.query(
+      `insert into requests (student_id, kind, status, ip, purpose, payment_year)
+       select id, $2, 'submitted', 'db-check', $3, $4 from users where login = $1`,
+      [STUDENT_A.login, kind, purpose, paymentYear],
+    )
+
+  /** Каждая проверка идёт в своей транзакции, которая откатывается: заявок в базе не остаётся. */
+  async function attempt(kind: string, purpose: string | null, paymentYear: number | null): Promise<'ok' | string> {
+    return withOwner(async (c) => {
+      await c.query('begin')
+      try {
+        await insert(c, kind, purpose, paymentYear)
+        return 'ok'
+      } catch (error) {
+        return (error as { constraint?: string }).constraint ?? String(error)
+      } finally {
+        await c.query('rollback')
+      }
+    })
+  }
+
+  it('все 17 значений списка база принимает', async () => {
+    for (const key of DEAN_PURPOSE_KEYS) expect(await attempt('dean_certificate', key, null), key).toBe('ok')
+  })
+
+  it('список в ограничении базы — ровно DEAN_PURPOSES из кода', async () => {
+    const res = await withOwner((c) =>
+      c.query(`select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'requests_purpose_check'`),
+    )
+    const def = String(res.rows[0]?.def)
+    const inDb = [...def.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]!)
+    expect(inDb.sort()).toEqual([...DEAN_PURPOSE_KEYS].sort())
+    const year = await withOwner((c) =>
+      c.query(`select pg_get_constraintdef(oid) as def from pg_constraint where conname = 'requests_payment_year_check'`),
+    )
+    expect(String(year.rows[0]?.def)).toContain(`>= ${PAYMENT_YEAR_MIN}`)
+  })
+
+  it('значение не из списка база не принимает', async () => {
+    expect(await attempt('dean_certificate', 'выдуманное', null)).toBe('requests_purpose_check')
+  })
+
+  it('год раньше 2024 база не принимает', async () => {
+    expect(await attempt('tuition_certificate', null, 2023)).toBe('requests_payment_year_check')
+    expect(await attempt('tuition_certificate', null, 2024)).toBe('ok')
+  })
+
+  it('назначение — только у справки из деканата, год — только у справки об оплате, у помощи оба пустые', async () => {
+    const wrong = 'requests_fields_by_kind_check'
+    expect(await attempt('dean_certificate', null, null)).toBe(wrong)
+    expect(await attempt('dean_certificate', 'embassy', 2025)).toBe(wrong)
+    expect(await attempt('tuition_certificate', 'embassy', 2025)).toBe(wrong)
+    expect(await attempt('tuition_certificate', null, null)).toBe(wrong)
+    expect(await attempt('financial_aid', 'embassy', null)).toBe(wrong)
+    expect(await attempt('financial_aid', null, 2025)).toBe(wrong)
+    expect(await attempt('financial_aid', null, null)).toBe('ok')
   })
 })

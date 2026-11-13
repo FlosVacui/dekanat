@@ -1,24 +1,35 @@
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
-import { Card, PageTitle } from '@/components/card'
 import { LinkButton } from '@/components/link-button'
 import { StudentShell } from '@/components/student-shell'
 import { formatDate, todayIn } from '@/lib/dates'
 import {
   REQUEST_KIND_INFO,
   STATUS_LABELS,
+  STEP_STATE_WORDS,
+  buildRequestSteps,
   isRequestKind,
   isRequestStatus,
+  requestFieldLine,
   statusText,
-  type RequestStatus,
+  type StepState,
 } from '@/lib/requests'
 import { denyRecord, requireStudentActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
 import { getMyRequest } from '@/server/dal/student'
 
-// Э-8 «Заявка»: шаги, что сейчас, что сделать студенту. Номер в адресе — номер записи; владельца берёт сервер из сессии.
+// Э-8 «Заявка»: ссылка «Все заявки», заголовок, статус словом, блок «Что сделать вам», шаги с пояснениями, кнопки
+// (D-2.2-system, 5.12). Набор шагов собирает чистая функция buildRequestSteps; страница только рисует.
+// Номер в адресе — номер записи; владельца берёт сервер из сессии.
 export const dynamic = 'force-dynamic'
 
-const STEPS: RequestStatus[] = ['submitted', 'in_progress', 'ready', 'issued']
+const STATE_WORD_CLASS: Record<StepState, string> = {
+  done: 'text-green-900',
+  now: 'text-blue-800',
+  next: 'text-neutral-700',
+  next_you: 'text-neutral-700',
+  rejected: 'text-red-900',
+}
 
 export default async function RequestPage({ params }: { params: Promise<{ id: string }> }) {
   const actor = await requireStudentActor()
@@ -28,62 +39,102 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   if (!request) return denyRecord(actor)
   if (!isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
   const { kind, status } = request
+  const timezone = getConfig().timezone
   const rejected = status === 'rejected'
-  const reached = new Set(request.events.map((e) => e.status))
-  const currentIndex = STEPS.indexOf(status)
+  const fieldLine = requestFieldLine(kind, request)
+  const steps = buildRequestSteps({
+    kind,
+    status,
+    events: request.events,
+    createdAt: request.createdAt,
+    dueDate: request.dueDate,
+    pickupUntil: request.pickupUntil,
+    issuedOn: request.issuedOn,
+    timezone,
+  })
 
   return (
     <StudentShell actor={actor} active="requests">
-      <PageTitle>
-        {REQUEST_KIND_INFO[kind].title}
-        <span className="block text-sm font-normal text-neutral-700">
-          Подана {formatDate(todayIn(getConfig().timezone, request.createdAt))}
-        </span>
-      </PageTitle>
-      <Card className="mb-3">
-        <p className="text-sm text-neutral-700">Сейчас</p>
-        <p data-testid="request-status" className="text-lg font-semibold">
-          {STATUS_LABELS[status]}
-        </p>
-        <p data-testid="request-status-text" className="mt-1 text-sm">
-          {statusText({
-            kind,
-            status,
-            dueDate: request.dueDate,
-            pickupUntil: request.pickupUntil,
-            issuedOn: request.issuedOn,
-            rejectReason: request.rejectReason,
-          })}
-        </p>
-        {request.note ? <p className="mt-2 text-sm text-neutral-700">Примечание: {request.note}</p> : null}
-      </Card>
+      <Link href="/requests" className="mb-1 inline-flex min-h-11 items-center gap-1 self-start pr-3 text-sm font-bold text-blue-800">
+        <span aria-hidden="true">←</span>
+        Все заявки
+      </Link>
 
-      <h2 className="mb-2 text-base font-semibold">Шаги</h2>
-      <ol className="mb-3 flex flex-col gap-2">
-        {STEPS.map((step, index) => {
-          const done = reached.has(step) && (rejected || index < currentIndex)
-          const current = !rejected && index === currentIndex
-          return (
-            <li
-              key={step}
-              aria-current={current ? 'step' : undefined}
-              className={`rounded border p-3 text-sm ${current ? 'border-blue-700 bg-blue-50 font-medium' : 'border-neutral-300 bg-white'}`}
-            >
-              {STATUS_LABELS[step]}
-              {done ? ' — сделано' : current ? ' — сейчас' : ''}
-            </li>
-          )
-        })}
-        {rejected ? (
-          <li className="rounded border border-red-700 bg-red-50 p-3 text-sm font-medium text-red-950">
-            {STATUS_LABELS.rejected}
-          </li>
+      <h1 className="mb-3 text-xl font-semibold">
+        {REQUEST_KIND_INFO[kind].title}
+        <span className="block text-sm font-normal text-neutral-700">Подана {formatDate(todayIn(timezone, request.createdAt))}</span>
+        {fieldLine ? (
+          <span data-testid="request-field" className="block break-words text-sm font-normal text-neutral-700">
+            {fieldLine}
+          </span>
         ) : null}
+      </h1>
+
+      <p className="mb-3 text-lg font-semibold">
+        <span className="sr-only">Статус: </span>
+        <span data-testid="request-status">{STATUS_LABELS[status]}</span>
+      </p>
+
+      {status !== 'issued' ? (
+        <section aria-labelledby="request-todo-title" className="mb-3 rounded-lg border border-blue-700 bg-blue-50 p-4">
+          <h2 id="request-todo-title" className="mb-1 text-base font-bold">
+            Что сделать вам
+          </h2>
+          <p data-testid="request-status-text" className="text-sm">
+            {statusText({
+              kind,
+              status,
+              dueDate: request.dueDate,
+              pickupUntil: request.pickupUntil,
+              issuedOn: request.issuedOn,
+              rejectReason: request.rejectReason,
+            })}
+          </p>
+        </section>
+      ) : null}
+
+      {request.note ? <p className="mb-3 break-words text-sm text-neutral-700">Примечание: {request.note}</p> : null}
+
+      <ol aria-label="Шаги заявки" className="mb-4 flex flex-col gap-2">
+        {steps.map((step) => (
+          <li
+            key={step.key}
+            aria-current={step.current ? 'step' : undefined}
+            className={`rounded border p-3 text-sm ${
+              step.state === 'now'
+                ? 'border-blue-700 bg-blue-50'
+                : step.state === 'rejected'
+                  ? 'border-red-700 bg-red-50'
+                  : 'border-neutral-300 bg-white'
+            }`}
+          >
+            <span className={`block text-xs font-extrabold tracking-wide ${STATE_WORD_CLASS[step.state]}`}>
+              {STEP_STATE_WORDS[step.state]}
+            </span>
+            <b className="block text-base">{step.title}</b>
+            {step.note ? <p className="mt-1 break-words text-neutral-700">{step.note}</p> : null}
+            {step.where ? (
+              <dl className="mt-2 grid grid-cols-[fit-content(50%)_1fr] gap-x-3 gap-y-1 rounded bg-white p-2">
+                <dt className="text-neutral-700">Куда</dt>
+                <dd className="break-words font-bold">{step.where.room}</dd>
+                {step.where.until ? (
+                  <>
+                    <dt className="text-neutral-700">До какого дня</dt>
+                    <dd className="break-words font-bold">{step.where.until}</dd>
+                  </>
+                ) : null}
+              </dl>
+            ) : null}
+          </li>
+        ))}
       </ol>
 
-      {rejected ? (
-        <LinkButton href={`/requests/new?type=${kind}`}>Подать снова</LinkButton>
-      ) : null}
+      <div className="flex flex-col gap-2">
+        {rejected ? <LinkButton href={`/requests/new?type=${kind}&from=${request.id}`}>Подать снова</LinkButton> : null}
+        <LinkButton href="/requests" variant="secondary">
+          К списку заявок
+        </LinkButton>
+      </div>
     </StudentShell>
   )
 }

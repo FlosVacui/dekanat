@@ -1,9 +1,10 @@
 import 'server-only'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { isIsoDate } from '@/lib/dates'
-import { isRequestKind, type RequestKind } from '@/lib/requests'
+import { currentYearIn, isRequestKind, normalizeFields, type RequestKind } from '@/lib/requests'
 import { normalizeIp } from '../auth/ip'
 import type { Actor } from '../auth/session'
+import { getConfig } from '../config'
 import { getDb } from './client'
 import { RequestLimitError, isUuid, requireStudent } from './guards'
 import {
@@ -266,6 +267,10 @@ export interface RequestItem {
   pickupUntil: string | null
   issuedOn: string | null
   rejectReason: string | null
+  /** «Куда справка» — ключ из списка; только у справки из деканата. */
+  purpose: string | null
+  /** «Год оплаты»; только у справки об оплате обучения. */
+  paymentYear: number | null
 }
 
 export interface RequestEventItem {
@@ -290,6 +295,8 @@ const requestColumns = {
   pickupUntil: requests.pickupUntil,
   issuedOn: requests.issuedOn,
   rejectReason: requests.rejectReason,
+  purpose: requests.purpose,
+  paymentYear: requests.paymentYear,
 }
 
 export async function listMyRequests(actor: Actor): Promise<RequestItem[]> {
@@ -327,7 +334,9 @@ export const REQUESTS_PER_DAY_PAIR = 10
 export const REQUESTS_PER_DAY_ACCOUNT = 200
 
 /**
- * Подача заявки. Студент передаёт только вид; владелец и статус «Подана» ставит слой.
+ * Подача заявки. Студент передаёт вид и значения полей своего вида; владелец и статус «Подана» ставит слой.
+ * Поле не передано — значение по умолчанию. Передано не из списка — заявка не создаётся (null). Значение для вида,
+ * у которого такого поля нет, отбрасывается. Проверка здесь, в слое, а не только на странице.
  * Адрес подачи записывается в заявку (ADR-0003, «Чистка спама»); значение «unknown» — заголовка нет.
  * Лимит записи: не больше 10 заявок в сутки на пару «аккаунт и адрес» и 200 на аккаунт. Проверка и вставка — одна
  * транзакция под замком на аккаунт, поэтому залп одновременных подач лимит не проходит. Исчерпан лимит —
@@ -335,11 +344,13 @@ export const REQUESTS_PER_DAY_ACCOUNT = 200
  */
 export async function createMyRequest(
   actor: Actor,
-  input: { kind: RequestKind },
+  input: { kind: RequestKind; purpose?: string | null; paymentYear?: number | string | null },
   ip: string,
 ): Promise<{ id: string } | null> {
   const { studentId } = requireStudent(actor)
   if (!isRequestKind(input.kind)) return null
+  const fields = normalizeFields(input.kind, input, currentYearIn(getConfig().timezone))
+  if (!fields) return null
   const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
   return getDb().transaction(async (tx) => {
     await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`requests:${studentId}`}, 0))`)
@@ -353,7 +364,14 @@ export async function createMyRequest(
     if (account >= REQUESTS_PER_DAY_ACCOUNT) throw new RequestLimitError('account')
     const inserted = await tx
       .insert(requests)
-      .values({ studentId, kind: input.kind, status: 'submitted', ip: safeIp })
+      .values({
+        studentId,
+        kind: input.kind,
+        status: 'submitted',
+        ip: safeIp,
+        purpose: fields.purpose,
+        paymentYear: fields.paymentYear,
+      })
       .returning({ id: requests.id })
     const created = inserted[0]
     if (!created) return null

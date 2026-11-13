@@ -73,7 +73,22 @@ describe('область сотрудника — набор (П-12, ADR-0002)',
       expect(text).not.toContain(marker)
     }
     expect(Object.keys(detail!).sort()).toEqual(
-      ['createdAt', 'dueDate', 'events', 'groupName', 'id', 'issuedOn', 'kind', 'pickupUntil', 'rejectReason', 'status', 'studentName', 'updatedAt'].sort(),
+      [
+        'createdAt',
+        'dueDate',
+        'events',
+        'groupName',
+        'id',
+        'issuedOn',
+        'kind',
+        'paymentYear',
+        'pickupUntil',
+        'purpose',
+        'rejectReason',
+        'status',
+        'studentName',
+        'updatedAt',
+      ].sort(),
     )
   })
 })
