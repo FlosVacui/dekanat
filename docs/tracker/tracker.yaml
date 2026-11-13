@@ -201,7 +201,7 @@ items:
     owner: "Дизайнер (Sonnet 5.5 / high)"
     review: "Ревьюер; пользователь"
     plan: {start: 2026-11-12, end: 2026-11-13}
-    fact: {2026-11-12: "В работе", 2026-11-13: "В работе"}
+    fact: {2026-11-12: "В работе", 2026-11-13: "Ждёт решения"}
   - id: "2.3"
     title: "Архитектура и ADR: данные, вход, доступ, секреты"
     person: "А"
@@ -722,6 +722,26 @@ history:
     commit: "1beb62c"
     tokens: 208137
     link: "docs/design/D-2.2-system.md"
+  - date: 2026-11-13
+    item: "2.2"
+    what: "Ревью RV-2.2-1: принять с замечаниями; блокирующих 0, существенных 0, незначительных 2, предложений 2; три исправлены, одно ждёт решения пользователя"
+    who: "reviewer, Sonnet 5.5 / high; решения — оркестратор Fable 5.2"
+    commit: "baa2921"
+    rounds: 1
+    tokens: 187136
+    link: "docs/reviews/RV-2.2-1.md"
+  - date: 2026-11-13
+    item: "3.2"
+    what: "Задание B-3.2-schedule написано; исполнитель не запускался"
+    who: "оркестратор Fable 5.2"
+    commit: "adbd854"
+    link: "docs/briefs/B-3.2-schedule.md"
+  - date: 2026-11-13
+    item: "3.3"
+    what: "Задание B-3.3-grades написано; исполнитель не запускался"
+    who: "оркестратор Fable 5.2"
+    commit: "adbd854"
+    link: "docs/briefs/B-3.3-grades.md"
 
 reviews:
   - id: "R-0.3-1"
@@ -1801,6 +1821,38 @@ reviews:
     repro: "RV-1.6-2"
     by: "reviewer, Sonnet 5.5 / high"
     status: "открыто"
+  - id: "R-2.2-1"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "D-2.2-system: написано, что tabular-nums для .hero-time добавляет система, а правила нет нигде"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Фраза в D-2.2-system заменена; правило добавит исполнитель по IMP-020"
+  - id: "R-2.2-2"
+    item: "2.2"
+    round: 1
+    severity: "предложение"
+    text: "Оранжевый знака на фоне страницы и в шапке — 3,01 при правиле системы 3,1; проходит WCAG 3:1; решить до экранов 3.2–3.7"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+    comment: "В D-2.2-system дописано про порог WCAG; сдвигать ли фон — решает участник А"
+  - id: "R-2.2-3"
+    item: "2.2"
+    round: 1
+    severity: "незначительное"
+    text: "День в полосе: 44 и больше только без полосы прокрутки; в Edge с полосой — 42×58, на 320 — 36×58"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Строка в D-2.2-system называет оба числа и условие; D-2.2-variants смены Б-3 не правился"
+  - id: "R-2.2-4"
+    item: "2.2"
+    round: 1
+    severity: "предложение"
+    text: "D-2.2-logo: надпись знака вуза названа серой, в файле она почти чёрная"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Поправлено в D-2.2-logo"
 
 decisions:
   - id: "Р-0"
