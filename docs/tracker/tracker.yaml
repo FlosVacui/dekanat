@@ -249,13 +249,13 @@ items:
     fact: {2026-11-12: "Выполнено"}
   - id: "3.2"
     title: "Расписание: день, неделя, изменения и переносы"
-    person: "Б"
+    person: "А"
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-14, end: 2026-11-16}
   - id: "3.3"
     title: "Успеваемость: оценки, зачёты, сессия, «как у меня дела»"
-    person: "Б"
+    person: "А"
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-14, end: 2026-11-16}
@@ -265,10 +265,10 @@ items:
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-14, end: 2026-11-16}
-    fact: {2026-11-13: "В работе"}
+    fact: {2026-11-13: "Выполнено"}
   - id: "3.5"
     title: "Уведомления: объявления деканата и напоминания"
-    person: "Б"
+    person: "А"
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-15, end: 2026-11-16}
@@ -286,7 +286,7 @@ items:
     plan: {start: 2026-11-16, end: 2026-11-17}
   - id: "3.8"
     title: "Вымышленные данные и тестовые аккаунты"
-    person: "В"
+    person: "А"
     owner: "Разработчик (Sonnet 5.5 / medium)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-14, end: 2026-11-16}
@@ -841,6 +841,16 @@ history:
     rounds: 1
     tokens: 177643
     link: "docs/reviews/RV-3.4-1.md"
+  - date: 2026-11-13
+    item: "3.4"
+    what: "Пакет принят пользователем после ручного прохода заявок на сервере; отложенное — IMP-024 и IMP-025"
+    who: "Участник А"
+    commit: "51c70af"
+  - date: 2026-11-13
+    item: "2.5"
+    what: "Скрипт обновления сервера 06-update.sh без вымышленных данных; сервер обновлён до a1df7d4: UPDATE-OK, пользователей и заявок до и после — 3 и 2"
+    who: "Оркестратор (Fable 5.2); запуск — участник А"
+    commit: "5045f8f"
 
 reviews:
   - id: "R-0.3-1"
