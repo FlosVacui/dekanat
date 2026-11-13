@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Вариант Б «Смелый» — Деканат в кармане (концепт)</title>
+<style>
+
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:#E4E8EF;color:#14213D;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;font-size:16px;line-height:1.4}
+a{color:#0B3A8C}
+.page{max-width:1280px;margin:0 auto;padding:20px 16px 24px}
+.page-head{max-width:760px;margin:0 auto 20px}
+.page-head h1{font-size:26px;line-height:1.2;margin:4px 0 8px}
+.page-head p{margin:0 0 6px}
+.crumb a{display:inline-flex;align-items:center;min-height:44px}
+.small{font-size:14px;color:#3A465E}
+.stage{display:flex;flex-wrap:wrap;gap:28px 28px;justify-content:center;align-items:flex-start}
+.slot{width:360px;max-width:100%}
+.slot>h2{font-size:15px;line-height:1.3;margin:0 0 8px;color:#14213D}
+.slot>h2 small{display:block;font-weight:400;font-size:13px;color:#3A465E}
+.page-foot{margin:28px auto 0;max-width:760px;text-align:center;font-size:14px;color:#3A465E}
+@media (max-width:420px){
+  .page{padding:8px 0 16px}
+  .page-head{padding:0 12px}
+  .slot>h2{padding:0 12px}
+  .phone{border-left:0!important;border-right:0!important;border-radius:0!important}
+  .page-foot{padding:0 12px}
+}
+
+/* ---------- рамка телефона ---------- */
+.phone{position:relative;width:360px;max-width:100%;height:800px;display:flex;flex-direction:column;
+  background:var(--bg);color:var(--text);font-size:var(--fs-md);line-height:1.4;
+  overflow:hidden;border:1px solid #8B95A8;border-radius:24px}
+.phone *{min-width:0}
+.phone button{font-family:inherit}
+.phone :focus-visible,.phone .is-focus{outline:3px solid var(--focus);outline-offset:2px}
+.phone .top :focus-visible,.phone .hero :focus-visible{outline-color:var(--on-header)}
+.phone .tabs :focus-visible{outline-color:var(--nav-active);outline-offset:-4px}
+.ic{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ic-s{width:16px;height:16px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* шапка */
+.top{flex:none;display:flex;align-items:center;gap:var(--sp-1);padding:var(--sp-3) var(--pad-x);
+  background:var(--header-bg);color:var(--on-header)}
+.logo{flex:none;display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--logo-plate)}
+.logo img{width:40px;height:40px;display:block}
+.top .t{flex:1}
+.top .t b{display:block;font-size:var(--fs-md);line-height:1.2;font-weight:700;white-space:nowrap}
+.top .t span{display:block;font-size:var(--fs-xs);line-height:1.3;color:var(--header-muted);white-space:nowrap}
+.icon-btn{position:relative;flex:none;width:var(--tap);height:var(--tap);display:grid;place-items:center;
+  background:transparent;border:0;border-radius:50%;color:var(--on-header);cursor:pointer;padding:0}
+.bell-n{position:absolute;top:3px;right:1px;min-width:20px;height:20px;padding:0 5px;border-radius:10px;
+  background:var(--accent);color:var(--on-accent);font-size:var(--fs-xs);font-weight:800;line-height:20px;text-align:center}
+.avatar{flex:none;width:var(--tap);height:var(--tap);display:grid;place-items:center;border:0;padding:0;cursor:pointer;
+  background:transparent}
+.avatar span{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;
+  background:var(--avatar-bg);color:var(--avatar-fg);font-size:var(--fs-sm);font-weight:800}
+
+/* прокручиваемая часть */
+.scroll{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;display:flex;flex-direction:column;scrollbar-width:thin}
+.content{flex:1;display:flex;flex-direction:column;gap:var(--gap);padding:var(--sp-4) var(--pad-x)}
+.foot{flex:none;display:flex;align-items:flex-start;justify-content:center;gap:6px;text-align:center;
+  padding:var(--sp-3) var(--pad-x) var(--sp-4);font-size:var(--fs-xs);line-height:1.4;color:var(--muted)}
+.foot .ic{width:14px;height:14px;margin-top:1px}
+
+/* нижняя панель */
+.tabs{flex:none;display:grid;grid-template-columns:repeat(4,1fr);background:var(--nav-bg)}
+.tab{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+  min-height:var(--nav-h);padding:6px 0;background:transparent;border:0;color:var(--nav-icon);cursor:pointer;
+  font-size:var(--fs-xs);font-weight:600;line-height:1.2}
+.tab-ic{display:grid;place-items:center;width:56px;height:30px;border-radius:15px}
+.tab-l{display:block;white-space:nowrap;padding:0 2px}
+.tab[aria-current="page"]{color:var(--nav-active);font-weight:700}
+.tab[aria-current="page"] .tab-ic{background:var(--nav-active-bg)}
+
+/* типографика экрана */
+.h1{margin:0;font-size:var(--h1-size);font-weight:var(--h1-weight);line-height:1.15}
+.h2{margin:0 0 var(--sp-2);font-size:var(--h2-size);font-weight:var(--h2-weight);line-height:1.25;color:var(--h2-color);
+  display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+.sub{margin:var(--sp-1) 0 0;font-size:var(--fs-sm);color:var(--muted)}
+.meta{margin:0;font-size:var(--fs-sm);color:var(--muted)}
+.back{display:inline-flex;align-items:center;gap:4px;min-height:var(--tap);margin:calc(var(--sp-2) * -1) 0 0;padding:0 var(--sp-2) 0 0;
+  background:transparent;border:0;color:var(--primary);font-size:var(--fs-sm);font-weight:700;cursor:pointer;align-self:flex-start}
+
+/* карточки */
+.card{background:var(--card);border:var(--card-border);border-radius:var(--radius-card);padding:var(--card-pad);
+  box-shadow:var(--card-shadow)}
+.card.flush{padding:0}
+.rows{display:flex;flex-direction:column}
+.row{display:flex;align-items:center;gap:var(--sp-3);min-height:var(--tap);padding:var(--sp-3) var(--card-pad);
+  width:100%;background:transparent;border:0;border-top:1px solid var(--border);color:inherit;text-align:left;font-size:inherit}
+.row:first-child{border-top:0}
+.row-main{flex:1;display:flex;flex-direction:column;gap:2px}
+.row-main b{font-size:var(--fs-md);font-weight:700;line-height:1.3}
+.row .ic-go{color:var(--primary);width:20px;height:20px}
+.row-link{cursor:pointer}
+
+/* плашки статуса: всегда значок и слово */
+.chip{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;padding:4px 8px;border-radius:var(--radius-chip);
+  font-size:var(--fs-xs);font-weight:700;line-height:1.2;white-space:nowrap}
+.chip .ic{width:14px;height:14px;stroke-width:2.4}
+.chip.ok{background:var(--success-bg);color:var(--success)}
+.chip.warn{background:var(--warning-bg);color:var(--warning)}
+.chip.err{background:var(--error-bg);color:var(--error)}
+.chip.info{background:var(--primary-soft);color:var(--primary)}
+.chip.gold{background:var(--accent-2-bg);color:var(--accent-2-text)}
+
+/* кнопки и поля */
+.btn{appearance:none;display:inline-flex;align-items:center;justify-content:center;gap:var(--sp-2);width:100%;
+  min-height:var(--control-h);padding:0 var(--sp-5);border:2px solid transparent;border-radius:var(--radius-btn);
+  font-size:var(--fs-md);font-weight:700;line-height:1.2;cursor:pointer;text-align:center}
+.btn-main{background:var(--btn-main-bg);color:var(--btn-main-fg)}
+.btn-ghost{background:transparent;color:var(--primary);border-color:var(--primary)}
+.btn .ic{width:20px;height:20px}
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:var(--fs-sm);font-weight:700}
+.field input{appearance:none;width:100%;min-height:var(--control-h);padding:0 var(--sp-4);background:var(--card);color:var(--text);
+  border:2px solid var(--border-strong);border-radius:var(--radius-ctl);font:inherit;font-size:var(--fs-md)}
+.field .hint{margin:0;font-size:var(--fs-xs);color:var(--muted)}
+
+/* следующая пара */
+.hero{background:var(--hero-bg);color:var(--on-hero);display:flex;flex-direction:column;gap:var(--sp-2)}
+.hero .eyebrow{margin:0;font-size:var(--fs-sm);font-weight:600;color:var(--on-hero-muted)}
+.hero-time{margin:0;font-size:var(--fs-num);font-weight:800;line-height:1.05;letter-spacing:-.01em}
+.hero-time span{font-size:var(--fs-lg);font-weight:600;color:var(--on-hero-muted);letter-spacing:0}
+.hero-title{margin:0;font-size:var(--fs-lg);font-weight:700;line-height:1.25}
+.hero-meta{margin:0;font-size:var(--fs-sm);color:var(--on-hero-muted)}
+.hero .btn{margin-top:var(--sp-2)}
+
+/* расписание */
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--card);border:2px solid var(--border-strong);
+  border-radius:var(--radius-ctl)}
+.seg button{min-height:var(--tap);border:0;border-radius:calc(var(--radius-ctl) - 4px);background:transparent;color:var(--text);
+  font-size:var(--fs-sm);font-weight:600;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--primary);color:var(--on-primary);font-weight:800}
+.week-row{display:flex;align-items:center;justify-content:space-between;gap:var(--sp-2)}
+.days{display:grid;grid-template-columns:repeat(7,1fr);gap:2px;margin:0 -4px}
+.day{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:58px;padding:4px 0;
+  background:transparent;border:2px solid transparent;border-radius:var(--radius-ctl);color:var(--text);cursor:pointer}
+.day small{font-size:var(--fs-xs);color:var(--muted);line-height:1}
+.day b{font-size:var(--fs-md);line-height:1.1}
+.day[aria-current="date"]{background:var(--primary);color:var(--on-primary);border-color:var(--primary)}
+.day[aria-current="date"] small{color:var(--on-primary)}
+.lesson{display:grid;grid-template-columns:56px 1fr;gap:var(--sp-3)}
+.l-time{display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
+.l-time b{font-size:var(--fs-md);line-height:1.2}
+.l-time span{font-size:var(--fs-sm);color:var(--muted)}
+.l-body{display:flex;flex-direction:column;gap:3px}
+.l-body h3{margin:0;font-size:var(--fs-md);line-height:1.3;font-weight:700}
+.lesson.cancelled .l-time b,.lesson.cancelled h3{text-decoration:line-through;text-decoration-thickness:2px;color:var(--muted)}
+.lesson.cancelled .l-time span{text-decoration:line-through}
+.lesson.cancelled .meta{text-decoration:line-through}
+.lesson .note{margin:0;font-size:var(--fs-sm);font-weight:700}
+.lesson .was{margin:0;font-size:var(--fs-sm);color:var(--muted)}
+.lesson .was s{text-decoration-thickness:2px}
+.lesson.cancelled .note{color:var(--error)}
+.lesson.moved .note{color:var(--warning)}
+.lesson .chip{margin-bottom:2px}
+
+/* заявка по шагам */
+.callout{display:flex;gap:var(--sp-3);align-items:flex-start;background:var(--accent-2-bg);color:var(--text);border-radius:var(--radius-card);
+  padding:var(--card-pad)}
+.callout .ic{color:var(--accent-2-text);margin-top:1px}
+.callout b{display:block;font-size:var(--fs-md);margin-bottom:2px;color:var(--accent-2-text)}
+.callout p{margin:0;font-size:var(--fs-sm)}
+.steps{list-style:none;margin:0;display:flex;flex-direction:column}
+.steps.card{padding:var(--card-pad)}
+.step{position:relative;display:grid;grid-template-columns:32px 1fr;gap:var(--sp-3);padding-bottom:var(--sp-4)}
+.step:last-child{padding-bottom:0}
+.step::before{content:"";position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--border-strong)}
+.step:last-child::before{display:none}
+.mark{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--border-strong);background:var(--card);color:var(--muted)}
+.mark .ic{width:18px;height:18px;stroke-width:2.6}
+.step.done .mark{background:var(--success);border-color:var(--success);color:var(--card)}
+.step.now .mark{background:var(--primary);border-color:var(--primary);color:var(--on-primary)}
+.step.next .mark{border-style:dashed}
+.s-body{display:flex;flex-direction:column;gap:3px;padding-top:3px}
+.s-tag{font-size:var(--fs-xs);font-weight:800;letter-spacing:.02em;color:var(--muted)}
+.step.done .s-tag{color:var(--success)}
+.step.now .s-tag{color:var(--primary)}
+.s-body b{font-size:var(--fs-md);line-height:1.3}
+.s-body p{margin:0;font-size:var(--fs-sm);color:var(--muted)}
+.where{display:grid;grid-template-columns:auto 1fr;gap:4px var(--sp-3);margin:var(--sp-2) 0 0;padding:var(--sp-3);background:var(--primary-soft);border-radius:var(--radius-ctl);font-size:var(--fs-sm)}
+.where dt{color:var(--muted)}
+.where dd{margin:0;font-weight:800;color:var(--text)}
+
+/* состояния */
+.state{display:flex;flex-direction:column;align-items:center;text-align:center;gap:var(--sp-2);padding:var(--sp-5) var(--card-pad)}
+.state h3{margin:0;font-size:var(--fs-md);font-weight:800}
+.state p{margin:0;font-size:var(--fs-sm);color:var(--muted);max-width:28ch}
+.state .btn{margin-top:var(--sp-2)}
+.state-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;background:var(--primary-soft);color:var(--primary)}
+.state-ic .ic{width:28px;height:28px}
+.state.error .state-ic{background:var(--error-bg);color:var(--error)}
+.state.error h3{color:var(--error)}
+.state.error{align-items:stretch;text-align:left}
+.state.error .head{display:flex;gap:var(--sp-3);align-items:flex-start}
+.state.error .head .state-ic{width:44px;height:44px;flex:none}
+.state.error .head .state-ic .ic{width:24px;height:24px}
+.state.error p{max-width:none}
+.sk{display:block;height:14px;border-radius:7px;background:var(--border)}
+.skel{display:flex;flex-direction:column;gap:var(--sp-3)}
+.skel .line{display:flex;gap:var(--sp-3);align-items:center}
+.skel .blk{width:44px;height:44px;border-radius:var(--radius-ctl);background:var(--border);flex:none}
+.skel .lines{flex:1;display:flex;flex-direction:column;gap:8px}
+@media (prefers-reduced-motion:no-preference){.sk,.skel .blk{animation:pulse 1.4s ease-in-out infinite}}
+@keyframes pulse{50%{opacity:.45}}
+.cap{margin:0 0 var(--sp-2);font-size:var(--fs-xs);font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+
+/* вход */
+.login{justify-content:center}
+.login-in{flex:1;display:flex;flex-direction:column;justify-content:center;gap:var(--sp-4);padding:var(--sp-5) var(--pad-x)}
+.login-hero{display:flex;flex-direction:column;align-items:center;gap:var(--sp-2);text-align:center}
+.login-hero img{display:block}
+.login-hero h1{margin:0;font-size:var(--fs-xl);font-weight:var(--h1-weight);line-height:1.15}
+.login-hero p{margin:0;font-size:var(--fs-sm);color:var(--muted)}
+.login .foot{margin-top:auto}
+.phone{--bg:#F3F6FB;--card:#FFFFFF;--text:#0F1B33;--muted:#43506A;--border:#C9D2E2;--border-strong:#6A7690;--primary:#194CA6;--on-primary:#FFFFFF;--primary-soft:#DCE6F8;--accent:#E9661C;--on-accent:#0F1B33;--accent-text:#A93A00;--accent-2:#D5AF53;--accent-2-text:#6E5200;--accent-2-bg:#F8EDC9;--success:#17663A;--success-bg:#D9F0E1;--warning:#7A4B00;--warning-bg:#FFE9BF;--error:#B3261E;--error-bg:#FBDDDA;--focus:#0F1B33;--header-bg:#194CA6;--on-header:#FFFFFF;--header-muted:#D6E2FA;--hero-bg:#194CA6;--on-hero:#FFFFFF;--on-hero-muted:#D6E2FA;--nav-bg:#0F1B33;--nav-icon:#B4C0DA;--nav-active:#FFFFFF;--nav-active-bg:#0F1B33;--logo-plate:#FFFFFF;--fs-xs:12px;--fs-sm:14px;--fs-md:16px;--fs-lg:20px;--fs-xl:32px;--fs-num:48px;--sp-1:4px;--sp-2:6px;--sp-3:10px;--sp-4:14px;--sp-5:20px;--pad-x:12px;--gap:8px;--card-pad:14px;--radius-card:6px;--radius-ctl:6px;--radius-btn:6px;--radius-chip:4px;--control-h:52px;--nav-h:64px;--tap:44px;--card-border:0 solid transparent;--card-shadow:none;--h1-size:var(--fs-xl);--h1-weight:800;--h2-size:var(--fs-lg);--h2-weight:800;--h2-color:var(--primary);--btn-main-bg:var(--accent);--btn-main-fg:var(--on-accent);--avatar-bg:var(--card);--avatar-fg:var(--primary);}
+.phone.dark{--bg:#080D18;--card:#121B31;--text:#EEF2FA;--muted:#A9B4CC;--border:#26324F;--border-strong:#7886A3;--primary:#7FA6F0;--on-primary:#08101F;--primary-soft:#1B2A4D;--accent:#F5894A;--on-accent:#12100A;--accent-text:#FF9C63;--accent-2:#E4C26A;--accent-2-text:#E9CD7E;--accent-2-bg:#3A3114;--success:#6FD39A;--success-bg:#15352A;--warning:#F2C45A;--warning-bg:#3A2E10;--error:#FF9C93;--error-bg:#4A1F1C;--focus:#FFFFFF;--header-bg:#1B3F85;--on-header:#FFFFFF;--header-muted:#D0DDF7;--hero-bg:#1B3F85;--on-hero:#FFFFFF;--on-hero-muted:#D0DDF7;--nav-bg:#121B31;--nav-icon:#A9B4CC;--nav-active:#FFFFFF;--nav-active-bg:#121B31;--logo-plate:#FFFFFF;}
+
+/* Б «Смелый»: сплошная синяя шапка и блок пары; тёмная панель; оранжевая главная кнопка */
+.top{padding-top:var(--sp-4);padding-bottom:var(--sp-4)}
+.top .t b{font-size:18px;font-weight:800}
+.top .logo{width:48px;height:48px}
+.card{border-radius:var(--radius-card)}
+.content{gap:var(--sp-4)}
+.tab[aria-current="page"] .tab-ic{background:transparent}
+.tab[aria-current="page"]::before{content:"";position:absolute;top:0;left:12px;right:12px;height:5px;border-radius:0 0 3px 3px;background:var(--accent)}
+.h2{text-transform:none;border-left:6px solid var(--accent);padding-left:var(--sp-2)}
+.hero{padding:var(--sp-5) var(--card-pad)}
+.hero .btn{box-shadow:0 0 0 2px var(--on-hero)}
+.hero-time{font-size:56px}
+.hero-title{font-size:var(--fs-lg)}
+.row{border-top:0;border-bottom:2px solid var(--bg)}
+.row:last-child{border-bottom:0}
+.day[aria-current="date"]{border-radius:var(--radius-ctl)}
+.lesson{border-left:8px solid var(--primary)}
+.lesson.cancelled{border-left-color:var(--error)}
+.lesson.moved{border-left-color:var(--accent)}
+.l-time b{font-size:var(--fs-lg);font-weight:800}
+.login-top{background:var(--header-bg);color:var(--on-header);display:flex;flex-direction:column;align-items:flex-start;gap:var(--sp-3);padding:var(--sp-5) var(--pad-x) var(--sp-5)}
+.login-top .logo{width:84px;height:84px;border-radius:18px}
+.login-top .logo img{width:72px;height:72px}
+.login-top h1{margin:0;font-size:36px;font-weight:800;line-height:1.05}
+.login-top p{margin:0;font-size:var(--fs-md);color:var(--header-muted)}
+.chip{font-weight:800}
+.step.done .mark{border-radius:6px}
+.step.now .mark{border-radius:6px}
+.step.next .mark{border-radius:6px}
+
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></symbol>
+<symbol id="i-schedule" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="i-grades" viewBox="0 0 24 24"><path d="M5 20v-9M12 20V5M19 20v-6"/></symbol>
+<symbol id="i-requests" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0112 0v6l1.5 2h-15z"/><path d="M10 21.5h4"/></symbol>
+<symbol id="i-go" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></symbol>
+<symbol id="i-back" viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17.2v.1"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+<symbol id="i-move" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-inbox" viewBox="0 0 24 24"><path d="M4 13l2-8h12l2 8v6H4z"/><path d="M4 13h5l1 2h4l1-2h5"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M12 21s6-5.5 6-11a6 6 0 00-12 0c0 5.5 6 11 6 11z"/><circle cx="12" cy="10" r="2"/></symbol>
+<symbol id="i-flag" viewBox="0 0 24 24"><path d="M6 21V4M6 5h11l-2 4 2 4H6"/></symbol>
+<symbol id="i-retry" viewBox="0 0 24 24"><path d="M20 12a8 8 0 11-2.6-5.9M20 4v5h-5"/></symbol>
+</defs></svg>
+<div class="page">
+<header class="page-head">
+  <p class="crumb"><a href="index.html">← К выбору вариантов</a></p>
+  <h1>Вариант Б «Смелый»</h1>
+  <p>Крупные заголовки и числа, сплошные синие блоки, оранжевая главная кнопка, почти без рамок.</p>
+  <p class="small">Рамки 360×800 px. Содержимое длиннее рамки прокручивается внутри неё; нижняя панель всегда видна. Шрифт в макете системный. Все данные вымышленные.</p>
+</header>
+<div class="stage">
+<div class="slot"><h2>1 · Вход<small>Э-1, светлая тема</small></h2>
+<section class="phone" aria-label="Вход">
+
+<main class="scroll">
+<div class="content login" style="padding:0"><div class="login-top"><span class="logo"><img src="../logo/owl/owl-512.png" width="72" height="72" alt=""></span>
+<h1>Деканат<br>в кармане</h1><p>Расписание, оценки и заявки</p></div>
+<div class="login-in" style="justify-content:flex-start;padding-top:var(--sp-4)"><form class="card" action="#" style="display:flex;flex-direction:column;gap:var(--sp-4)">
+  <div class="field"><label for="uB">Логин</label><input id="uB" class="is-focus" type="text" value="timur.obraztsov" autocomplete="off"></div>
+  <div class="field"><label for="pB">Пароль</label><input id="pB" type="password" value="demo-password" autocomplete="off"></div>
+  <button class="btn btn-main" type="button">Войти</button>
+</form></div></div>
+<footer class="foot"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</main>
+
+</section>
+</div>
+<div class="slot"><h2>2 · Сегодня, светлая тема<small>Э-2</small></h2>
+<section class="phone" aria-label="Сегодня, светлая тема">
+<header class="top">
+  <span class="logo"><img src="../logo/owl/owl-128.png" width="40" height="40" alt=""></span>
+  <div class="t"><b>Деканат в кармане</b><span>ИТ-23-04 · 11-я неделя, верхняя</span></div>
+  <button class="icon-btn" type="button" aria-label="Уведомления, 3 новых"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span class="bell-n" aria-hidden="true">3</span></button>
+  <button class="avatar" type="button" aria-label="Профиль: Тимур Образцов"><span aria-hidden="true">ТО</span></button>
+</header>
+<main class="scroll">
+<div class="content">
+<div><h1 class="h1">Сегодня</h1><p class="sub">Четверг, 12 ноября · три пары</p></div>
+<section class="card hero" aria-label="Следующая пара">
+  <p class="eyebrow">Следующая пара · через 55 минут</p>
+  <p class="hero-time">10:10<span> – 11:40</span></p>
+  <h2 class="hero-title">Математический анализ</h2>
+  <p class="hero-meta">Лекция · ауд. 314 · Л. А. Примерова</p>
+  <button class="btn btn-main" type="button">Расписание на сегодня <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+</section>
+<section aria-labelledby="t-chB">
+  <h2 class="h2" id="t-chB">Изменения в расписании</h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip err"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>Отменена</span><b>Базы данных, 11:50</b><span class="meta">Практика · ауд. 207</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-move"/></svg>Перенесена</span><b>Физика, лабораторная</b><span class="meta">Было 13:30, ауд. 314. Стало 15:10, ауд. 207</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+<section aria-labelledby="t-dueB">
+  <h2 class="h2" id="t-dueB">Что сдать на этой неделе</h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-flag"/></svg>Завтра</span><b>Лабораторная работа № 4</b><span class="meta">Физика · до пт, 13 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-flag"/></svg>Через 2 дня</span><b>Типовой расчёт</b><span class="meta">Математический анализ · до сб, 14 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+<section aria-labelledby="t-rqB">
+  <h2 class="h2" id="t-rqB">Мои заявки</h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>В работе</span><b>Справка об обучении</b><span class="meta">Готовим. Срок — до 14 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+<section aria-labelledby="t-anB">
+  <h2 class="h2" id="t-anB"><span>Объявления</span><span class="chip gold">1 новое</span></h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><b>Консультация по базам данных</b><span class="meta">Перенесена в ауд. 207, пт, 16:00</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+</div>
+<footer class="foot"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</main>
+<nav class="tabs" aria-label="Разделы кабинета">
+<button class="tab" type="button" aria-current="page"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-today"/></svg></span><span class="tab-l">Сегодня</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><span class="tab-l">Расписание</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-grades"/></svg></span><span class="tab-l">Успеваемость</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg></span><span class="tab-l">Заявки</span></button>
+</nav>
+</section>
+</div>
+<div class="slot"><h2>3 · Сегодня, тёмная тема<small>Э-2</small></h2>
+<section class="phone dark" aria-label="Сегодня, тёмная тема">
+<header class="top">
+  <span class="logo"><img src="../logo/owl/owl-128.png" width="40" height="40" alt=""></span>
+  <div class="t"><b>Деканат в кармане</b><span>ИТ-23-04 · 11-я неделя, верхняя</span></div>
+  <button class="icon-btn" type="button" aria-label="Уведомления, 3 новых"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span class="bell-n" aria-hidden="true">3</span></button>
+  <button class="avatar" type="button" aria-label="Профиль: Тимур Образцов"><span aria-hidden="true">ТО</span></button>
+</header>
+<main class="scroll">
+<div class="content">
+<div><h1 class="h1">Сегодня</h1><p class="sub">Четверг, 12 ноября · три пары</p></div>
+<section class="card hero" aria-label="Следующая пара">
+  <p class="eyebrow">Следующая пара · через 55 минут</p>
+  <p class="hero-time">10:10<span> – 11:40</span></p>
+  <h2 class="hero-title">Математический анализ</h2>
+  <p class="hero-meta">Лекция · ауд. 314 · Л. А. Примерова</p>
+  <button class="btn btn-main" type="button">Расписание на сегодня <svg class="ic" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+</section>
+<section aria-labelledby="t-chB">
+  <h2 class="h2" id="t-chB">Изменения в расписании</h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip err"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>Отменена</span><b>Базы данных, 11:50</b><span class="meta">Практика · ауд. 207</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-move"/></svg>Перенесена</span><b>Физика, лабораторная</b><span class="meta">Было 13:30, ауд. 314. Стало 15:10, ауд. 207</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+<section aria-labelledby="t-dueB">
+  <h2 class="h2" id="t-dueB">Что сдать на этой неделе</h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-flag"/></svg>Завтра</span><b>Лабораторная работа № 4</b><span class="meta">Физика · до пт, 13 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-flag"/></svg>Через 2 дня</span><b>Типовой расчёт</b><span class="meta">Математический анализ · до сб, 14 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+<section aria-labelledby="t-rqB">
+  <h2 class="h2" id="t-rqB">Мои заявки</h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>В работе</span><b>Справка об обучении</b><span class="meta">Готовим. Срок — до 14 ноября</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+<section aria-labelledby="t-anB">
+  <h2 class="h2" id="t-anB"><span>Объявления</span><span class="chip gold">1 новое</span></h2>
+  <div class="card flush rows">
+    <button class="row row-link" type="button"><span class="row-main"><b>Консультация по базам данных</b><span class="meta">Перенесена в ауд. 207, пт, 16:00</span></span><svg class="ic ic-go" aria-hidden="true" focusable="false"><use href="#i-go"/></svg></button>
+  </div>
+</section>
+</div>
+<footer class="foot"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</main>
+<nav class="tabs" aria-label="Разделы кабинета">
+<button class="tab" type="button" aria-current="page"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-today"/></svg></span><span class="tab-l">Сегодня</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><span class="tab-l">Расписание</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-grades"/></svg></span><span class="tab-l">Успеваемость</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg></span><span class="tab-l">Заявки</span></button>
+</nav>
+</section>
+</div>
+<div class="slot"><h2>4 · Расписание, день<small>Э-3: обычная, отменённая и перенесённая пара</small></h2>
+<section class="phone" aria-label="Расписание">
+<header class="top">
+  <span class="logo"><img src="../logo/owl/owl-128.png" width="40" height="40" alt=""></span>
+  <div class="t"><b>Деканат в кармане</b><span>ИТ-23-04 · 11-я неделя, верхняя</span></div>
+  <button class="icon-btn" type="button" aria-label="Уведомления, 3 новых"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span class="bell-n" aria-hidden="true">3</span></button>
+  <button class="avatar" type="button" aria-label="Профиль: Тимур Образцов"><span aria-hidden="true">ТО</span></button>
+</header>
+<main class="scroll">
+<div class="content">
+<div><h1 class="h1">Расписание</h1></div>
+<div class="week-row"><span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg>Верхняя неделя · 11</span><span class="meta">Сегодня, чт 12 ноября</span></div>
+<div class="seg" role="group" aria-label="Вид расписания"><button type="button" aria-pressed="true">День</button><button type="button" aria-pressed="false">Неделя</button></div>
+<div class="days" role="group" aria-label="Дни"><button class="day" type="button" aria-current="date" aria-label="12 ноября, Чт"><small>Чт</small><b>12</b></button><button class="day" type="button" aria-label="13 ноября, Пт"><small>Пт</small><b>13</b></button><button class="day" type="button" aria-label="14 ноября, Сб"><small>Сб</small><b>14</b></button><button class="day" type="button" aria-label="15 ноября, Вс"><small>Вс</small><b>15</b></button><button class="day" type="button" aria-label="16 ноября, Пн"><small>Пн</small><b>16</b></button><button class="day" type="button" aria-label="17 ноября, Вт"><small>Вт</small><b>17</b></button><button class="day" type="button" aria-label="18 ноября, Ср"><small>Ср</small><b>18</b></button></div>
+<article class="card lesson">
+  <div class="l-time"><b>10:10</b><span>11:40</span></div>
+  <div class="l-body"><h3>Математический анализ</h3><p class="meta">Лекция · ауд. 314</p><p class="meta">Л. А. Примерова</p></div>
+</article>
+<article class="card lesson cancelled">
+  <div class="l-time"><b>11:50</b><span>13:20</span></div>
+  <div class="l-body"><span class="chip err"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-x"/></svg>Отменена</span><h3>Базы данных</h3><p class="meta">Практика · ауд. 207</p><p class="meta">С. В. Тестов</p><p class="note">Занятие не состоится</p></div>
+</article>
+<article class="card lesson moved">
+  <div class="l-time"><b>15:10</b><span>16:40</span></div>
+  <div class="l-body"><span class="chip warn"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-move"/></svg>Перенесена</span><h3>Физика</h3><p class="meta">Лабораторная · ауд. 207</p><p class="meta">Л. А. Примерова</p>
+  <p class="was">Было: <s>13:30–15:00, ауд. 314</s></p></div>
+</article>
+</div>
+<footer class="foot"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</main>
+<nav class="tabs" aria-label="Разделы кабинета">
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-today"/></svg></span><span class="tab-l">Сегодня</span></button>
+<button class="tab" type="button" aria-current="page"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><span class="tab-l">Расписание</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-grades"/></svg></span><span class="tab-l">Успеваемость</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg></span><span class="tab-l">Заявки</span></button>
+</nav>
+</section>
+</div>
+<div class="slot"><h2>5 · Заявка по шагам<small>Э-8: сделано, сейчас, дальше</small></h2>
+<section class="phone" aria-label="Заявка">
+<header class="top">
+  <span class="logo"><img src="../logo/owl/owl-128.png" width="40" height="40" alt=""></span>
+  <div class="t"><b>Деканат в кармане</b><span>ИТ-23-04 · 11-я неделя, верхняя</span></div>
+  <button class="icon-btn" type="button" aria-label="Уведомления, 3 новых"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span class="bell-n" aria-hidden="true">3</span></button>
+  <button class="avatar" type="button" aria-label="Профиль: Тимур Образцов"><span aria-hidden="true">ТО</span></button>
+</header>
+<main class="scroll">
+<div class="content">
+<button class="back" type="button"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-back"/></svg>Все заявки</button>
+<div><h1 class="h1">Справка об обучении</h1><p class="sub">Заявка № 1042 · подана 11 ноября</p></div>
+<span class="chip info"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg>Статус: в работе</span>
+<div class="callout" role="note"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><div><b>Что сделать вам</b><p>Пока ничего. Мы сообщим, когда справка будет готова. Потом нужно прийти за ней в деканат.</p></div></div>
+<ol class="steps card" aria-label="Шаги заявки">
+  <li class="step done"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-check"/></svg></span><div class="s-body"><span class="s-tag">СДЕЛАНО</span><b>Заявка подана</b><p>11 ноября, 10:42. Деканат её получил.</p></div></li>
+  <li class="step now" aria-current="step"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><div class="s-body"><span class="s-tag">СЕЙЧАС</span><b>Справку готовят</b><p>Срок — до 14 ноября.</p></div></li>
+  <li class="step next"><span class="mark"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-pin"/></svg></span><div class="s-body"><span class="s-tag">ДАЛЬШЕ — ВАМ</span><b>Получить справку</b><p>Возьмите студенческий билет.</p>
+    <dl class="where"><dt>Куда</dt><dd>каб. 105</dd><dt>До какого дня</dt><dd>21 ноября</dd></dl></div></li>
+</ol>
+<button class="btn btn-ghost" type="button">К списку заявок</button>
+</div>
+<footer class="foot"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</main>
+<nav class="tabs" aria-label="Разделы кабинета">
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-today"/></svg></span><span class="tab-l">Сегодня</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><span class="tab-l">Расписание</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-grades"/></svg></span><span class="tab-l">Успеваемость</span></button>
+<button class="tab" type="button" aria-current="page"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg></span><span class="tab-l">Заявки</span></button>
+</nav>
+</section>
+</div>
+<div class="slot"><h2>6 · Состояния<small>пусто, ошибка, загрузка</small></h2>
+<section class="phone" aria-label="Состояния">
+<header class="top">
+  <span class="logo"><img src="../logo/owl/owl-128.png" width="40" height="40" alt=""></span>
+  <div class="t"><b>Деканат в кармане</b><span>ИТ-23-04 · 11-я неделя, верхняя</span></div>
+  <button class="icon-btn" type="button" aria-label="Уведомления, 3 новых"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-bell"/></svg><span class="bell-n" aria-hidden="true">3</span></button>
+  <button class="avatar" type="button" aria-label="Профиль: Тимур Образцов"><span aria-hidden="true">ТО</span></button>
+</header>
+<main class="scroll">
+<div class="content">
+<div><h1 class="h1">Состояния</h1></div>
+<section aria-label="Пусто">
+  <p class="cap">Пусто</p>
+  <div class="card state"><span class="state-ic" style="width:auto;height:auto;background:transparent;border-radius:0;font-size:64px;font-weight:800;line-height:1" aria-hidden="true">0</span><h3>Заявок пока нет</h3><p>Закажите справку, и её путь появится здесь.</p><button class="btn btn-main" type="button">Заказать справку</button></div>
+</section>
+<section aria-label="Ошибка">
+  <p class="cap">Ошибка</p>
+  <div class="card state error" role="alert"><div class="head"><span class="state-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-alert"/></svg></span><div><h3>Не удалось загрузить расписание</h3><p>Нет связи с сервером. Ваши данные не потеряны.</p></div></div>
+  <button class="btn btn-ghost" type="button"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-retry"/></svg>Повторить</button></div>
+</section>
+<section aria-label="Загрузка">
+  <p class="cap">Загрузка</p>
+  <div class="card skel" role="status" aria-busy="true"><span class="meta">Загружаем оценки…</span>
+    <div class="line"><span class="blk"></span><span class="lines"><span class="sk" style="width:70%"></span><span class="sk" style="width:45%"></span></span></div>
+    <div class="line"><span class="blk"></span><span class="lines"><span class="sk" style="width:60%"></span><span class="sk" style="width:35%"></span></span></div>
+  </div>
+</section>
+</div>
+<footer class="foot"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</main>
+<nav class="tabs" aria-label="Разделы кабинета">
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-today"/></svg></span><span class="tab-l">Сегодня</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-schedule"/></svg></span><span class="tab-l">Расписание</span></button>
+<button class="tab" type="button"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-grades"/></svg></span><span class="tab-l">Успеваемость</span></button>
+<button class="tab" type="button" aria-current="page"><span class="tab-ic"><svg class="ic" aria-hidden="true" focusable="false"><use href="#i-requests"/></svg></span><span class="tab-l">Заявки</span></button>
+</nav>
+</section>
+</div>
+</div>
+<footer class="page-foot">Концепт для конкурса, не официальный сервис вуза</footer>
+</div>
+
+</body>
+</html>
