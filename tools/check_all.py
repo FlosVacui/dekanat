@@ -15,11 +15,17 @@
 в `app/`. В CI на GitHub их нет: там нет базы. Стенд не поднят — шаг получает «пропущено»,
 общий итог остаётся зелёным: ADR-0005, «Пропущено — не пройдено». Пакет с кодом продукта
 принимается только при «ок» у каждого шага; пропущенные шаги названы в итоге поимённо.
+
+Шаг продукта повторяется один раз, если упал сам процесс, а проваленных проверок нет:
+код сбоя Windows или вылет рабочего процесса Vitest. Причина таких падений не найдена:
+docs/research/R-node-crashes.md. Повтор виден в итоге и назван отдельной строкой.
+Проваленная проверка не повторяется. Решение пользователя 14.11.2026.
 """
 
 from __future__ import annotations
 
 import os
+import re
 import shutil
 import socket
 import subprocess
@@ -195,6 +201,35 @@ def product(script: str, needs_stand: bool = False) -> tuple[int | None, str]:
     return run([npm, "run", script], cwd=APP)
 
 
+ANSI = re.compile(r"\x1b\[[0-9;]*m")
+# Коды сбоя процесса Windows: 0xC0000005 «обращение к чужой памяти» и соседние; в десятичной записи — 3221…
+WINDOWS_CRASH_FLOOR = 0xC0000000
+WINDOWS_CRASH_IN_TEXT = re.compile(r"\b(3221\d{6}|0xc0000[0-9a-f]{3})\b", re.IGNORECASE)
+WORKER_CRASH_IN_TEXT = re.compile(r"Worker exited unexpectedly with exit code (\d+)")
+FAILED_CHECKS_IN_TEXT = re.compile(r"\b\d+ failed\b")
+
+
+def crash_reason(code: int | None, out: str) -> str | None:
+    """Упал сам процесс, а не проверка: вернуть, чем это видно; иначе `None`.
+
+    Проваленная проверка в выводе («N failed») — не падение процесса: такой шаг не повторяется.
+    """
+    if code is None or code == 0:
+        return None
+    text = ANSI.sub("", out)
+    if FAILED_CHECKS_IN_TEXT.search(text):
+        return None
+    worker = WORKER_CRASH_IN_TEXT.search(text)
+    if worker:
+        return f"рабочий процесс тестов вышел с кодом {worker.group(1)}"
+    if code >= WINDOWS_CRASH_FLOOR:
+        return f"процесс вышел с кодом {code}"
+    mark = WINDOWS_CRASH_IN_TEXT.search(text)
+    if mark:
+        return f"в выводе код сбоя процесса {mark.group(1)}"
+    return None
+
+
 CHECKS = {
     LINKS: links,
     CLEAN: clean,
@@ -214,10 +249,18 @@ CHECKS = {
 def main() -> int:
     sys.stdout.reconfigure(encoding="utf-8")
     results = []
+    retried: list[str] = []
     for name in STEP_NAMES + PRODUCT_STEP_NAMES:
         print(f"→ {name}", flush=True)
         start = time.monotonic()
         code, out = CHECKS[name]()
+        crash = crash_reason(code, out) if name in PRODUCT_STEP_NAMES else None
+        if crash is not None:
+            print("\n".join(out.splitlines()[-25:]), flush=True)
+            print(f"↻ {name}: {crash}, проваленных проверок нет — повтор шага, один раз", flush=True)
+            code, out = CHECKS[name]()
+            again = crash_reason(code, out)
+            retried.append(f"{name}: {crash}" + (f"; повтор тоже упал: {again}" if again else ""))
         status = "пропущено" if code is None else "ок" if code == 0 else "ошибка"
         if status == "ошибка":
             print("\n".join(out.splitlines()[-25:]), flush=True)
@@ -225,6 +268,8 @@ def main() -> int:
     print("\nИтог:")
     for name, status, spent, _ in results:
         print(f"  {status:<9} {name} ({spent:.0f} с)")
+    if retried:
+        print("Повтор после падения процесса — запиши в журнал смены:\n  " + "\n  ".join(retried))
     skipped = [f"{name}: {reason}" for name, status, _, reason in results if status == "пропущено"]
     if skipped:
         print("Пропущено — не пройдено:\n  " + "\n  ".join(skipped))
