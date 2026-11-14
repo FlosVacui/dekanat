@@ -64,7 +64,7 @@ const GROUP_1: GroupSpec = {
       lessonKind: 'seminar',
       dayOffset: 2,
       kind: 'moved',
-      note: 'перенос на 5 пару, та же аудитория',
+      // Заметку («на 5 пару, 15:45–17:15, та же аудитория») собирает seed-plan.ts по сетке пар.
       toPair: 5,
     },
     {
@@ -81,7 +81,7 @@ const GROUP_1: GroupSpec = {
       lessonKind: 'seminar',
       dayOffset: 4,
       kind: 'moved',
-      note: 'перенос на субботу, 2 пара, ауд. 2-214',
+      // Заметка: «на субботу <дата новой пары>, 2 пара, 10:15–11:45, ауд. 2-214» — собирает seed-plan.ts.
       toPair: 2,
       toWeekday: SAT,
       toRoom: '2-214',
@@ -128,6 +128,7 @@ const GROUP_1: GroupSpec = {
     { name: 'Статистика', controlKind: 'exam', semester: 4, assignments: [] },
     { name: 'Маркетинг', controlKind: 'credit', semester: 4, assignments: [] },
     // Долг: на экзамене меньше 20 баллов; пересдачу кафедра назначила на Д+4 (приказ № 277: не позже чем за 3 дня).
+    // Контроль не в воскресенье (planControlDates): даты в текстах — {exam.<название>}, а не {d+N}.
     { name: 'Эконометрика', controlKind: 'exam', semester: 4, exam: { dayOffset: 4, time: '14:00', room: '1-305' }, assignments: [] },
   ],
 }
@@ -275,7 +276,7 @@ export const MAIN_COHORT: CohortSpec = {
           key: 'resit',
           kind: 'news',
           title: 'Пересдача по эконометрике',
-          body: 'Кафедра назначила пересдачу на {d+4}, 14:00, аудитория 1-305. Заявление не нужно',
+          body: 'Кафедра назначила пересдачу на {exam.Эконометрика}, 14:00, аудитория 1-305. Заявление не нужно',
           link: '/notifications',
           unread: false,
         },
@@ -407,14 +408,15 @@ export const MAIN_COHORT: CohortSpec = {
       key: 'a4',
       groupName: GROUP_ECONOMICS,
       title: 'Пересдача по эконометрике',
-      body: 'Кафедра назначила пересдачу на {d+4}, 14:00, аудитория 1-305. Заявление не нужно',
+      body: 'Кафедра назначила пересдачу на {exam.Эконометрика}, 14:00, аудитория 1-305. Заявление не нужно',
       dayOffset: -3,
     },
     {
       key: 'a5',
       groupName: GROUP_ECONOMICS,
       title: 'Консультация перед экзаменом по микроэкономике',
-      body: 'Консультация — {d+35}, 12:00, аудитория 1-305. Экзамен — на следующий день',
+      // Накануне экзамена; экзамен в понедельник — консультация в субботу, и тогда «в понедельник» (seed-plan.ts, eve).
+      body: 'Консультация — {eve.Микроэкономика}, 12:00, аудитория 1-305. Экзамен — {after-eve.Микроэкономика}',
       dayOffset: 0,
     },
     {

@@ -47,8 +47,11 @@ export type ChangeSpec = ChangeBase &
     | { kind: 'room_changed'; newRoom: string }
     | { kind: 'cancelled'; note: string }
     | { kind: 'teacher_changed'; note: string }
-    /** Перенос: на другую пару того же дня (без `toWeekday`) или на ближайший следующий `toWeekday`. */
-    | { kind: 'moved'; note: string; toPair: number; toWeekday?: Weekday; toRoom?: string }
+    /**
+     * Перенос: на другую пару того же дня (без `toWeekday`) или на ближайший следующий `toWeekday`. Заметку плана собирает по
+     * сетке пар: вид изменения («Пара перенесена») экран печатает сам, заметка несёт только новое (R-2.4-1).
+     */
+    | { kind: 'moved'; toPair: number; toWeekday?: Weekday; toRoom?: string }
   )
 
 export interface AssignmentSpec {
@@ -63,7 +66,11 @@ export interface DisciplineSpec {
   name: string
   controlKind: 'exam' | 'credit'
   semester: number
-  /** День, время и аудитория экзамена, зачёта или пересдачи; сдвиг от Д. У сданного в прошлую сессию — нет. */
+  /**
+   * День, время и аудитория экзамена, зачёта или пересдачи; сдвиг от Д. У сданного в прошлую сессию — нет.
+   * Выпавший на воскресенье контроль переносится на понедельник; если у группы в этот день уже есть контроль — на следующий
+   * будний день без контроля. Суббота остаётся: по субботам есть пары. Даты для текстов — в `PlanVars`: `{exam.<название>}`.
+   */
   exam?: { dayOffset: number; time: string; room: string }
   assignments: AssignmentSpec[]
 }
@@ -189,6 +196,13 @@ export function weekdayOf(iso: string): number {
 
 export function weekdayName(iso: string): string {
   return WEEKDAY_NAMES[weekdayOf(iso)] ?? ''
+}
+
+const WEEKDAY_ACCUSATIVE = ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу']
+
+/** «на субботу», «на среду»: день недели в винительном падеже. */
+export function weekdayAccusative(iso: string): string {
+  return WEEKDAY_ACCUSATIVE[weekdayOf(iso)] ?? ''
 }
 
 function mondayOf(iso: string): string {
@@ -430,7 +444,12 @@ function planLessons(group: GroupSpec, cohort: string, today: string, vars: Map<
         newDate = addDays(lesson.date, 1)
         while (weekdayOf(newDate) !== change.toWeekday) newDate = addDays(newDate, 1)
       }
-      planned = { ...base, kind: 'moved', note: change.note, newDate, newStartsAt, newEndsAt, newRoom: change.toRoom ?? null }
+      const place = change.toRoom ? `ауд. ${change.toRoom}` : 'та же аудитория'
+      const note =
+        newDate === null
+          ? `на ${change.toPair} пару, ${newStartsAt}–${newEndsAt}, ${place}`
+          : `на ${weekdayAccusative(newDate)} ${formatDate(newDate).slice(0, 5)}, ${change.toPair} пара, ${newStartsAt}–${newEndsAt}, ${place}`
+      planned = { ...base, kind: 'moved', note, newDate, newStartsAt, newEndsAt, newRoom: change.toRoom ?? null }
     } else {
       planned = { ...base, kind: change.kind, note: change.note }
     }
@@ -474,16 +493,50 @@ function planLessons(group: GroupSpec, cohort: string, today: string, vars: Map<
   return lessons
 }
 
+/**
+ * Даты контроля группы. Выпавшее на воскресенье — на понедельник; занятый другим контролем группы день — на следующий будний
+ * день без контроля. Суббота остаётся. Идёт по возрастанию сдвига, и ни один контроль не встаёт раньше предыдущего:
+ * порядок контроля не меняется, пересдача остаётся раньше сессии.
+ */
+export function planControlDates(disciplines: DisciplineSpec[], today: string): Map<string, string> {
+  const dates = new Map<string, string>()
+  const used = new Set<string>()
+  let last = ''
+  const withExam = disciplines.filter((d) => d.exam).sort((a, b) => a.exam!.dayOffset - b.exam!.dayOffset)
+  for (const d of withExam) {
+    const base = addDays(today, d.exam!.dayOffset)
+    let date = base < last ? last : base
+    if (weekdayOf(date) === 0 || used.has(date)) {
+      do {
+        date = addDays(date, 1)
+      } while (weekdayOf(date) === 0 || weekdayOf(date) === 6 || used.has(date))
+    }
+    used.add(date)
+    last = date
+    dates.set(d.name, date)
+  }
+  return dates
+}
+
 function planDisciplines(group: GroupSpec, cohort: string, today: string, vars: Map<string, string>): PlannedDiscipline[] {
+  const controlDates = planControlDates(group.disciplines, today)
   return group.disciplines.map((d) => {
     const id = detId('discipline', cohort, group.name, d.name)
+    const examDate = controlDates.get(d.name) ?? null
+    if (examDate) {
+      vars.set(`exam.${d.name}`, formatDate(examDate))
+      // Накануне: день перед контролем, а если он воскресенье (контроль в понедельник) — суббота. «Экзамен — {after}».
+      const eve = addDays(examDate, weekdayOf(examDate) === 1 ? -2 : -1)
+      vars.set(`eve.${d.name}`, formatDate(eve))
+      vars.set(`after-eve.${d.name}`, eve === addDays(examDate, -1) ? 'на следующий день' : 'в понедельник')
+    }
     return {
       id,
       groupName: group.name,
       name: d.name,
       controlKind: d.controlKind,
       semester: d.semester,
-      examDate: d.exam ? addDays(today, d.exam.dayOffset) : null,
+      examDate,
       examTime: d.exam?.time ?? null,
       examRoom: d.exam?.room ?? null,
       assignments: d.assignments.map((a) => {

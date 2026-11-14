@@ -2,9 +2,11 @@
 // Логины и пароли берутся только из переменных окружения (имена — в .env.example). Нет переменной или пароль короче 20 знаков —
 // команда отказывает, и в базу ничего не пишется. Логины и пароли команда не печатает.
 // Счётчики входа не сбрасываются, основной набор не трогается (IMP-019, п. 2).
+// Повторный запуск на резерве, который уже есть в базе, возвращает его к исходному состоянию: заявки, история и уведомления,
+// созданные под аккаунтами резерва, стираются. Чтобы перенести даты и ничего не стереть — db:refresh.
 import pg from 'pg'
 import { todayIn } from '../src/lib/dates'
-import { ReserveConfigError, readReserveSets, seedReserves, RESERVES } from './seed-reserve-lib'
+import { RESERVE_RERUN_NOTE, ReserveConfigError, readReserveSets, seedReserves, RESERVES } from './seed-reserve-lib'
 
 const ownerUrl = process.env.DATABASE_OWNER_URL
 if (!ownerUrl) {
@@ -30,7 +32,7 @@ await client.connect()
 try {
   const timezone = process.env.APP_TIMEZONE || 'Europe/Moscow'
   await seedReserves(client, sets, todayIn(timezone), timezone)
-  console.log(`Резервные наборы записаны: ${sets.map((s) => s.def.n).join(', ')}. Логины и пароли не печатаются.`)
+  console.log(`Резервные наборы записаны: ${sets.map((s) => s.def.n).join(', ')}. Логины и пароли не печатаются.\n${RESERVE_RERUN_NOTE}`)
 } finally {
   await client.end()
 }

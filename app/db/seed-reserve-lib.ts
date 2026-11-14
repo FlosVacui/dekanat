@@ -164,17 +164,32 @@ export async function seedReserves(
   }
 }
 
+/** Резерв, который есть в базе, но не освежён: набор и причина. Причина называет переменные, значений в ней нет. */
+export interface SkippedReserve {
+  n: number
+  cohort: string
+  reason: string
+}
+
+export interface RefreshReservesReport {
+  /** Номера освежённых наборов. */
+  refreshed: number[]
+  /** Резервы в базе, пропущенные из-за переменных окружения. Резерва, которого в базе нет, здесь нет: освежать нечего. */
+  skipped: SkippedReserve[]
+}
+
 /**
- * «Освежить» резервы, которые уже есть в базе и чьи переменные заданы. Нет переменных или набора в базе — набор пропускается:
- * освежение учётных записей не создаёт. Возвращает номера освежённых наборов.
+ * «Освежить» резервы, которые уже есть в базе и чьи переменные заданы. Набора в базе нет — он пропускается без сообщения:
+ * освежение учётных записей не создаёт. Есть в базе, а переменных нет или они не подходят — набор пропускается, но попадает
+ * в `skipped`: ночной запуск не должен молча оставлять резервы со старыми датами.
  */
-export async function refreshReserves(
+export async function refreshReservesReport(
   client: pg.Client | pg.PoolClient,
   env: Readonly<Record<string, string | undefined>>,
   today: string,
   timezone?: string,
-): Promise<number[]> {
-  const refreshed: number[] = []
+): Promise<RefreshReservesReport> {
+  const report: RefreshReservesReport = { refreshed: [], skipped: [] }
   for (const def of RESERVES) {
     const present = await client.query(`SELECT 1 FROM users WHERE cohort = $1 LIMIT 1`, [def.cohort])
     if (present.rowCount === 0) continue
@@ -182,11 +197,35 @@ export async function refreshReserves(
     try {
       accounts = readReserveAccounts(env, def.n)
     } catch (error) {
-      if (error instanceof ReserveConfigError) continue
+      if (error instanceof ReserveConfigError) {
+        // Сообщение ошибки — имена переменных и что с ними не так, значений в нём нет (тест seed-cohort.test.ts).
+        report.skipped.push({ n: def.n, cohort: def.cohort, reason: error.message.replace(/^Резервный набор \d+: /, '') })
+        continue
+      }
       throw error
     }
     await seedCohort(client, buildReserveCohort(MAIN_COHORT, def, accounts), today, { mode: 'refresh', timezone })
-    refreshed.push(def.n)
+    report.refreshed.push(def.n)
   }
-  return refreshed
+  return report
 }
+
+/** Номера освежённых наборов; о пропущенных молчит — для вывода команды есть `refreshReservesReport`. */
+export async function refreshReserves(
+  client: pg.Client | pg.PoolClient,
+  env: Readonly<Record<string, string | undefined>>,
+  today: string,
+  timezone?: string,
+): Promise<number[]> {
+  return (await refreshReservesReport(client, env, today, timezone)).refreshed
+}
+
+/** По строке на каждый пропущенный резерв: имя набора и причина. */
+export function describeSkippedReserves(skipped: readonly SkippedReserve[]): string[] {
+  return skipped.map((s) => `Резерв «${s.cohort}» есть в базе, но не освежён — переменные окружения: ${s.reason}.`)
+}
+
+/** Что команда `db:seed:reserve` сообщает после записи: повторный запуск возвращает резерв к исходному состоянию. */
+export const RESERVE_RERUN_NOTE =
+  'Повторный запуск возвращает резерв к исходному состоянию: заявки, их историю и уведомления, созданные под аккаунтами резерва, он стирает. ' +
+  'Чтобы только перенести даты на сегодня и ничего не стирать, нужна команда db:refresh.'

@@ -9,11 +9,14 @@ import { seedCohort } from '../../db/seed-lib'
 import { buildCohortPlan, detId } from '../../db/seed-plan'
 import {
   RESERVES,
+  RESERVE_RERUN_NOTE,
   ReserveConfigError,
   buildReserveCohort,
+  describeSkippedReserves,
   readReserveAccounts,
   readReserveSets,
   refreshReserves,
+  refreshReservesReport,
   reserveEnvNames,
   seedReserves,
 } from '../../db/seed-reserve-lib'
@@ -67,8 +70,8 @@ async function count(client: pg.Client, sql: string, values: unknown[] = []): Pr
 }
 
 const LEGACY_GROUPS = [
-  { name: 'Э-21-1', faculty: 'Факультет экономики и управления' },
-  { name: 'П-22-1', faculty: 'Факультет права и политики' },
+  { name: 'Э-21-1', faculty: 'Прежний факультет А' },
+  { name: 'П-22-1', faculty: 'Прежний факультет Б' },
 ]
 
 /** Состояние базы, где лежал прежний набор: группы «Э-21-1» и «П-22-1», их пары, дисциплины, работы, оценки и объявления. */
@@ -495,6 +498,70 @@ describe('резервные наборы', () => {
     }
   })
 
+  /** Запуск команды из `db/` процессом: окружение без RESERVE_* плюс заданное; база — тестовая. */
+  const runCommand = (file: string, extra: Record<string, string>, args: string[] = []) => {
+    const clean = Object.fromEntries(Object.entries(process.env).filter(([k]) => !k.startsWith('RESERVE_')))
+    return spawnSync(process.execPath, ['./node_modules/tsx/dist/cli.mjs', file, ...args], {
+      cwd: APP_DIR,
+      env: { ...clean, DATABASE_OWNER_URL: process.env.TEST_DATABASE_OWNER_URL ?? '', ...extra } as unknown as NodeJS.ProcessEnv,
+      encoding: 'utf8',
+      timeout: 120_000,
+    })
+  }
+
+  it('«освежить» называет каждый пропущенный резерв: набор и причина, без значений переменных (R-3.8-20)', async () => {
+    const secret = 'короткий-пароль' // 15 знаков
+    const short = { ...envFor(1), ...envFor(2), [reserveEnvNames(2).students[1][1]]: secret }
+    await withOwner(async (client) => {
+      const none = await refreshReservesReport(client, {}, today)
+      expect(none.refreshed).toEqual([])
+      expect(none.skipped.map((s) => [s.n, s.cohort])).toEqual([[1, 'reserve-1'], [2, 'reserve-2']])
+      const partial = await refreshReservesReport(client, short, today)
+      expect(partial.refreshed).toEqual([1])
+      expect(partial.skipped.map((s) => s.n)).toEqual([2])
+      const lines = describeSkippedReserves(partial.skipped)
+      expect(lines).toHaveLength(1)
+      expect(lines[0]).toContain('reserve-2')
+      expect(lines[0]).toContain('RESERVE_2_STUDENT_2_PASSWORD')
+      for (const value of [secret, ...Object.values(short)]) expect(lines.join('\n')).not.toContain(value)
+      const all = await refreshReservesReport(client, { ...envFor(1), ...envFor(2) }, today)
+      expect(all).toEqual({ refreshed: [1, 2], skipped: [] })
+    })
+  })
+
+  it('команда db:refresh печатает строку о каждом пропущенном резерве и не печатает значений переменных', () => {
+    const secret = 'короткий-пароль'
+    const without = runCommand('db/seed-refresh.ts', {})
+    expect(without.status).toBe(0)
+    expect(without.stdout).toContain('Основной набор освежён')
+    for (const cohort of ['reserve-1', 'reserve-2']) expect(without.stderr).toContain(`Резерв «${cohort}» есть в базе, но не освежён`)
+    expect(without.stderr).toContain('RESERVE_1_STAFF_LOGIN')
+
+    const partial = { ...envFor(1), ...envFor(2), [reserveEnvNames(2).students[1][1]]: secret }
+    const some = runCommand('db/seed-refresh.ts', partial)
+    expect(some.status).toBe(0)
+    expect(some.stdout).toContain('Резервы освежены: 1')
+    expect(some.stderr).not.toContain('reserve-1')
+    expect(some.stderr).toContain('Резерв «reserve-2» есть в базе, но не освежён')
+    expect(some.stderr).toContain('RESERVE_2_STUDENT_2_PASSWORD')
+    for (const value of [secret, ...Object.values(partial)]) expect(some.stdout + some.stderr).not.toContain(value)
+
+    const every = runCommand('db/seed-refresh.ts', { ...envFor(1), ...envFor(2) })
+    expect(every.status).toBe(0)
+    expect(every.stdout).toContain('Резервы освежены: 1, 2')
+    expect(every.stderr).not.toContain('не освежён')
+  })
+
+  it('команда db:seed:reserve после записи предупреждает: повторный запуск стирает заявки и уведомления резерва (R-3.8-19)', () => {
+    const result = runCommand('db/seed-reserve.ts', envFor(1), ['1'])
+    expect(result.status).toBe(0)
+    expect(result.stdout).toContain('Резервные наборы записаны: 1')
+    expect(result.stdout).toContain(RESERVE_RERUN_NOTE)
+    expect(RESERVE_RERUN_NOTE).toMatch(/заявки.*уведомления.*стирает/)
+    expect(RESERVE_RERUN_NOTE).toContain('db:refresh')
+    for (const value of Object.values(envFor(1))) expect(result.stdout + result.stderr).not.toContain(value)
+  })
+
   it('«освежить» трогает резерв, который есть в базе и чьи переменные заданы; без переменных пропускает; пароли не меняются', async () => {
     await withOwner(async (client) => {
       const hashes = (await client.query(`SELECT login, password_hash FROM users WHERE cohort LIKE 'reserve-%' ORDER BY login`)).rows
@@ -507,6 +574,8 @@ describe('резервные наборы', () => {
       expect(lessons.rows[0].first).toBe(plan.lessons.filter((l) => l.groupName === plan.groups[0]!.name).map((l) => l.date).sort()[0])
       await cleanReserves(client)
       expect(await refreshReserves(client, env, today)).toEqual([])
+      // Резерва в базе нет — освежать нечего, и строки о пропуске тоже нет.
+      expect(await refreshReservesReport(client, {}, today)).toEqual({ refreshed: [], skipped: [] })
     })
   })
 })

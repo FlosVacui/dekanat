@@ -9,10 +9,12 @@ import {
   PAIR_TIMES,
   buildCohortPlan,
   daysPhrase,
+  planControlDates,
   toWorkday,
   weekKindOf,
   weekdayOf,
   type CohortPlan,
+  type DisciplineSpec,
   type PlannedLesson,
 } from '../../db/seed-plan'
 import { addDays, addWorkingDays, formatDate, weekInfo } from '../../src/lib/dates'
@@ -213,6 +215,24 @@ describe('привязка изменений пар при любом дне н
       expect(l.change!.newStartsAt).toBeNull()
     }
   })
+
+  it.each(TWO_WEEKS)('Д = %s: заметка переноса не повторяет вид изменения, время и дата — новой пары (R-3.8-17)', (today) => {
+    const plan = buildCohortPlan(MAIN_COHORT, today)
+    const moves = changed(plan, group1.name).filter((l) => l.change!.kind === 'moved')
+    const sameDay = moves.find((l) => l.change!.key === 'micro-move')!.change!
+    const otherDay = moves.find((l) => l.change!.key === 'cf-move')!.change!
+    // Экран печатает «Пара перенесена: <заметка>»: слова «перенос» в заметке нет.
+    expect(sameDay.note).toBe('на 5 пару, 15:45–17:15, та же аудитория')
+    expect(otherDay.note).toBe(`на субботу ${formatDate(otherDay.newDate!).slice(0, 5)}, 2 пара, 10:15–11:45, ауд. 2-214`)
+    for (const c of [sameDay, otherDay]) expect(c.note.toLowerCase()).not.toContain('перенос')
+  })
+
+  it('Д-понедельник: дата в заметке переноса на субботу — 28.11, как в черновике, раздел 3.1', () => {
+    const plan = buildCohortPlan(MAIN_COHORT, MONDAY)
+    const move = lessonsOf(plan, group1.name).find((l) => l.change?.key === 'cf-move')!
+    expect(move.change!.newDate).toBe('2026-11-28')
+    expect(move.change!.note).toBe('на субботу 28.11, 2 пара, 10:15–11:45, ауд. 2-214')
+  })
 })
 
 describe('дисциплины, работы, оценки', () => {
@@ -237,6 +257,52 @@ describe('дисциплины, работы, оценки', () => {
       'Отчёт по лабораторной №4': addDays(MONDAY, 3),
       'Чертёж детали с разрезом': addDays(MONDAY, 4),
     })
+  })
+
+  it.each(TWO_WEEKS)('Д = %s: контроль не в воскресенье, у группы не больше одного в день, порядок и пересдача прежние (R-3.8-18)', (today) => {
+    const plan = buildCohortPlan(MAIN_COHORT, today)
+    for (const group of MAIN_COHORT.groups) {
+      const planned = plan.disciplines.filter((d) => d.groupName === group.name && d.examDate)
+      const dates = planned.map((d) => d.examDate!)
+      for (const date of dates) expect(weekdayOf(date), `${group.name}: ${date}`).not.toBe(0)
+      expect(new Set(dates).size, `${group.name}: два контроля в один день`).toBe(dates.length)
+      // Порядок — как в наборе (по сдвигу), даты не раньше заданных и не позже чем на неделю после них.
+      const bySpec = group.disciplines.filter((d) => d.exam).sort((a, b) => a.exam!.dayOffset - b.exam!.dayOffset)
+      const placed = bySpec.map((d) => planned.find((p) => p.name === d.name)!.examDate!)
+      expect([...placed].sort()).toEqual(placed)
+      bySpec.forEach((d, i) => {
+        expect(placed[i]! >= addDays(today, d.exam!.dayOffset)).toBe(true)
+        expect(placed[i]! <= addDays(today, d.exam!.dayOffset + 7)).toBe(true)
+      })
+    }
+    // Пересдача стоит раньше сессии: не раньше Д и раньше любого другого контроля группы.
+    const resit = plan.disciplines.find((d) => d.name === 'Эконометрика')!.examDate!
+    expect(resit >= today).toBe(true)
+    for (const d of plan.disciplines.filter((x) => x.groupName === group1.name && x.name !== 'Эконометрика' && x.examDate)) {
+      expect(d.examDate! > resit).toBe(true)
+    }
+  })
+
+  it('перенос контроля: воскресенье — на понедельник, занятый день — на следующий будний, суббота остаётся', () => {
+    const monday = '2026-11-23'
+    const spec = (name: string, dayOffset: number): DisciplineSpec => ({
+      name,
+      controlKind: 'exam',
+      semester: 1,
+      exam: { dayOffset, time: '10:00', room: '1-1' },
+      assignments: [],
+    })
+    // Д+6 — воскресенье, Д+5 — суббота, Д+4 — пятница.
+    const dates = (specs: DisciplineSpec[], today = monday) => Object.fromEntries(planControlDates(specs, today))
+    expect(dates([spec('Воскр', 6)])).toEqual({ Воскр: '2026-11-30' })
+    expect(dates([spec('Суббота', 5)])).toEqual({ Суббота: '2026-11-28' })
+    // В понедельник уже есть контроль (Д+7, Д+8): воскресный контроль идёт раньше по порядку и занимает понедельник,
+    // следующие сдвигаются на будни за ним, порядок не меняется.
+    expect(dates([spec('Воскр', 6), spec('Пн', 7), spec('Вт', 8)])).toEqual({ Воскр: '2026-11-30', Пн: '2026-12-01', Вт: '2026-12-02' })
+    // Два контроля в пятницу: второй — на понедельник, суббота и воскресенье пропускаются.
+    expect(dates([spec('А', 4), spec('Б', 4)])).toEqual({ А: '2026-11-27', Б: '2026-11-30' })
+    // Контроль без даты (сдан в прошлую сессию) в расчёте не участвует.
+    expect(dates([{ name: 'Сдано', controlKind: 'exam', semester: 1, assignments: [] }, spec('Воскр', 6)])).toEqual({ Воскр: '2026-11-30' })
   })
 
   it('выходные сдвигаются на понедельник', () => {
@@ -380,6 +446,23 @@ describe('объявления и уведомления', () => {
       ['reminder', 'Срок через 3 дня: Отчёт по лабораторной №4', false],
       ['news', 'Олимпиада по программированию', true],
     ])
+  })
+
+  it.each(TWO_WEEKS)('Д = %s: даты пересдачи и консультации в текстах идут за датами контроля (R-3.8-18)', (today) => {
+    const plan = buildCohortPlan(MAIN_COHORT, today)
+    const resit = formatDate(plan.disciplines.find((d) => d.name === 'Эконометрика')!.examDate!)
+    const byKey = (key: string) => plan.announcements.find((a) => a.key === key)!
+    expect(byKey('a4').body).toBe(`Кафедра назначила пересдачу на ${resit}, 14:00, аудитория 1-305. Заявление не нужно`)
+    const news = plan.students[0]!.notifications.find((n) => n.key === 'resit')!
+    expect(news.body).toBe(`Кафедра назначила пересдачу на ${resit}, 14:00, аудитория 1-305. Заявление не нужно`)
+    // Консультация — накануне экзамена по микроэкономике; экзамен в понедельник — консультация в субботу.
+    const exam = plan.disciplines.find((d) => d.name === 'Микроэкономика')!.examDate!
+    expect(weekdayOf(exam)).not.toBe(0)
+    if (weekdayOf(exam) === 1) {
+      expect(byKey('a5').body).toBe(`Консультация — ${formatDate(addDays(exam, -2))}, 12:00, аудитория 1-305. Экзамен — в понедельник`)
+    } else {
+      expect(byKey('a5').body).toBe(`Консультация — ${formatDate(addDays(exam, -1))}, 12:00, аудитория 1-305. Экзамен — на следующий день`)
+    }
   })
 
   it('ссылки уведомлений — на существующие экраны', () => {
