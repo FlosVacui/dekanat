@@ -969,6 +969,13 @@ history:
     who: "designer, Sonnet 5.5 / high; оркестратор Fable 5.2"
     commit: "ef02ef3"
     tokens: 154410
+  - date: 2026-11-15
+    item: "3.7"
+    what: "Смена 25: ревью RV-IMP-020-2-1 захода 1 строки IMP-020 — принять с замечаниями; правка R-IMP-020-1 оркестратором; PR №26 слит squash; замечания R-3.7-1…4"
+    who: "reviewer, Sonnet 5.5 / high; оркестратор Fable 5.2"
+    commit: "2defcb1"
+    rounds: 1
+    tokens: 195634
 
 reviews:
   - id: "R-0.3-1"
