@@ -290,7 +290,7 @@ items:
     owner: "Разработчик (Sonnet 5.5 / medium)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-14, end: 2026-11-16}
-    fact: {2026-11-14: "В работе"}
+    fact: {2026-11-14: "Выполнено"}
   - id: "3.9"
     title: "Кабинет сотрудника: смена статуса заявки"
     person: "А"
@@ -906,6 +906,17 @@ history:
     who: "builder, Sonnet 5.5 / high; оркестратор Fable 5.2"
     commit: "7cadec2"
     tokens: 143630
+  - date: 2026-11-14
+    item: "3.8"
+    what: "Смена 19: PR №20 слит squash, main 74ec599; ревью RV-3.8-2 и RV-3.8-3 — принять с замечаниями; ревьюеры — 243100 и 111533 токена"
+    who: "оркестратор Fable 5.2; reviewer, Sonnet 5.5 / high"
+    commit: "74ec599"
+    rounds: 2
+  - date: 2026-11-14
+    item: "2.5"
+    what: "Смена 19: сервер обновлён до main 74ec599 — 06-update.sh; новый набор заполнен и таймер освежения поставлен — 07-refresh.sh seed-once, STEP10-OK. Команды запускал пользователь"
+    who: "пользователь; оркестратор Fable 5.2"
+    commit: "74ec599"
 
 reviews:
   - id: "R-0.3-1"
@@ -2607,8 +2618,8 @@ reviews:
     text: "Дата отсчёта берётся как первая дата в любом месте вывода docker compose run: возможна ложная тревога, данные не страдают"
     repro: "deploy/server/07-refresh.sh; на сервере не проверено"
     by: "Ревьюер (Sonnet 5.5 / high), RV-3.8-3"
-    status: "отложено"
-    comment: "Покажет первый запуск 07-refresh.sh на сервере"
+    status: "отклонено"
+    comment: "Первый запуск 07-refresh.sh на сервере 14.11: дата отсчёта разобрана верно, STEP10-OK"
 
 decisions:
   - id: "Р-0"
