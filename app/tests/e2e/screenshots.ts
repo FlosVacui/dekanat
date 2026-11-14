@@ -1,7 +1,9 @@
 // Снимки экранов на 360 и на 1280 пикселей. Запуск: npm run screenshots.
 // Пакет 2.4: каждый экран М0. Пакет 3.1: экран входа с отказами «неверная пара» и «подождите» (login-invalid, login-wait).
 // Пакет 3.2: расписание — день с переносом, день с отменой, неделя, пустой день (schedule-day-moved, -cancelled, schedule-week, -empty).
-// Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.2/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-11-2.4) не трогаются.
+// Пакет 3.3: успеваемость — «Семестр», «Сессия», дисциплина с долгом, дисциплина впереди (grades-semester, grades-session, grades-discipline-debt, grades-discipline-ahead).
+// Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
+// Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
 // Данные — вымышленный основной набор (ТР-5, ТР-11). Адрес посетителя шлётся заголовком, как это делает прокси.
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test'
@@ -13,12 +15,14 @@ import { todayIn } from '../../src/lib/dates'
 import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import { holdPair } from './helpers/db'
+import { planGrades } from './helpers/grades-plan'
 import { dayPath, planSchedule } from './helpers/schedule-plan'
 import { BASE_URL, startServer, stopServer } from './helpers/server'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const date = process.env.SCREENSHOT_DATE ?? todayIn('Europe/Moscow')
-const outDir = process.env.SCREENSHOT_DIR ?? join(REPO_ROOT, 'docs', 'evidence', 'screenshots', `${date}-3.2`)
+const outDir = process.env.SCREENSHOT_DIR ?? join(REPO_ROOT, 'docs', 'evidence', 'screenshots', `${date}-3.3`)
+const only = process.env.SCREENSHOT_ONLY ? new RegExp(process.env.SCREENSHOT_ONLY) : null
 
 const [student1] = MAIN_COHORT.students
 if (!student1) throw new Error('В основном наборе нет студента')
@@ -38,6 +42,8 @@ async function newContext(browser: Browser, width: Width, ip?: string): Promise<
 }
 
 const schedulePlan = planSchedule(todayIn('Europe/Moscow'))
+// Пакет 3.3: дисциплины для снимков ищутся по данным плана набора (состояние), а не по названию или дню недели.
+const gradesPlan = planGrades(todayIn('Europe/Moscow'), student1.login)
 
 let failed = 0
 
@@ -67,6 +73,7 @@ async function captureWholePage(page: Page, path: string): Promise<void> {
 }
 
 async function shoot(page: Page, width: Width, name: string, path: string): Promise<void> {
+  if (only && !only.test(name)) return
   try {
     const response = await page.goto(path)
     if (!response || response.status() >= 400) throw new Error(`ответ ${response?.status()} на ${path}`)
@@ -85,6 +92,7 @@ async function shoot(page: Page, width: Width, name: string, path: string): Prom
 
 /** Снимок страницы в том виде, как она сейчас стоит в браузере (без перехода): экран входа после отказа. */
 async function shootCurrent(page: Page, width: Width, name: string, expectedText: RegExp): Promise<void> {
+  if (only && !only.test(name)) return
   try {
     const alert = page.locator('form').getByRole('alert')
     await alert.waitFor({ state: 'visible' })
@@ -162,6 +170,12 @@ async function main(): Promise<void> {
       else skipMissing(`${width}-schedule-day-empty`, `в окне семи дней от ${schedulePlan.today} нет дня без пар и переносов; снимок не делается`)
       await shoot(page, width, 'grades-semester', `${BASE_URL}/grades`)
       await shoot(page, width, 'grades-session', `${BASE_URL}/grades?view=session`)
+      const debtDiscipline = gradesPlan.rows.find((r) => r.state === 'debt')
+      if (debtDiscipline) await shoot(page, width, 'grades-discipline-debt', `${BASE_URL}/grades/${debtDiscipline.id}`)
+      else failMissing('grades-discipline-debt', 'у студента нет дисциплины с долгом')
+      const aheadDiscipline = gradesPlan.rows.find((r) => r.state === 'admitted' && r.controlKind === 'exam')
+      if (aheadDiscipline) await shoot(page, width, 'grades-discipline-ahead', `${BASE_URL}/grades/${aheadDiscipline.id}`)
+      else failMissing('grades-discipline-ahead', 'у студента нет экзамена впереди с допуском')
       await shoot(page, width, 'requests', `${BASE_URL}/requests`)
       await shoot(page, width, 'request-new', `${BASE_URL}/requests/new?type=dean_certificate`)
       if (firstRequest) await shoot(page, width, 'request-detail', `${BASE_URL}${firstRequest}`)

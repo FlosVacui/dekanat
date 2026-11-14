@@ -1,4 +1,5 @@
 // Сводка «как у меня дела» для экрана «Успеваемость»: считается из списка дисциплин, отдельного запроса нет.
+import { formatDayMonth } from './dates'
 
 export interface GradeOutcomeLike {
   /** '5' | '4' | '3' | '2' | 'credit' | 'no_credit' | 'pending' */
@@ -218,4 +219,179 @@ export function pickFirstAction(items: FirstActionInput[], today: string): First
       withState.filter((x) => x.item.outcome === 'pending' && x.item.examDate !== null && x.item.examDate >= today),
     )
   )
+}
+
+// ---------- Экран «Успеваемость»: порядок, фраза-итог, стипендия, «Сессия» (пакет 3.3, этап Б) ----------
+// Чистые функции без базы и без часов: «сегодня» приходит аргументом. Экран только рисует их ответ.
+
+/** Строка о стипендии в сводке. Выводится из числа «долг» (`summarizeGrades(...).debt`): отдельного поля в базе нет. */
+export const STIPEND_DEBT_LINE = 'Пока есть долг, обычная стипендия не назначается'
+
+/** Строка о стипендии: есть долг — строка, нет долга — null (строки на экране нет). */
+export function stipendLine(debt: number): string | null {
+  return debt > 0 ? STIPEND_DEBT_LINE : null
+}
+
+const SEMESTER_RANK: Record<DisciplineStateKind, number> = {
+  debt: 0,
+  ahead_no_admission: 1,
+  ahead_admitted: 2,
+  ahead: 2,
+  passed: 3,
+}
+
+/**
+ * Порядок карточек вида «Семестр»: долги, затем дисциплины без допуска, затем остальные «впереди», затем сданное.
+ * Внутри группы — по дате контроля, потом по названию. Входной список не меняется. Фильтра по семестру нет.
+ */
+export function sortForSemester<T extends FirstActionInput>(items: T[]): T[] {
+  return items
+    .map((item) => ({ item, rank: SEMESTER_RANK[describeDiscipline(item).kind] }))
+    .sort((a, b) => a.rank - b.rank || byDateThenName(a.item, b.item))
+    .map((x) => x.item)
+}
+
+export interface NearestControl {
+  /** `retake` — пересдача долга; `exam`; `credit`. */
+  kind: 'retake' | 'exam' | 'credit'
+  disciplineId: string
+  name: string
+  date: string
+}
+
+/**
+ * Ближайший контроль, который ещё предстоит: экзамен или зачёт «впереди» и пересдача долга; дата не раньше `today`.
+ * Сданное не считается. Нет такого — null.
+ */
+export function nearestControl(items: FirstActionInput[], today: string): NearestControl | null {
+  const candidates = items.filter((item) => {
+    if (item.examDate === null || item.examDate < today) return false
+    const kind = describeDiscipline(item).kind
+    return kind !== 'passed'
+  })
+  const first = [...candidates].sort(byDateThenName)[0]
+  if (!first || first.examDate === null) return null
+  const kind = describeDiscipline(first).kind === 'debt' ? 'retake' : first.controlKind === 'credit' ? 'credit' : 'exam'
+  return { kind, disciplineId: first.disciplineId, name: first.name, date: first.examDate }
+}
+
+const NEAREST_WORD: Record<NearestControl['kind'], string> = {
+  retake: 'Ближайшая пересдача',
+  exam: 'Ближайший экзамен',
+  credit: 'Ближайший зачёт',
+}
+
+/** Фраза-итог сверху сводки: «Сдано 2 из 7. Есть долг. Ближайшая пересдача — 18 ноября.» */
+export function summaryPhrase(items: FirstActionInput[], today: string): string {
+  const s = summarizeGrades(items)
+  const parts = [`Сдано ${s.passed} из ${items.length}.`]
+  parts.push(s.debt === 0 ? 'Долгов нет.' : s.debt === 1 ? 'Есть долг.' : `Долгов: ${s.debt}.`)
+  const next = nearestControl(items, today)
+  parts.push(next ? `${NEAREST_WORD[next.kind]} — ${formatDayMonth(next.date)}.` : 'Экзаменов и зачётов впереди нет.')
+  return parts.join(' ')
+}
+
+export interface FirstActionText {
+  /** Короткое слово-призыв: «Пересдать», «Добрать баллы», «Подготовиться». */
+  lead: string
+  /** Дисциплина и пояснение: «Эконометрика, 18 ноября». */
+  detail: string
+}
+
+/** Слова для строки «что сделать первым». `controlKind` нужен только для ближайшего экзамена или зачёта. */
+export function firstActionText(action: FirstAction, controlKind?: string): FirstActionText {
+  if (action.kind === 'debt') {
+    return {
+      lead: 'Пересдать',
+      detail: `${action.name}, ${action.date ? `пересдача ${formatDayMonth(action.date)}` : 'дата пересдачи не назначена'}`,
+    }
+  }
+  if (action.kind === 'no_admission') {
+    return {
+      lead: 'Добрать баллы',
+      detail:
+        action.missing !== null
+          ? `${action.name}, до допуска не хватает ${action.missing} ${pointsWord(action.missing)}`
+          : `${action.name}, допуска пока нет`,
+    }
+  }
+  const word = controlKind === 'credit' ? 'зачёт' : 'экзамен'
+  return { lead: 'Подготовиться', detail: `${action.name}, ${word}${action.date ? ` ${formatDayMonth(action.date)}` : ''}` }
+}
+
+export interface PointsScale {
+  /** Из скольких баллов показывать «N из …». */
+  max: number
+  /** Отметка допуска на полосе; нет — null (у зачёта и у закрытой дисциплины порога нет). */
+  threshold: number | null
+  /** `semester` — баллы только за семестр; `total` — сумма (у закрытой дисциплины и у зачёта). */
+  kind: 'semester' | 'total'
+}
+
+/**
+ * Шкала полосы баллов. Экзамен без итога: баллы за семестр, до 60, отметка допуска на 30.
+ * Закрытая дисциплина (оценка есть) — в базе одно число, это сумма: до 100, порога нет.
+ * Зачёт: правил в источниках нет, показывается число из 100 без порога (решение участника А 14.11.2026).
+ */
+export function pointsScale(d: Pick<DisciplineStateInput, 'controlKind' | 'outcome'>): PointsScale {
+  if (d.controlKind === 'exam' && d.outcome === 'pending') {
+    return { max: SEMESTER_MAX_POINTS, threshold: ADMISSION_MIN_SEMESTER_POINTS, kind: 'semester' }
+  }
+  return { max: TOTAL_MAX_POINTS, threshold: null, kind: 'total' }
+}
+
+/**
+ * Работы дисциплины по срокам: предстоящие (срок не раньше `today`) — по возрастанию срока; прошедшие — недавние сверху.
+ * Входной список не меняется. Работа не теряется и не двоится.
+ */
+export function splitWorks<T extends { dueDate: string; title: string }>(works: T[], today: string): { upcoming: T[]; past: T[] } {
+  const byDue = (a: T, b: T) => (a.dueDate === b.dueDate ? a.title.localeCompare(b.title, 'ru') : a.dueDate < b.dueDate ? -1 : 1)
+  const upcoming = works.filter((w) => w.dueDate >= today).sort(byDue)
+  const past = works.filter((w) => w.dueDate < today).sort((a, b) => byDue(b, a))
+  return { upcoming, past }
+}
+
+export interface SessionGroups<T> {
+  /** Контроль не раньше сегодняшнего дня; ближайший сверху. */
+  upcoming: T[]
+  /** Контроль прошёл или дисциплина закрыта без даты; недавний сверху. */
+  past: T[]
+  /** Итога ещё нет и дата не назначена. */
+  undated: T[]
+}
+
+/** Раскладка вида «Сессия». Каждая дисциплина попадает ровно в одну группу. */
+export function groupSession<T extends FirstActionInput>(items: T[], today: string): SessionGroups<T> {
+  const upcoming: T[] = []
+  const pastDated: T[] = []
+  const pastUndated: T[] = []
+  const undated: T[] = []
+  for (const item of items) {
+    if (item.examDate !== null) (item.examDate >= today ? upcoming : pastDated).push(item)
+    else (item.outcome === 'pending' ? undated : pastUndated).push(item)
+  }
+  const byName = (a: T, b: T) => a.name.localeCompare(b.name, 'ru')
+  upcoming.sort(byDateThenName)
+  pastDated.sort((a, b) => (a.examDate === b.examDate ? byName(a, b) : (a.examDate ?? '') < (b.examDate ?? '') ? 1 : -1))
+  pastUndated.sort(byName)
+  undated.sort(byName)
+  return { upcoming, past: [...pastDated, ...pastUndated], undated }
+}
+
+export interface SessionStatus {
+  /** `admitted` — допущен; `not_admitted` — не допущен; `retake` — пересдача долга; `passed` — уже сдано. */
+  kind: 'admitted' | 'not_admitted' | 'retake' | 'passed'
+  /** Слово для плашки. */
+  word: string
+  /** Сколько баллов не хватает до допуска; только у `not_admitted` по экзамену. */
+  missing: number | null
+}
+
+/** Статус строки предстоящего контроля в виде «Сессия». */
+export function sessionStatus(d: DisciplineStateInput): SessionStatus {
+  const state = describeDiscipline(d)
+  if (state.kind === 'debt') return { kind: 'retake', word: 'Пересдача', missing: null }
+  if (state.kind === 'passed') return { kind: 'passed', word: 'Сдано', missing: null }
+  if (state.kind === 'ahead_no_admission') return { kind: 'not_admitted', word: 'Не допущен', missing: state.missing }
+  return { kind: 'admitted', word: 'Допущен', missing: null }
 }
