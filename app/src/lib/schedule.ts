@@ -15,6 +15,12 @@ import { changeBadgeLabel } from './labels'
 /** Сколько дней показывает экран: сегодня и шесть следующих. */
 export const SCHEDULE_DAYS = 7
 
+/**
+ * На сколько дней назад экран просит пары: пара, перенесённая с прошедшего дня на день ленты, стоит в базе на старой дате.
+ * Вместе с семью днями это 20 дней: слой доступа пропускает до 31.
+ */
+export const SCHEDULE_LOOKBACK_DAYS = 14
+
 /** Виды изменения пары — как в базе. */
 export type ScheduleChangeKind = 'cancelled' | 'moved' | 'room_changed' | 'teacher_changed'
 
@@ -120,7 +126,9 @@ function dayLabel(date: string): string {
 
 /**
  * Раскладывает пары по семи дням, начиная с `today`.
- * Пары вне семи дней отбрасываются, кроме перенесённых в этот промежуток. Порядок во входе не важен.
+ * Пары вне семи дней отбрасываются, кроме перенесённых в этот промежуток: из прошлых пар остаётся только новое место
+ * переноса, попавшее в ленту (старое место, прошлая пара без переноса, прошлая отменённая в ленту не входят).
+ * Порядок во входе не важен.
  */
 export function buildSchedule(lessons: readonly ScheduleLesson[], today: string, days: number = SCHEDULE_DAYS): ScheduleDay[] {
   const dates = Array.from({ length: days }, (_, i) => addDays(today, i))
@@ -139,10 +147,12 @@ export function buildSchedule(lessons: readonly ScheduleLesson[], today: string,
 
     if (kind === 'moved' && change) {
       const newDate = change.newDate ?? lesson.date
+      // Новое время — пара «начало и конец»: задано одно из двух, время считается не заданным (иначе выйдет «12:00–11:45»).
+      const newTime = change.newStartsAt && change.newEndsAt ? { startsAt: change.newStartsAt, endsAt: change.newEndsAt } : null
       const next = {
         date: newDate,
-        startsAt: change.newStartsAt ?? lesson.startsAt,
-        endsAt: change.newEndsAt ?? lesson.endsAt,
+        startsAt: newTime?.startsAt ?? lesson.startsAt,
+        endsAt: newTime?.endsAt ?? lesson.endsAt,
         room: change.newRoom ?? lesson.room,
       }
       const sameDay = newDate === lesson.date

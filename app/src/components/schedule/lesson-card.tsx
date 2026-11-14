@@ -34,7 +34,8 @@ export function LessonCard({ entry }: { entry: ScheduleEntry }) {
       </div>
       <div className="flex min-w-0 flex-col gap-[3px]">
         {entry.badge && entry.changeKind ? <ChangeChip kind={entry.changeKind} label={entry.badge} className="mb-0.5" /> : null}
-        <h3
+        {/* В виде «День» после заголовка страницы (h1) идут карточки: уровень h2, без пропуска. Вид тот же: классы заданы здесь. */}
+        <h2
           className={cn(
             'text-[length:var(--fs-md)] font-bold leading-[1.3] [overflow-wrap:anywhere]',
             cancelled && 'text-muted line-through decoration-2',
@@ -43,7 +44,7 @@ export function LessonCard({ entry }: { entry: ScheduleEntry }) {
         >
           {entry.discipline}
           {cancelled ? <span className="sr-only">, отменено</span> : null}
-        </h3>
+        </h2>
         <p className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>
           {lessonKindLabel(entry.lessonKind)}
           <br />

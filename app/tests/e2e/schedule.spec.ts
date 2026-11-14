@@ -6,7 +6,7 @@ import { MAIN_COHORT } from '../../db/seed-data'
 import { addDays, formatDayMonth, todayIn, weekdayShort, weekInfo } from '../../src/lib/dates'
 import { addressHeaders } from './helpers/address'
 import { fillLogin } from './helpers/auth'
-import { dayPath, planSchedule } from './helpers/schedule-plan'
+import { dayPath, planSchedule, type ExpectedEntry, type PlannedPlacement } from './helpers/schedule-plan'
 import { BASE_URL, startServer, stopServer, type RunningServer } from './helpers/server'
 
 const [student1, student2] = MAIN_COHORT.students
@@ -85,12 +85,36 @@ async function expectLineThrough(target: Locator, what: string): Promise<void> {
   expect(line, `${what}: зачёркивание`).toContain('line-through')
 }
 
-test('данные: в плане набора есть отмена, перенос внутри дня, смена аудитории и пустой день', () => {
-  // Если этого нет, остальные тесты проверяют пустоту. Перенос на другой день зависит от дня запуска и проверяется отдельно.
+/** Запись плана, которую тест ищет на экране: пара из плана на нужном дне и месте. Нет такой — ошибка набора, а не тихий пропуск. */
+function wanted(scenario: ExpectedEntry['scenario'], placement: PlannedPlacement): ExpectedEntry {
+  const found = plan.expected.find((e) => e.scenario === scenario && e.placement === placement)
+  if (!found) throw new Error(`В плане на ${today} нет записи «${scenario}», место ${placement}`)
+  return found
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+/**
+ * Карточка пары в виде «День»: дисциплина (заголовок, у отменённой с приписью «, отменено») и время на этом месте.
+ * Ищется по данным плана, а не как «первая карточка со строкой «Было»»: на дне таких карточек может быть несколько.
+ */
+function card(entry: ExpectedEntry): Locator {
+  const title = new RegExp(`^${escapeRegExp(entry.lesson.discipline)}(\\s*,\\s*отменено)?$`)
+  return page
+    .locator('li')
+    .filter({ has: page.getByRole('heading', { level: 2, name: title }) })
+    .filter({ has: page.locator('b', { hasText: new RegExp(`^${escapeRegExp(entry.startsAt)}$`) }) })
+}
+
+test('данные: в плане набора есть отмена, перенос внутри дня, смена аудитории, замена преподавателя и перенос на другой день', () => {
+  // Если этого нет, остальные тесты проверяют пустоту. Пустой день есть не всегда: что тест делает без него — в тесте «пустой день».
   expect(plan.cancelled, 'в окне нет отменённой пары').toBeDefined()
   expect(plan.movedSameDay, 'в окне нет переноса внутри дня').toBeDefined()
   expect(plan.roomChanged, 'в окне нет смены аудитории').toBeDefined()
-  expect(plan.emptyDate, 'в окне нет пустого дня').toBeDefined()
+  expect(plan.teacherChanged, 'в окне нет замены преподавателя').toBeDefined()
+  expect(plan.movedOtherDayInWindow ?? plan.movedOutOfWindow, 'в окне нет переноса на другой день').toBeDefined()
 })
 
 test('С-2: вкладка «Расписание», затем завтрашний день — два касания', async () => {
@@ -154,16 +178,21 @@ test('полоса дней: семь дней от сегодняшнего, в
 test('перенос внутри дня: «Перенесена» дважды, новое время крупно, строка «Было», на старом месте — «Перенесена на»', async () => {
   const l = plan.movedSameDay!
   const change = l.change!
+  const from = wanted('movedSameDay', 'moved_from')
+  const to = wanted('movedSameDay', 'moved_to')
   await page.goto(dayPath(l.date))
-  // Плашка стоит и на старом, и на новом месте; слово и значок, а не только цвет.
-  await expect(page.getByText('Перенесена', { exact: true })).toHaveCount(2)
+  // Плашка стоит и на старом, и на новом месте этой пары; слово и значок, а не только цвет. Другие переносы того же дня не мешают.
+  await expect(card(from).getByText('Перенесена', { exact: true })).toHaveCount(1)
+  await expect(card(to).getByText('Перенесена', { exact: true })).toHaveCount(1)
   const newRoom = change.newRoom ?? l.room
-  await expect(page.getByText(`Перенесена на ${change.newStartsAt}–${change.newEndsAt}, ауд. ${newRoom}`)).toBeVisible()
-  const was = page.locator('p', { hasText: 'Было:' }).first()
+  await expect(card(from).getByText(`Перенесена на ${change.newStartsAt}–${change.newEndsAt}, ауд. ${newRoom}`)).toBeVisible()
+  // Строка «Было» — внутри карточки нового места этой пары.
+  const was = card(to).locator('p', { hasText: 'Было:' })
+  await expect(was).toHaveCount(1)
   await expect(was).toContainText(`${l.startsAt}–${l.endsAt}`)
   await expectLineThrough(was.locator('s'), 'строка «Было»')
   // Новое время набрано крупнее остальных.
-  const newTime = page.locator('li', { has: page.getByText('Было:') }).locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })
+  const newTime = card(to).locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })
   await expect(newTime).toHaveCount(1)
   const size = await newTime.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
   expect(size, 'размер нового времени').toBeGreaterThanOrEqual(18)
@@ -177,13 +206,19 @@ test('перенос на другой день: старое место гов�
   expect(l, 'в окне нет переноса на другой день').toBeDefined()
   const change = l!.change!
   const target = `${weekdayShort(change.newDate!)}, ${formatDayMonth(change.newDate!)}, ${change.newStartsAt}–${change.newEndsAt}, ауд. ${change.newRoom ?? l!.room}`
-  await page.goto(dayPath(l!.date))
-  await expect(page.getByText(`Перенесена на ${target}`)).toBeVisible()
+  const scenario = inWindow ? 'movedOtherDayInWindow' : 'movedOutOfWindow'
+  // Старое место стоит на своём дне, если этот день в окне. Пара, перенесённая с прошедшего дня, на старом месте не показывается.
+  if (plan.window.includes(l!.date)) {
+    await page.goto(dayPath(l!.date))
+    await expect(card(wanted(scenario, 'moved_from')).getByText(`Перенесена на ${target}`)).toBeVisible()
+  }
   if (inWindow) {
     await page.goto(dayPath(change.newDate!))
-    const was = page.locator('p', { hasText: 'Было:' }).first()
+    const to = card(wanted(scenario, 'moved_to'))
+    const was = to.locator('p', { hasText: 'Было:' })
+    await expect(was).toHaveCount(1)
     await expect(was).toContainText(`${weekdayShort(l!.date)}, ${formatDayMonth(l!.date)}, ${l!.startsAt}–${l!.endsAt}`)
-    await expect(page.locator('li', { has: page.getByText('Было:') }).locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })).toHaveCount(1)
+    await expect(to.locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })).toHaveCount(1)
   } else {
     // Новое место вне семи дней от сегодня: в полосе такого дня нет, видно только старое место с текстом. Новое место — в модульных тестах.
     await expect(dayLink(change.newDate!)).toHaveCount(0)
@@ -197,31 +232,37 @@ test('перенос на другой день: старое место гов�
 test('день с отменой: «Отменена», зачёркнутое название, «Занятие не состоится»', async () => {
   const l = plan.cancelled!
   await page.goto(dayPath(l.date))
-  const card = page.locator('li', { has: page.getByText('Занятие не состоится') })
-  await expect(card).toHaveCount(1)
-  await expect(card.getByText('Отменена', { exact: true })).toBeVisible()
-  const title = card.getByRole('heading', { level: 3 })
+  const cancelledCard = card(wanted('cancelled', 'regular'))
+  await expect(cancelledCard).toHaveCount(1)
+  await expect(cancelledCard.getByText('Занятие не состоится')).toBeVisible()
+  await expect(cancelledCard.getByText('Отменена', { exact: true })).toBeVisible()
+  const title = cancelledCard.getByRole('heading', { level: 2 })
   await expect(title).toContainText(l.discipline)
   await expectLineThrough(title, 'название отменённой пары')
   // Для экранного чтеца зачёркивание продублировано словом.
   await expect(title.locator('.sr-only')).toHaveText(/отменено/)
-  await expect(card.getByText(l.change!.note)).toBeVisible()
+  await expect(cancelledCard.getByText(l.change!.note)).toBeVisible()
+  // После заголовка страницы (h1) идут заголовки карточек уровнем ниже (h2), без пропуска уровня.
+  await expect(page.getByRole('heading', { level: 3 })).toHaveCount(0)
   await expectNoHorizontalScroll('день с отменой')
 })
 
 test('смена аудитории и замена преподавателя: плашка и строка «Было»', async () => {
   const room = plan.roomChanged!
   await page.goto(dayPath(room.date))
-  const roomCard = page.locator('li', { has: page.getByText('Сменилась аудитория', { exact: true }) })
-  await expect(roomCard.first()).toContainText(`Аудитория: ${room.change!.newRoom}`)
-  await expect(roomCard.first().locator('p', { hasText: 'Было:' }).locator('s')).toHaveText(`ауд. ${room.room}`)
+  const roomCard = card(wanted('roomChanged', 'regular'))
+  await expect(roomCard.getByText('Сменилась аудитория', { exact: true })).toBeVisible()
+  await expect(roomCard).toContainText(`Аудитория: ${room.change!.newRoom}`)
+  await expect(roomCard.locator('p', { hasText: 'Было:' }).locator('s')).toHaveText(`ауд. ${room.room}`)
 
   const teacher = plan.teacherChanged
   expect(teacher, 'в окне нет замены преподавателя').toBeDefined()
   await page.goto(dayPath(teacher!.date))
-  const prev = /вместо (.+)$/.exec(teacher!.change!.note)![1]!
-  const teacherCard = page.locator('li', { has: page.getByText('Сменился преподаватель', { exact: true }) })
-  await expect(teacherCard.first().locator('p', { hasText: 'Было:' }).locator('s')).toHaveText(prev)
+  const [, next, prev] = /^Ведёт\s+(.+?)\s+вместо\s+(.+)$/.exec(teacher!.change!.note)!
+  const teacherCard = card(wanted('teacherChanged', 'regular'))
+  await expect(teacherCard.getByText('Сменился преподаватель', { exact: true })).toBeVisible()
+  await expect(teacherCard).toContainText(`Преподаватель: ${next}`)
+  await expect(teacherCard.locator('p', { hasText: 'Было:' }).locator('s')).toHaveText(prev!)
 })
 
 test('адрес с мусором в «day» и «view» показывает сегодня и вид «День», без ошибки', async () => {
@@ -243,10 +284,22 @@ test('адрес с мусором в «day» и «view» показывает �
 })
 
 test('пустой день: «В этот день пар нет», без ошибки', async () => {
-  const date = plan.emptyDate!
+  const date = plan.emptyDate
+  if (date === undefined) {
+    // В этот день запуска у набора нет дня без записей: ни одного из семи, сегодняшний тоже. Тест не ходит по выдуманному адресу, а
+    // проверяет то, что набор даёт: в виде «Неделя» нет строки «Пар нет» ни у одного дня.
+    test.info().annotations.push({ type: 'Пустого дня нет', description: `В окне от ${today} у набора нет дня без пар и переносов: проверяется, что в «Неделе» нет «Пар нет»` })
+    await page.goto('/schedule?view=week')
+    await expect(page.getByRole('list', { name: 'Неделя по дням' }).getByRole('heading', { level: 2 })).toHaveCount(7)
+    await expect(page.getByText('Пар нет', { exact: true })).toHaveCount(0)
+    await expectNoHorizontalScroll('неделя без пустых дней')
+    return
+  }
   await page.goto(dayPath(date))
-  await expect(page.getByRole('heading', { name: 'В этот день пар нет', level: 2 })).toBeVisible()
-  await expect(page.getByRole('heading', { name: `Расписание на ${formatDayMonth(date)}`, level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: date === today ? 'Сегодня пар нет' : 'В этот день пар нет', level: 2 })).toBeVisible()
+  await expect(
+    page.getByRole('heading', { name: date === today ? 'Расписание на сегодня' : `Расписание на ${formatDayMonth(date)}`, level: 1 }),
+  ).toBeVisible()
   await expectNoHorizontalScroll('пустой день')
 })
 
@@ -255,9 +308,10 @@ test('нет прокрутки вбок, зоны касания не мень�
     ['день: сегодня', '/schedule'],
     ['день: с переносом', dayPath(plan.movedSameDay!.date)],
     ['день: с отменой', dayPath(plan.cancelled!.date)],
-    ['день: пустой', dayPath(plan.emptyDate!)],
     ['неделя', '/schedule?view=week'],
   ]
+  // Пустой день есть не всегда; нет его — этой строки нет, в тесте «пустой день» причина названа.
+  if (plan.emptyDate !== undefined) where.splice(3, 0, ['день: пустой', dayPath(plan.emptyDate)])
   for (const [name, path] of where) {
     await page.goto(path)
     await expectNoHorizontalScroll(name)

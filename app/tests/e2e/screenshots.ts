@@ -46,6 +46,11 @@ function failMissing(name: string, why: string): void {
   console.error(`FAIL ${name}: ${why}`)
 }
 
+/** Нужного дня в данных в этот день запуска нет: снимок не делается, чужой экран под этим именем не снимается. Это не отказ прогона. */
+function skipMissing(name: string, why: string): void {
+  console.log(`SKIP ${name}: ${why}`)
+}
+
 /**
  * Снимок всей страницы. Окно на время снимка растягивается до высоты страницы: так нижняя панель вкладок остаётся
  * внизу, а не повисает посреди снимка, как при fullPage.
@@ -154,7 +159,7 @@ async function main(): Promise<void> {
       else failMissing('schedule-day-cancelled', 'в окне нет отменённой пары')
       await shoot(page, width, 'schedule-week', `${BASE_URL}/schedule?view=week`)
       if (schedulePlan.emptyDate) await shoot(page, width, 'schedule-day-empty', `${BASE_URL}${dayPath(schedulePlan.emptyDate)}`)
-      else failMissing('schedule-day-empty', 'в окне нет пустого дня')
+      else skipMissing(`${width}-schedule-day-empty`, `в окне семи дней от ${schedulePlan.today} нет дня без пар и переносов; снимок не делается`)
       await shoot(page, width, 'grades-semester', `${BASE_URL}/grades`)
       await shoot(page, width, 'grades-session', `${BASE_URL}/grades?view=session`)
       await shoot(page, width, 'requests', `${BASE_URL}/requests`)

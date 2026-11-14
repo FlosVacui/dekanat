@@ -156,22 +156,37 @@ test('сквозной сценарий М0: вход, расписание, о�
     await touch(touches, page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Расписание' }), 'вкладка «Расписание»')
     await expect(page).toHaveURL(`${BASE_URL}/schedule`)
     await expect(page.getByRole('heading', { name: /Расписание на сегодня/ })).toBeVisible()
+    // Пары, перенесённые на сегодня с другого дня: экран показывает их на новом месте (пакет 3.2, R-3.2-2).
+    const movedToToday = group1Lessons.filter((l) => l.date !== today && l.change?.kind === 'moved' && l.change.newDate === today)
     if (lesson1) {
       await expect(page.getByText(lesson1.discipline).first()).toBeVisible()
-      // Пакет 3.2: при смене аудитории экран показывает новую, а прежнюю — строкой «Было»; при замене преподавателя прежний стоит в «Было».
+      // Пакет 3.2: при смене аудитории экран показывает новую, а прежнюю — строкой «Было»; при замене преподавателя новый стоит
+      // на месте преподавателя (и в заметке изменения), а прежний — в «Было».
       const room1 = lesson1.change?.kind === 'room_changed' && lesson1.change.newRoom ? lesson1.change.newRoom : lesson1.room
       await expect(page.getByText(`Аудитория: ${room1}`).first()).toBeVisible()
       if (room1 !== lesson1.room) await expect(page.getByText(`ауд. ${lesson1.room}`).first()).toBeVisible()
-      if (lesson1.change?.kind === 'teacher_changed') await expect(page.getByText(lesson1.teacher).first()).toBeVisible()
-      else await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
+      if (lesson1.change?.kind === 'teacher_changed') {
+        const swap = /^Ведёт\s+(.+?)\s+вместо\s+(.+)$/.exec(lesson1.change.note)
+        if (swap) {
+          await expect(page.getByText(`Преподаватель: ${swap[1]}`).first()).toBeVisible()
+          await expect(page.getByText(swap[2]!).first()).toBeVisible()
+        } else await expect(page.getByText(lesson1.teacher).first()).toBeVisible()
+      } else await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
+    } else if (movedToToday.length > 0) {
+      // Пар по сетке на сегодня нет, но на сегодня перенесена пара с другого дня: «Сегодня пар нет» быть не должно.
+      for (const l of movedToToday) await expect(page.getByText(l.discipline).first()).toBeVisible()
+      await expect(page.getByText('Сегодня пар нет')).toHaveCount(0)
     } else {
       // Воскресенье и суббота нижней недели — без пар (черновик данных, раздел 3).
       await expect(page.getByText('Сегодня пар нет')).toBeVisible()
     }
     // Расписание принадлежит группе: метки группы второго студента здесь нет.
     await expect(page.locator('body')).not.toContainText(student2.markers.schedule)
-    // Переключателя «день / неделя» и других неработающих элементов нет.
-    await expect(page.getByRole('button', { name: /неделя/i })).toHaveCount(0)
+    // Переключатель вида есть: две ссылки, «День» и «Неделя».
+    const viewSwitch = page.getByRole('group', { name: 'Вид' }).getByRole('link')
+    await expect(viewSwitch).toHaveCount(2)
+    await expect(viewSwitch.nth(0)).toHaveText('День')
+    await expect(viewSwitch.nth(1)).toHaveText('Неделя')
     await expectNoHorizontalScroll(page, 'Э-3')
   })
 

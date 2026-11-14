@@ -246,6 +246,88 @@ describe('перенос за пределы семи дней', () => {
   })
 })
 
+describe('пара, перенесённая с прошедшего дня (R-3.2-2)', () => {
+  // Экран просит пары за 14 дней назад: слой доступа выбирает по дате старого места, а новое стоит в ленте.
+  const past = '2026-11-13'
+
+  it('сегодня — день, на который пару перенесли: пара стоит сегодня, со строкой «Было»', () => {
+    const days = buildSchedule(
+      [
+        lesson({
+          id: 'm',
+          date: past,
+          startsAt: '12:00',
+          endsAt: '13:30',
+          room: '2-210',
+          change: change('moved', { newDate: TODAY, newStartsAt: '08:30', newEndsAt: '10:00', newRoom: '2-214' }),
+        }),
+      ],
+      TODAY,
+    )
+    expect(days[0]!.entries).toHaveLength(1)
+    expect(days[0]!.entries[0]).toMatchObject({
+      placement: 'moved_to',
+      startsAt: '08:30',
+      endsAt: '10:00',
+      room: '2-214',
+      badge: 'Перенесена',
+      was: 'Было: пт, 13 ноября, 12:00–13:30, ауд. 2-210',
+    })
+    // Признак «есть изменения» и число пар дня считаются с такой парой.
+    expect(days[0]).toMatchObject({ hasChanges: true, lessonCount: 1 })
+    // Старое место — вне ленты: больше нигде пара не встречается.
+    expect(days.flatMap((d) => d.entries)).toHaveLength(1)
+  })
+
+  it('перенос на другой день ленты с прошлого дня: пара на новом дне, остальные дни пусты', () => {
+    const days = buildSchedule(
+      [lesson({ id: 'm', date: past, startsAt: '12:00', endsAt: '13:30', change: change('moved', { newDate: '2026-11-18', newStartsAt: '10:15', newEndsAt: '11:45' }) })],
+      TODAY,
+    )
+    expect(days[2]!.entries.map((e) => `${e.lessonId}:${e.placement}`)).toEqual(['m:moved_to'])
+    expect(days[2]).toMatchObject({ hasChanges: true, lessonCount: 1 })
+    for (const i of [0, 1, 3, 4, 5, 6]) expect(days[i]).toMatchObject({ entries: [], hasChanges: false, lessonCount: 0 })
+  })
+
+  it('прошлая пара без переноса в ленту не попадает', () => {
+    const days = buildSchedule(
+      [
+        lesson({ id: 'plain', date: past, startsAt: '10:15', endsAt: '11:45' }),
+        lesson({ id: 'yesterday', date: '2026-11-15', startsAt: '10:15', endsAt: '11:45' }),
+        lesson({ id: 'room', date: past, startsAt: '12:00', endsAt: '13:30', change: change('room_changed', { newRoom: '2-108' }) }),
+      ],
+      TODAY,
+    )
+    expect(days.flatMap((d) => d.entries)).toEqual([])
+    expect(days.every((d) => !d.hasChanges && d.lessonCount === 0)).toBe(true)
+  })
+
+  it('прошлая отменённая пара в ленту не попадает', () => {
+    const days = buildSchedule(
+      [lesson({ id: 'x', date: past, startsAt: '10:15', endsAt: '11:45', change: change('cancelled', { note: 'преподаватель в командировке' }) })],
+      TODAY,
+    )
+    expect(days.flatMap((d) => d.entries)).toEqual([])
+    expect(days.every((d) => !d.hasChanges)).toBe(true)
+  })
+
+  it('прошлая пара, перенесённая внутри своего дня, в ленту не попадает', () => {
+    const days = buildSchedule(
+      [lesson({ id: 'm', date: past, startsAt: '10:15', endsAt: '11:45', change: change('moved', { newStartsAt: '15:45', newEndsAt: '17:15' }) })],
+      TODAY,
+    )
+    expect(days.flatMap((d) => d.entries)).toEqual([])
+  })
+
+  it('перенос с прошлого дня на прошлый же день ленту не задевает', () => {
+    const days = buildSchedule(
+      [lesson({ id: 'm', date: '2026-11-12', startsAt: '10:15', endsAt: '11:45', change: change('moved', { newDate: past, newStartsAt: '15:45', newEndsAt: '17:15' }) })],
+      TODAY,
+    )
+    expect(days.flatMap((d) => d.entries)).toEqual([])
+  })
+})
+
 describe('смена аудитории и преподавателя', () => {
   const days = buildSchedule(
     [
@@ -292,6 +374,25 @@ describe('странные входные данные', () => {
     const [day] = buildSchedule([lesson({ id: 'a', date: TODAY, startsAt: '10:15', endsAt: '11:45', change: change('moved') })], TODAY)
     expect(day!.entries).toHaveLength(1)
     expect(day!.entries[0]).toMatchObject({ placement: 'regular', changeKind: 'moved', badge: 'Перенесена', movedTo: null, was: null })
+  })
+
+  it('перенос с одним новым временем (только начало или только конец) — как без нового времени, «12:00–11:45» не бывает (R-3.2-7)', () => {
+    for (const partial of [{ newStartsAt: '12:00' }, { newEndsAt: '09:30' }]) {
+      // Только время: одна строка с плашкой.
+      const [same] = buildSchedule([lesson({ id: 'a', date: TODAY, startsAt: '10:15', endsAt: '11:45', change: change('moved', partial) })], TODAY)
+      expect(same!.entries).toHaveLength(1)
+      expect(same!.entries[0]).toMatchObject({ placement: 'regular', startsAt: '10:15', endsAt: '11:45', badge: 'Перенесена', movedTo: null, was: null })
+      // С новой аудиторией: два места, но время прежнее, а не половина нового.
+      const [withRoom] = buildSchedule(
+        [lesson({ id: 'b', date: TODAY, startsAt: '10:15', endsAt: '11:45', change: change('moved', { ...partial, newRoom: '2-108' }) })],
+        TODAY,
+      )
+      expect(withRoom!.entries.map((e) => `${e.placement}:${e.startsAt}–${e.endsAt}`)).toEqual(['moved_from:10:15–11:45', 'moved_to:10:15–11:45'])
+      expect(withRoom!.entries[0]!.movedTo).toBe('Перенесена на 10:15–11:45, ауд. 2-108')
+      const text = JSON.stringify(withRoom)
+      expect(text).not.toContain('12:00–11:45')
+      expect(text).not.toContain('10:15–09:30')
+    }
   })
 
   it('вход не меняется', () => {
