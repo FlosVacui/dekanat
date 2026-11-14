@@ -894,6 +894,12 @@ history:
     commit: "8c24527"
     tokens: 338812
     link: "docs/history/JOURNAL.md"
+  - date: 2026-11-14
+    item: "3.8"
+    what: "Смена 19: код пакета 3.8 — исполнитель builder по заданию B-3.8-data; правка теста защиты access.spec.ts оркестратором по слову пользователя; общая проверка 12 «ок»; ревью RV-3.8-2 запущено. Лимиты: пятичасовой 4→42 %, недельный 51→56 %, Fable 86→92 %"
+    who: "builder, Sonnet 5.5 / high; оркестратор Fable 5.2"
+    commit: "51e1b47"
+    tokens: 338363
 
 reviews:
   - id: "R-0.3-1"
