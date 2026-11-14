@@ -136,6 +136,11 @@ export const lessonChanges = pgTable(
       .references(() => lessons.id, { onDelete: 'cascade' }),
     kind: text('kind').notNull(),
     note: text('note').notNull(),
+    /** Перенос пары: новая дата, новое время и новая аудитория. Заполнены только у переноса; что пусто — не меняется. */
+    newDate: date('new_date', { mode: 'string' }),
+    newStartsAt: time('new_starts_at'),
+    newEndsAt: time('new_ends_at'),
+    newRoom: text('new_room'),
     createdAt: createdAt(),
   },
   (t) => [

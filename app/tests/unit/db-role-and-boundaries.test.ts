@@ -91,6 +91,20 @@ describe('роль базы у приложения (П-10, ADR-0002)', () => {
     await expect(asApp((c) => c.query(`delete from requests`))).rejects.toThrow(/permission denied/)
   })
 
+  it('поля переноса пары (пакет 3.8) роль приложения читает и не пишет', async () => {
+    const rows = await asApp((c) =>
+      c.query(
+        `select kind, new_date::text as new_date, new_starts_at::text as new_starts_at, new_ends_at::text as new_ends_at, new_room
+         from lesson_changes order by kind`,
+      ),
+    )
+    expect(rows.rows.length).toBeGreaterThan(0)
+    // Перенос на другой день из набора: все четыре поля заполнены; смена аудитории — только новая аудитория.
+    expect(rows.rows.some((r) => r.kind === 'moved' && r.new_date && r.new_starts_at && r.new_ends_at && r.new_room)).toBe(true)
+    expect(rows.rows.some((r) => r.kind === 'room_changed' && r.new_room && !r.new_date)).toBe(true)
+    await expect(asApp((c) => c.query(`update lesson_changes set new_room = 'x'`))).rejects.toThrow(/permission denied/)
+  })
+
   it('счётчики входа роль приложения пишет и чистит; права выдаёт migrate-lib.ts, а не миграция с именем роли (R-3.1-5)', async () => {
     const probe = 'права-проверка-3-1'
     await asApp(async (c) => {

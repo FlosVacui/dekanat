@@ -26,8 +26,8 @@ export const REQUEST_KIND_INFO: Record<RequestKind, RequestKindInfo> = {
   dean_certificate: {
     title: 'Справка из деканата',
     productionTime: '1–2 рабочих дня',
-    pickup: 'Забрать в деканате лично, кабинет 120а, 1 корпус',
-    room: '120а, 1 корпус',
+    pickup: 'Забрать в деканате лично, кабинет 105, 1 корпус',
+    room: '105, 1 корпус',
     productionDays: 2,
     workingDays: true,
   },

@@ -22,7 +22,9 @@
     "db:setup": "node db/setup-local.mjs",
     "db:generate": "node ./node_modules/drizzle-kit/bin.cjs generate --config=db/drizzle.config.ts",
     "db:migrate": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/migrate.ts",
-    "db:seed": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/seed.ts"
+    "db:seed": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/seed.ts",
+    "db:refresh": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/seed-refresh.ts",
+    "db:seed:reserve": "node scripts/with-env.mjs ./node_modules/tsx/dist/cli.mjs db/seed-reserve.ts"
   },
   "dependencies": {
     "class-variance-authority": "0.7.1",

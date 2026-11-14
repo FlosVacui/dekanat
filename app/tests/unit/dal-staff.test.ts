@@ -67,7 +67,7 @@ describe('область сотрудника — набор (П-12, ADR-0002)',
   it('сотрудник видит ФИО и группу, но не оценки, расписание и профиль', async () => {
     const id = await newRequest(a)
     const detail = await staffDal.getCohortRequest(staff, id)
-    expect(detail).toMatchObject({ studentName: STUDENT_A.fullName, groupName: 'Э-21-1' })
+    expect(detail).toMatchObject({ studentName: STUDENT_A.fullName, groupName: 'ЦЭ-24-03' })
     const text = JSON.stringify(detail)
     for (const marker of [STUDENT_A.markers.schedule, STUDENT_A.markers.grades, STUDENT_A.markers.notifications]) {
       expect(text).not.toContain(marker)

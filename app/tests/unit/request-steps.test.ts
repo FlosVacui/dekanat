@@ -176,7 +176,7 @@ describe('шаги заявки: общее', () => {
     const issued = buildRequestSteps(input('dean_certificate', 'issued', { issuedOn: null }))
     expect(byKey(issued, 'issued')?.note).toBeNull()
     const ready = buildRequestSteps(input('dean_certificate', 'ready', { pickupUntil: null }))
-    expect(byKey(ready, 'ready')?.where).toEqual({ room: '120а, 1 корпус', until: null })
+    expect(byKey(ready, 'ready')?.where).toEqual({ room: '105, 1 корпус', until: null })
   })
 
   it('день события — по часовому поясу вуза: 22:30 UTC — уже следующий день в Москве', () => {

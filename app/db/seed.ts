@@ -1,7 +1,8 @@
 // Команда: npm run db:seed. Заводит основной набор вымышленных данных под ролью владельца базы.
 // Можно запускать повторно: строки обновляются, а заявки, история статусов и уведомления основного набора,
-// которых нет в вымышленных данных, удаляются. Данные других наборов не трогаются.
-// Не запускать на базе с настоящими посетителями: их заявки основного набора будут стёрты.
+// которых нет в вымышленных данных, удаляются; пары, группы и объявления прежнего набора убираются. Данные других наборов не трогаются.
+// Счётчики перебора входа обнуляются целиком.
+// Не запускать на базе с настоящими посетителями: их заявки основного набора будут стёрты. Для такой базы — npm run db:refresh.
 import pg from 'pg'
 import { todayIn } from '../src/lib/dates'
 import { MAIN_COHORT } from './seed-data'
@@ -16,8 +17,9 @@ if (!ownerUrl) {
 const client = new pg.Client({ connectionString: ownerUrl })
 await client.connect()
 try {
-  const today = todayIn(process.env.APP_TIMEZONE || 'Europe/Moscow')
-  await seedCohort(client, MAIN_COHORT, today)
+  const timezone = process.env.APP_TIMEZONE || 'Europe/Moscow'
+  const today = todayIn(timezone)
+  await seedCohort(client, MAIN_COHORT, today, { mode: 'full', timezone })
   console.log(`Основной набор обновлён (дата отсчёта расписания: ${today}). Логины: ${MAIN_COHORT.students.map((s) => s.login).join(', ')}, ${MAIN_COHORT.staff.login}.`)
 } finally {
   await client.end()

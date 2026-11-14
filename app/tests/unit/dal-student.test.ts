@@ -1,6 +1,8 @@
 import type pg from 'pg'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import { todayIn } from '@/lib/dates'
+import { MAIN_COHORT } from '../../db/seed-data'
+import { buildCohortPlan } from '../../db/seed-plan'
+import { addDays, todayIn } from '@/lib/dates'
 import { DEAN_PURPOSE_KEYS, PAYMENT_YEAR_MIN, currentYearIn } from '@/lib/requests'
 import { Actor, type Actor as ActorType } from '@/server/auth/session'
 import { closeDb } from '@/server/dal/client'
@@ -91,15 +93,17 @@ describe('метки: у каждого студента своя метка в 
     expect(everything).not.toMatch(/passwordHash|password_hash|tokenHash/i)
   })
 
-  it('расписание принадлежит группе: сегодня есть пары, изменение видно', async () => {
+  it('расписание принадлежит группе: пары сегодня и изменения недели — ровно как в наборе', async () => {
+    // Воскресенье и суббота нижней недели у группы без пар (черновик, раздел 3): число пар дня берётся из набора, а не «больше нуля».
+    const plan = buildCohortPlan(MAIN_COHORT, today)
+    const own = plan.lessons.filter((l) => l.groupName === STUDENT_A.groupName)
     const day = await studentDal.listMyLessons(a, today, today)
-    expect(day.length).toBeGreaterThan(0)
-    expect(day[0]).toMatchObject({ room: expect.any(String), teacher: expect.any(String) })
-    const nextDate = new Date(`${today}T00:00:00Z`)
-    nextDate.setUTCDate(nextDate.getUTCDate() + 1)
-    const tomorrow = nextDate.toISOString().slice(0, 10)
-    const changed = await studentDal.listMyLessons(a, tomorrow, tomorrow)
-    expect(changed.some((l) => l.change !== null)).toBe(true)
+    expect(day.length).toBe(own.filter((l) => l.date === today).length)
+    for (const lesson of day) expect(lesson).toMatchObject({ room: expect.any(String), teacher: expect.any(String) })
+    const weekEnd = addDays(today, 6)
+    const week = await studentDal.listMyLessons(a, today, weekEnd)
+    expect(week.filter((l) => l.change !== null).length).toBe(5)
+    expect(week.length).toBe(own.filter((l) => l.date >= today && l.date <= weekEnd).length)
   })
 
   it('в успеваемости есть и оценка, и зачёт (ошибка смены 6)', async () => {
