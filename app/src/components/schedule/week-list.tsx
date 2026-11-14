@@ -39,6 +39,12 @@ function WeekRow({ entry }: { entry: ScheduleEntry }) {
         <p className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>
           ауд. {entry.room}
         </p>
+        {/* Замена преподавателя: новый назван по месту (R-3.2-6). Если имя из заметки прочесть не удалось, `was` пуст, а в `teacher` прежний: тогда не пишем. */}
+        {entry.changeKind === 'teacher_changed' && entry.was ? (
+          <p className="text-[length:var(--fs-sm)]">
+            <span className="font-bold">Ведёт</span> {entry.teacher}
+          </p>
+        ) : null}
         {cancelled ? <p className="text-[length:var(--fs-sm)] font-bold text-error">Занятие не состоится</p> : null}
         {entry.movedTo ? <p className="text-[length:var(--fs-sm)] font-bold text-warning">{entry.movedTo}</p> : null}
         {entry.was ? (

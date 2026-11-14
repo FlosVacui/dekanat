@@ -11,7 +11,7 @@ export function Summary({ items, today }: { items: GradeItem[]; today: string })
   const stipend = stipendLine(s.debt)
   const action = pickFirstAction(items, today)
   const actionItem = action ? items.find((i) => i.disciplineId === action.disciplineId) : undefined
-  const text = action ? firstActionText(action, actionItem?.controlKind) : null
+  const text = action ? firstActionText(action, actionItem?.controlKind, today) : null
   return (
     <Card className="flex flex-col gap-[var(--sp-3)]">
       <h2 className="text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)]">Как у меня дела</h2>

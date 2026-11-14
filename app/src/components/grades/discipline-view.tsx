@@ -3,13 +3,13 @@ import { Card, CardTitle, PageTitle } from '@/components/card'
 import { formatDayMonth, weekdayShort } from '@/lib/dates'
 import {
   describeDiscipline,
-  EXAM_MAX_POINTS,
+  displayPoints,
   EXAM_MIN_POINTS,
-  examPointsForGrades,
+  examTargetLine,
+  examTargetsForDiscipline,
   pointsScale,
   pointsWord,
   splitWorks,
-  type ExamTarget,
 } from '@/lib/grades'
 import { controlKindLabel } from '@/lib/labels'
 import type { DisciplineDetail } from '@/server/dal/student'
@@ -26,31 +26,27 @@ function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
 }
 
-function targetLine(t: ExamTarget): string {
-  if (t.status === 'needs') return `на экзамене нужно ${t.points} из ${EXAM_MAX_POINTS} баллов`
-  if (t.status === 'unreachable') return `недостижимо: даже ${EXAM_MAX_POINTS} из ${EXAM_MAX_POINTS} на экзамене не хватит`
-  return `сначала нужен допуск: не хватает ${t.missingToAdmission} ${pointsWord(t.missingToAdmission)} за семестр`
-}
-
 function PointsBlock({ item }: { item: DisciplineDetail }) {
   const state = describeDiscipline(item)
   const scale = pointsScale(item)
+  // Показанное число ограничено шкалой: «70 из 60» не бывает (замечание R-3.3-6).
+  const shown = displayPoints(item.points, scale.max)
   const label =
     scale.kind === 'semester' ? 'Набрано за семестр' : item.controlKind === 'exam' ? 'Всего баллов, семестр и экзамен' : 'Набрано баллов'
   return (
     <Card className="flex flex-col gap-[var(--sp-2)]">
       <CardTitle>Баллы</CardTitle>
       <p className="text-[length:var(--fs-sm)] text-muted">{label}</p>
-      {item.points === null ? (
+      {shown === null ? (
         <p data-testid="points-line" className="text-[length:var(--fs-md)] font-bold">
           Баллов пока нет
         </p>
       ) : (
         <>
           <p data-testid="points-line" className="text-[length:var(--fs-md)] tabular-nums">
-            <b className="text-[length:var(--fs-xl)] font-extrabold">{item.points}</b> из {scale.max} баллов
+            <b className="text-[length:var(--fs-xl)] font-extrabold">{shown}</b> из {scale.max} баллов
           </p>
-          <PointsBar points={item.points} max={scale.max} threshold={scale.threshold} />
+          <PointsBar points={shown} max={scale.max} threshold={scale.threshold} />
           {scale.threshold !== null ? (
             <p className="text-[length:var(--fs-sm)] text-muted">Отметка на полосе — допуск к экзамену, от {scale.threshold} баллов.</p>
           ) : null}
@@ -75,15 +71,16 @@ function PointsBlock({ item }: { item: DisciplineDetail }) {
   )
 }
 
-function ExamTargets({ points }: { points: number | null }) {
-  const targets = examPointsForGrades(points)
+// Блок получает тот же ответ о допуске, что и строка состояния: examTargetsForDiscipline берёт его из describeDiscipline (замечание R-3.3-1).
+function ExamTargets({ item }: { item: DisciplineDetail }) {
+  const targets = examTargetsForDiscipline(item)
   return (
     <Card className="flex flex-col gap-[var(--sp-2)]">
       <CardTitle>Что нужно на экзамене</CardTitle>
       <ul data-testid="exam-targets" className="flex flex-col gap-[var(--sp-2)] text-[length:var(--fs-md)]">
         {targets.map((t) => (
           <li key={t.grade}>
-            <b className="font-extrabold">Чтобы получить {t.grade}</b>, {targetLine(t)}
+            <b className="font-extrabold">Чтобы получить {t.grade}</b>, {examTargetLine(t)}
           </li>
         ))}
       </ul>
@@ -194,7 +191,7 @@ export function DisciplineView({ item, today }: { item: DisciplineDetail; today:
         </p>
       </div>
       <PointsBlock item={item} />
-      {showTargets ? <ExamTargets points={item.points} /> : null}
+      {showTargets ? <ExamTargets item={item} /> : null}
       <ControlBlock item={item} />
       <Works works={item.assignments} today={today} />
     </div>

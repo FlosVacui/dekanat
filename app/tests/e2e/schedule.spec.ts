@@ -171,7 +171,8 @@ test('полоса дней: семь дней от сегодняшнего, в
   }
   await expect(links.first()).toContainText('сегодня')
   const week = weekInfo(plan.movedSameDay!.date)!
-  await expect(page.getByTestId('week-label')).toHaveText(`${week.kind === 'верхняя' ? 'Верхняя' : 'Нижняя'} неделя · ${week.number}-я`)
+  // Вид «День»: метка говорит, что это неделя выбранного дня, а не сегодняшнего (R-3.2-10, IMP-029).
+  await expect(page.getByTestId('week-label')).toHaveText(`Неделя этого дня: ${week.kind === 'верхняя' ? 'верхняя' : 'нижняя'} · ${week.number}-я`)
   await expect(page.getByRole('group', { name: 'Вид' }).getByRole('link', { name: 'День' })).toHaveAttribute('aria-current', 'true')
 })
 

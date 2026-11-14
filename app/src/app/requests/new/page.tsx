@@ -115,7 +115,7 @@ export default async function NewRequestPage({
           </div>
         ) : null}
         <SubmitButton>Отправить</SubmitButton>
-        <LinkButton href="/requests" variant="secondary">
+        <LinkButton href="/requests" variant="ghost">
           Назад к заявкам
         </LinkButton>
       </form>

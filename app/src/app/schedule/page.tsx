@@ -50,7 +50,9 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
             data-testid="week-label"
             className="self-start rounded-pill bg-primary-soft px-2 py-1 text-[length:var(--fs-xs)] font-bold leading-[1.2] text-primary"
           >
-            {week.kind === 'верхняя' ? 'Верхняя' : 'Нижняя'} неделя · {week.number}-я
+            {view === 'week'
+              ? `${week.kind === 'верхняя' ? 'Верхняя' : 'Нижняя'} неделя · ${week.number}-я`
+              : `Неделя этого дня: ${week.kind === 'верхняя' ? 'верхняя' : 'нижняя'} · ${week.number}-я`}
           </p>
         ) : null}
         <ViewSwitch view={view} />

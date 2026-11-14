@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import { Card } from '@/components/card'
-import { formatDayMonth, weekdayShort } from '@/lib/dates'
-import { groupSession, pointsWord, sessionStatus } from '@/lib/grades'
+import { groupSession, pointsWord, sessionStatus, sessionWhenLine } from '@/lib/grades'
 import { controlKindLabel } from '@/lib/labels'
 import type { GradeItem } from '@/server/dal/student'
 import { Chip, OutcomeChip, type ChipTone } from './chip'
@@ -18,15 +17,10 @@ const STATUS_TONE: Record<'admitted' | 'not_admitted' | 'retake' | 'passed', Chi
   passed: 'ok',
 }
 
-function whenLine(item: GradeItem): string {
-  if (!item.examDate) return 'Дата не назначена'
-  const parts = [`${formatDayMonth(item.examDate)}, ${weekdayShort(item.examDate)}`]
-  if (item.examTime) parts.push(item.examTime)
-  return parts.join(', ')
-}
-
 function Row({ item, past }: { item: GradeItem; past: boolean }) {
   const status = sessionStatus(item)
+  // У закрытой дисциплины без даты строки с датой нет, место в «Прошедших» остаётся (замечание R-3.3-4).
+  const when = sessionWhenLine(item)
   return (
     <li>
       <Link
@@ -36,9 +30,11 @@ function Row({ item, past }: { item: GradeItem; past: boolean }) {
         <div className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
           {past ? null : <Chip tone={STATUS_TONE[status.kind]}>{status.word}</Chip>}
           <h3 className="text-[length:var(--fs-md)] font-bold leading-[1.3] [overflow-wrap:anywhere]">{item.name}</h3>
-          <p className="text-[length:var(--fs-sm)]">
-            <b className="font-extrabold">{whenLine(item)}</b>
-          </p>
+          {when === null ? null : (
+            <p className="text-[length:var(--fs-sm)]">
+              <b className="font-extrabold">{when}</b>
+            </p>
+          )}
           <p className="text-[length:var(--fs-sm)] text-muted">
             {controlKindLabel(item.controlKind)}
             {item.examRoom ? `, ауд. ${item.examRoom}` : ''}

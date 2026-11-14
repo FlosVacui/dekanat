@@ -152,31 +152,34 @@ describe('строка о стипендии', () => {
 describe('слова строки «что сделать первым»', () => {
   it('долг — пересдать, с датой', () => {
     const first = pickFirstAction(ALL, TODAY)!
-    expect(firstActionText(first)).toEqual({ lead: 'Пересдать', detail: 'Эконометрика, пересдача 18 ноября' })
+    expect(firstActionText(first, undefined, TODAY)).toEqual({ lead: 'Пересдать', detail: 'Эконометрика, пересдача 18 ноября' })
   })
 
   it('долг без даты — так и сказано', () => {
     const noDate = row('Право', { outcome: '2' })
-    expect(firstActionText(pickFirstAction([noDate], TODAY)!).detail).toBe('Право, дата пересдачи не назначена')
+    expect(firstActionText(pickFirstAction([noDate], TODAY)!, undefined, TODAY).detail).toBe('Право, дата пересдачи не назначена')
   })
 
   it('недопуск — добрать баллы, с числом и склонением', () => {
     const first = pickFirstAction([CORP, MICRO], TODAY)!
-    expect(firstActionText(first)).toEqual({ lead: 'Добрать баллы', detail: 'Корпоративные финансы, до допуска не хватает 8 баллов' })
+    expect(firstActionText(first, undefined, TODAY)).toEqual({
+      lead: 'Добрать баллы',
+      detail: 'Корпоративные финансы, до допуска не хватает 8 баллов',
+    })
     const one = pickFirstAction([row('Х', { points: 29, examDate: '2026-12-01' })], TODAY)!
-    expect(firstActionText(one).detail).toBe('Х, до допуска не хватает 1 балл')
+    expect(firstActionText(one, undefined, TODAY).detail).toBe('Х, до допуска не хватает 1 балл')
   })
 
   it('недопуск у зачёта: числа нет, допуска нет', () => {
     const credit = row('Зачёт', { controlKind: 'credit', admitted: false, examDate: '2026-12-30' })
-    expect(firstActionText(pickFirstAction([credit], TODAY)!).detail).toBe('Зачёт, допуска пока нет')
+    expect(firstActionText(pickFirstAction([credit], TODAY)!, undefined, TODAY).detail).toBe('Зачёт, допуска пока нет')
   })
 
   it('ближайший экзамен или зачёт — слово по виду контроля', () => {
     const exam = pickFirstAction([MICRO], TODAY)!
-    expect(firstActionText(exam, 'exam')).toEqual({ lead: 'Подготовиться', detail: 'Микроэкономика, экзамен 20 декабря' })
+    expect(firstActionText(exam, 'exam', TODAY)).toEqual({ lead: 'Подготовиться', detail: 'Микроэкономика, экзамен 20 декабря' })
     const credit = pickFirstAction([LOGISTICS], TODAY)!
-    expect(firstActionText(credit, 'credit').detail).toBe('Логистика цепей поставок, зачёт 14 декабря')
+    expect(firstActionText(credit, 'credit', TODAY).detail).toBe('Логистика цепей поставок, зачёт 14 декабря')
   })
 })
 
