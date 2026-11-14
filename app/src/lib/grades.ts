@@ -1,5 +1,5 @@
 // Сводка «как у меня дела» для экрана «Успеваемость»: считается из списка дисциплин, отдельного запроса нет.
-import { formatDayMonth } from './dates'
+import { formatDayMonth, weekdayShort } from './dates'
 
 export interface GradeOutcomeLike {
   /** '5' | '4' | '3' | '2' | 'credit' | 'no_credit' | 'pending' */
@@ -102,12 +102,13 @@ export function pointsToAdmission(points: number | null): number {
  * Что нужно на экзамене для оценки при нынешних баллах за семестр:
  * - `needs` — набрать на экзамене не меньше `points` (никогда меньше 20);
  * - `unreachable` — даже 40 из 40 не хватит;
- * - `no_admission` — до экзамена не допустят, оценку экзаменом пока не закрыть.
+ * - `no_admission` — до экзамена не допустят, оценку экзаменом пока не закрыть;
+ *   `missingToAdmission` — сколько баллов за семестр не хватает, `null` — баллов хватает, но признак допуска в базе «нет».
  */
 export type ExamTarget =
   | { grade: ExamGrade; status: 'needs'; points: number }
   | { grade: ExamGrade; status: 'unreachable' }
-  | { grade: ExamGrade; status: 'no_admission'; missingToAdmission: number }
+  | { grade: ExamGrade; status: 'no_admission'; missingToAdmission: number | null }
 
 /** Для оценок 3, 4 и 5 — по одной записи, в этом порядке. */
 export function examPointsForGrades(points: number | null): ExamTarget[] {
@@ -171,6 +172,37 @@ export function describeDiscipline(d: DisciplineStateInput): DisciplineState {
     return { kind: 'ahead_no_admission', text: `впереди, до допуска не хватает ${missing} ${pointsWord(missing)}`, missing }
   }
   return { kind: 'ahead_no_admission', text: 'впереди, допуска нет', missing: null }
+}
+
+/**
+ * Что нужно на экзамене для оценок 3, 4 и 5 по дисциплине (по замечанию R-3.3-1).
+ * Ответ о допуске берётся из `describeDiscipline` — того же, что даёт строка состояния; второго правила допуска здесь нет.
+ * Нет допуска — три записи `no_admission`: если баллов хватает, а признак в базе «нет», числа нет (`missingToAdmission: null`).
+ * Блок нужен только экзамену без итога; у зачёта и у закрытой дисциплины записей нет.
+ */
+export function examTargetsForDiscipline(d: DisciplineStateInput): ExamTarget[] {
+  if (d.controlKind !== 'exam' || d.outcome !== 'pending') return []
+  const state = describeDiscipline(d)
+  if (state.kind === 'ahead_no_admission') {
+    return ([3, 4, 5] as const).map((grade): ExamTarget => ({ grade, status: 'no_admission', missingToAdmission: state.missing }))
+  }
+  return examPointsForGrades(d.points)
+}
+
+/** Слова строки блока «Что нужно на экзамене» после «Чтобы получить N, ». */
+export function examTargetLine(t: ExamTarget): string {
+  if (t.status === 'needs') return `на экзамене нужно ${t.points} из ${EXAM_MAX_POINTS} баллов`
+  if (t.status === 'unreachable') return `недостижимо: даже ${EXAM_MAX_POINTS} из ${EXAM_MAX_POINTS} на экзамене не хватит`
+  if (t.missingToAdmission === null) return 'сначала нужен допуск, его пока нет'
+  return `сначала нужен допуск: не хватает ${t.missingToAdmission} ${pointsWord(t.missingToAdmission)} за семестр`
+}
+
+/**
+ * Баллы для показа: число ограничено шкалой, от 0 до `max` (по замечанию R-3.3-6). Подпись, полоса и `aria-valuetext`
+ * берут это число, а не сырое из базы: «70 из 60» не бывает. Пусто (`null`) остаётся пустым, не нулём.
+ */
+export function displayPoints(points: number | null, max: number): number | null {
+  return points === null ? null : clamp(points, 0, max)
 }
 
 export interface FirstActionInput extends DisciplineStateInput {
@@ -298,13 +330,19 @@ export interface FirstActionText {
   detail: string
 }
 
-/** Слова для строки «что сделать первым». `controlKind` нужен только для ближайшего экзамена или зачёта. */
-export function firstActionText(action: FirstAction, controlKind?: string): FirstActionText {
+/**
+ * Слова для строки «что сделать первым». `controlKind` нужен только для ближайшего экзамена или зачёта.
+ * `today` — сегодняшний день, ГГГГ-ММ-ДД, приходит аргументом (часов здесь нет): пересдача раньше `today` уже была
+ * (по замечанию R-3.3-5), пересдача сегодня ещё предстоит.
+ */
+export function firstActionText(action: FirstAction, controlKind: string | undefined, today: string): FirstActionText {
   if (action.kind === 'debt') {
-    return {
-      lead: 'Пересдать',
-      detail: `${action.name}, ${action.date ? `пересдача ${formatDayMonth(action.date)}` : 'дата пересдачи не назначена'}`,
-    }
+    const when = !action.date
+      ? 'дата пересдачи не назначена'
+      : action.date < today
+        ? `пересдача была ${formatDayMonth(action.date)}, новая дата не назначена`
+        : `пересдача ${formatDayMonth(action.date)}`
+    return { lead: 'Пересдать', detail: `${action.name}, ${when}` }
   }
   if (action.kind === 'no_admission') {
     return {
@@ -331,7 +369,9 @@ export interface PointsScale {
 /**
  * Шкала полосы баллов. Экзамен без итога: баллы за семестр, до 60, отметка допуска на 30.
  * Закрытая дисциплина (оценка есть) — в базе одно число, это сумма: до 100, порога нет.
- * Зачёт: правил в источниках нет, показывается число из 100 без порога (решение участника А 14.11.2026).
+ * Зачёт: правил в источниках нет, показывается число из 100 без порога. Это два отдельных решения:
+ * - порога нет — решение участника А от 14.11.2026, первое окно смены 23;
+ * - шкалу «из 100» выбрал исполнитель этапа Б; участник А подтвердил её 14.11.2026 в 22:15 МСК, третье окно смены 23.
  */
 export function pointsScale(d: Pick<DisciplineStateInput, 'controlKind' | 'outcome'>): PointsScale {
   if (d.controlKind === 'exam' && d.outcome === 'pending') {
@@ -376,6 +416,18 @@ export function groupSession<T extends FirstActionInput>(items: T[], today: stri
   pastUndated.sort(byName)
   undated.sort(byName)
   return { upcoming, past: [...pastDated, ...pastUndated], undated }
+}
+
+/**
+ * Строка с датой в виде «Сессия»: «20 декабря, вс, 10:00». Даты нет — «Дата не назначена»;
+ * у закрытой дисциплины (по `describeDiscipline`, как в блоке контроля на экране дисциплины) без даты строки нет — null,
+ * потому что «дата не назначена» о сданном вводит в заблуждение (по замечанию R-3.3-4).
+ */
+export function sessionWhenLine(item: FirstActionInput & { examTime: string | null }): string | null {
+  if (!item.examDate) return describeDiscipline(item).kind === 'passed' ? null : 'Дата не назначена'
+  const parts = [`${formatDayMonth(item.examDate)}, ${weekdayShort(item.examDate)}`]
+  if (item.examTime) parts.push(item.examTime)
+  return parts.join(', ')
 }
 
 export interface SessionStatus {

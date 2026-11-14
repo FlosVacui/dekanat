@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { formatDayMonth } from '@/lib/dates'
-import { describeDiscipline, pointsScale, pointsWord, sortForSemester } from '@/lib/grades'
+import { describeDiscipline, displayPoints, pointsScale, pointsWord, sortForSemester } from '@/lib/grades'
 import { controlKindLabel } from '@/lib/labels'
 import { cn } from '@/lib/utils'
 import type { GradeItem } from '@/server/dal/student'
@@ -50,6 +50,8 @@ function StateLine({ item }: { item: GradeItem }) {
 function DisciplineCard({ item }: { item: GradeItem }) {
   const state = describeDiscipline(item)
   const scale = pointsScale(item)
+  // Показанное число ограничено шкалой: «70 из 60» не бывает (замечание R-3.3-6).
+  const shown = displayPoints(item.points, scale.max)
   return (
     <li>
       <Link
@@ -66,15 +68,15 @@ function DisciplineCard({ item }: { item: GradeItem }) {
             Итог: <OutcomeChip outcome={item.outcome} />
           </p>
           <StateLine item={item} />
-          {item.points === null ? (
+          {shown === null ? (
             <p className="text-[length:var(--fs-sm)] text-muted">Баллов пока нет</p>
           ) : (
             <div className="flex flex-col gap-[var(--sp-1)]">
               <p className="text-[length:var(--fs-sm)] tabular-nums">
-                <b className="font-extrabold">{item.points}</b> из {scale.max} баллов
+                <b className="font-extrabold">{shown}</b> из {scale.max} баллов
                 {scale.threshold !== null ? <span className="text-muted"> · допуск от {scale.threshold}</span> : null}
               </p>
-              <PointsBar points={item.points} max={scale.max} threshold={scale.threshold} />
+              <PointsBar points={shown} max={scale.max} threshold={scale.threshold} />
             </div>
           )}
           {item.nextDue ? (

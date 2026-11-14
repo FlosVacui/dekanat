@@ -288,7 +288,12 @@ test('С-15: вкладка «Успеваемость», затем «Сесс�
     const r = plan.rows.find((x) => x.name === name)!
     const row = sessionRow(past, name)
     await expect(row, `${name}: итог`).toContainText(r.outcome === 'pending' ? 'Итога пока нет' : `Итог: ${outcomeWord(r.outcome)}`)
+    // Сданное без даты: строки с датой нет, подписи «Дата не назначена» тоже (замечание R-3.3-4). С датой — дата как есть.
+    if (r.examDate) await expect(row, `${name}: дата`).toContainText(dateLine(r))
+    else if (r.state === 'passed') await expect(row, `${name}: сданное без даты — подписи «Дата не назначена» нет`).not.toContainText('Дата не назначена')
   }
+  // Прошедшие у студента 1 — сданные без даты (Маркетинг, Статистика): проверка выше не пустая.
+  expect(plan.sessionPast.map((n) => plan.rows.find((x) => x.name === n)!).some((r) => !r.examDate && r.state === 'passed')).toBe(true)
   await expect(page.locator('table')).toHaveCount(0)
   await expectNoHorizontalScroll('С-15')
   test.info().annotations.push({ type: 'Касаний С-15', description: String(touches.n) })
