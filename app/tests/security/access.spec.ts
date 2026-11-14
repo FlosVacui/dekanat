@@ -4,7 +4,7 @@
 import { expect, test } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
 import { buildCohortPlan } from '../../db/seed-plan'
-import { todayIn } from '../../src/lib/dates'
+import { addDays, todayIn } from '../../src/lib/dates'
 import { BASE_URL, startServer, stopServer, type RunningServer } from '../e2e/helpers/server'
 import {
   A,
@@ -48,13 +48,19 @@ const STUDENT_PAGES = ['/', '/profile', '/schedule', '/grades', '/notifications'
 const STAFF_PAGES = ['/staff/requests']
 const NOT_SAVED = 'Статус сохранён'
 
-// Страница /schedule показывает только сегодняшний день, а пары набора с пакета 3.8 зависят от дня недели и от верхней или нижней
-// недели. Метка A.markers.schedule есть не в каждом дне, поэтому «своё на странице» — преподаватель первой сегодняшней пары
-// студента А по плану набора (тем же кодом заполнена база), а в день без пар — строка пустого дня.
-// Сама метка остаётся в markersOf(A): на страницах Б её по-прежнему ищут как чужую. Правка оркестратора по слову пользователя 14.11.2026.
+// Пары набора с пакета 3.8 зависят от дня недели и от верхней или нижней недели: метка A.markers.schedule есть не в каждом дне.
+// С 14.11.2026 до пакета 3.2 «своим на странице» был преподаватель первой сегодняшней пары или строка пустого дня — R-3.8-15.
 const TODAY = todayIn('Europe/Moscow')
-const firstLessonA = buildCohortPlan(MAIN_COHORT, TODAY).lessons.find((l) => l.groupName === A.groupName && l.date === TODAY)
-const OWN_SCHEDULE_TEXT = firstLessonA ? firstLessonA.teacher : 'Сегодня пар нет'
+//
+// IMP-027, 14.11.2026, смена 21: пакет 3.2 дал расписанию семь дней и параметр адреса `day`. Метка A.markers.schedule возвращена.
+// В виде «Неделя» преподавателя нет — так велит задание B-3.2, — поэтому берётся вид «День» ближайшего из семи дней, где по плану
+// набора у группы А есть пара с этой меткой. Такой день есть при любом дне запуска: проверка подмены группы больше не пуста по выходным.
+const SCHEDULE_WINDOW = Array.from({ length: 7 }, (_, i) => addDays(TODAY, i))
+const markerLessonA = buildCohortPlan(MAIN_COHORT, TODAY)
+  .lessons.filter((l) => l.groupName === A.groupName && SCHEDULE_WINDOW.includes(l.date) && l.teacher.includes(A.markers.schedule))
+  .sort((x, y) => x.date.localeCompare(y.date))[0]
+if (!markerLessonA) throw new Error('В семи днях от сегодня у группы А нет пары с меткой расписания: проверь набор данных')
+const OWN_SCHEDULE_PATH = `/schedule?day=${markerLessonA.date}`
 
 function expectNoMarkers(text: string, markers: string[], where: string): void {
   for (const m of markers) expect(text.includes(m), `${where}: найдена чужая метка «${m}»`).toBe(false)
@@ -80,7 +86,7 @@ test.afterAll(async () => {
 test('контроль: стенд жив, вход под А работает, свои метки А видны', async () => {
   const pages: Record<string, string> = {
     '/profile': A.markers.profile,
-    '/schedule': OWN_SCHEDULE_TEXT,
+    [OWN_SCHEDULE_PATH]: A.markers.schedule,
     '/grades': A.markers.grades,
     '/notifications': A.markers.notifications,
   }
@@ -149,8 +155,9 @@ test.describe('П-01: чужая запись по номеру в адресе'
       expect(res.status, path).toBe(200)
       expectNoMarkers(res.text, markersOf(B), path)
     }
-    const schedule = await raw(encodeURI(`/schedule?group=${B.groupName}`), { token: a.token })
-    expect(schedule.text).toContain(OWN_SCHEDULE_TEXT)
+    const schedule = await raw(encodeURI(`${OWN_SCHEDULE_PATH}&group=${B.groupName}`), { token: a.token })
+    expect(schedule.text).toContain(A.markers.schedule)
+    expectNoMarkers(schedule.text, markersOf(B), 'расписание с подменой группы')
   })
 
   test('ни одна страница А не содержит меток Б, и наоборот', async () => {

@@ -1,0 +1,225 @@
+/* Копия файла docs/design/tokens.css (оригинал там; значения и имена не менять здесь, менять в оригинале и копировать). */
+/*
+ * Дизайн-система «Цифровой деканат», вариант АВ: оформление «Тёплого», раскладка «Спокойного».
+ * Документ: docs/design/D-2.2-system.md. Витрина: docs/design/system/index.html.
+ *
+ * Откуда значения. Блок :root (светлая тема) и блок .dark (тёмная) собраны скриптом из макета
+ * docs/design/variants/V-AC.html: правила .phone и .phone.dark. Имена и значения те же; скрипт
+ * сверил их с макетом после сборки. Значения по контрасту не менялись: пересчёт всех пар обеих
+ * тем показал, что ниже правила системы (текст 4.6:1, крупный текст и графика 3.1:1) нет ни одной
+ * пары, кроме оранжевого знака на фоне страницы и шапки (3.01:1; правило в документе, раздел 2).
+ * Добавлено системой, в макете нет: --font-sans, --press, --nav-shadow, --radius-nav
+ * (блок «Добавлено системой» внизу :root). В макете --nav-shadow и --radius-nav были зашиты
+ * в правило .tabs.
+ *
+ * Как подключить.
+ *  1. Простая страница: <link rel="stylesheet" href="tokens.css">; тёмная тема — класс dark на html
+ *     (или на любом блоке: на нём и внутри действует тёмная тема).
+ *  2. Tailwind 4 (app/src/app/globals.css): скопировать файл в app/src/app/tokens.css и
+ *     после @import 'tailwindcss' добавить @import './tokens.css' (путь к файлу вне app/ сборка
+ *     может не принять: не проверено). Блок @theme inline внизу отдаёт цвета, скругления, тени
+ *     и шрифт утилитам: bg-card, text-muted, border-border-strong, rounded-surface, font-sans и т. д.
+ *     Перенос в app/ — отдельный шаг после пакета 2.2.
+ *  3. Шрифт Nunito: файлы из пакета npm, без внешних CDN; подключение — в app/ при переносе.
+ *     Пока файлов нет, работает запасной шрифт системы.
+ */
+
+:root {
+  color-scheme: light;
+
+  /* Цвета: поверхности и текст */
+  --bg: #FBF4E8;  /* фон страницы */
+  --card: #FFFDF8;  /* фон карточки, поля, нижней панели */
+  --text: #26283D;  /* основной текст */
+  --muted: #5A5A6B;  /* приглушённый текст (подписи, пояснения) */
+  --border: #EADFCB;  /* рамка и разделитель (оформление, не граница поля) */
+  --border-strong: #857A66;  /* граница поля, переключателя, линия шагов */
+
+  /* Цвета: главный, акценты */
+  --primary: #194CA6;  /* главный цвет: кнопка, ссылка, значок */
+  --on-primary: #FFFFFF;  /* текст на главном цвете */
+  --primary-soft: #E8EEFA;  /* светлая синяя плашка */
+  --accent: #E9661C;  /* оранжевый знака: счётчик, точка у заголовка, значок на карточке; мелким текстом не писать */
+  --on-accent: #1C1E30;  /* текст на оранжевом */
+  --accent-text: #A33B00;  /* оранжевый для текста (тёмный оттенок) */
+  --accent-2: #D5AF53;  /* золото знака; на светлом только плашкой */
+  --accent-2-text: #6B4F00;  /* текст на золотой плашке */
+  --accent-2-bg: #FAEBC0;  /* золотая плашка */
+
+  /* Цвета: состояния */
+  --success: #1B6E3C;  /* успех: текст, значок */
+  --success-bg: #E1F2E3;  /* плашка успеха */
+  --warning: #7A4B00;  /* внимание: текст, значок */
+  --warning-bg: #FDEBC5;  /* плашка внимания */
+  --error: #B3261E;  /* ошибка: текст, значок, рамка */
+  --error-bg: #FCE4DF;  /* плашка ошибки */
+  --focus: #194CA6;  /* рамка фокуса */
+
+  /* Цвета: шапка, «следующая пара», нижняя панель, знак */
+  --header-bg: #FBF4E8;  /* фон шапки */
+  --on-header: #26283D;  /* текст в шапке */
+  --header-muted: #5A5A6B;  /* мелкий текст в шапке */
+  --hero-bg: #FAEBC0;  /* фон блока «следующая пара» */
+  --on-hero: #26283D;  /* текст на нём */
+  --on-hero-muted: #4F4E5E;  /* мелкий текст на нём */
+  --nav-bg: #FFFDF8;  /* фон нижней панели */
+  --nav-icon: #5A5A6B;  /* вкладка (значок и подпись) */
+  --nav-active: #194CA6;  /* активная вкладка */
+  --nav-active-bg: #FAEBC0;  /* плашка активной вкладки */
+  --logo-plate: transparent;  /* плашка под знаком (в тёмной теме белая) */
+
+  /* Выбор из общих цветов (псевдонимы) */
+  --btn-main-bg: var(--primary);  /* фон главной кнопки */
+  --btn-main-fg: var(--on-primary);  /* текст главной кнопки */
+  --avatar-bg: var(--primary-soft);  /* фон аватара */
+  --avatar-fg: var(--primary);  /* инициалы в аватаре */
+  --h2-color: var(--text);  /* цвет заголовка раздела */
+  --card-border: 1px solid var(--border);  /* рамка карточки */
+
+  /* Размеры текста */
+  --fs-xs: 12px;  /* текст: мелкий (плашки, подписи, вкладки) */
+  --fs-sm: 14px;  /* текст: малый */
+  --fs-md: 16px;  /* текст: основной */
+  --fs-lg: 19px;  /* текст: заголовок раздела */
+  --fs-xl: 26px;  /* текст: заголовок экрана */
+  --fs-num: 36px;  /* текст: время «следующей пары» */
+  --h1-size: var(--fs-xl);  /* размер заголовка экрана */
+  --h1-weight: 700;  /* жирность заголовка экрана */
+  --h2-size: var(--fs-lg);  /* размер заголовка раздела */
+  --h2-weight: 700;  /* жирность заголовка раздела */
+
+  /* Отступы и размеры */
+  --sp-1: 6px;  /* отступ 1 */
+  --sp-2: 10px;  /* отступ 2 */
+  --sp-3: 14px;  /* отступ 3 */
+  --sp-4: 18px;  /* отступ 4 */
+  --sp-5: 28px;  /* отступ 5 */
+  --pad-x: 18px;  /* поле экрана слева и справа */
+  --gap: 14px;  /* промежуток между блоками */
+  --card-pad: 18px;  /* внутренний отступ карточки */
+  --control-h: 52px;  /* высота кнопки и поля */
+  --nav-h: 68px;  /* высота вкладки */
+  --tap: 44px;  /* минимальная зона касания */
+
+  /* Скругления и тень */
+  --radius-card: 22px;  /* скругление карточки */
+  --radius-ctl: 16px;  /* скругление поля */
+  --radius-btn: 999px;  /* скругление кнопки */
+  --radius-chip: 999px;  /* скругление плашки */
+  --card-shadow: 0 2px 8px rgba(120, 90, 40, .10);  /* тень карточки */
+
+  /* Добавлено системой (в макете этих имён нет) */
+  --font-sans: 'Nunito Variable', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;  /* шрифт всего интерфейса */
+  --press: rgba(0, 0, 0, .10);  /* затемнение нажатой кнопки и строки */
+  --nav-shadow: 0 -4px 12px rgba(120,90,40,.10);  /* тень нижней панели */
+  --radius-nav: 24px;  /* скругление верхних углов нижней панели */
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Цвета: поверхности и текст */
+  --bg: #1C1815;  /* фон страницы */
+  --card: #282220;  /* фон карточки, поля, нижней панели */
+  --text: #F6ECDF;  /* основной текст */
+  --muted: #C4B7A5;  /* приглушённый текст (подписи, пояснения) */
+  --border: #3F362D;  /* рамка и разделитель (оформление, не граница поля) */
+  --border-strong: #8F8270;  /* граница поля, переключателя, линия шагов */
+
+  /* Цвета: главный, акценты */
+  --primary: #9DBBF2;  /* главный цвет: кнопка, ссылка, значок */
+  --on-primary: #10182A;  /* текст на главном цвете */
+  --primary-soft: #263554;  /* светлая синяя плашка */
+  --accent: #F5894A;  /* оранжевый знака: счётчик, точка у заголовка, значок на карточке; мелким текстом не писать */
+  --on-accent: #1C1208;  /* текст на оранжевом */
+  --accent-text: #FF9F68;  /* оранжевый для текста (тёмный оттенок) */
+  --accent-2: #E4C26A;  /* золото знака; на светлом только плашкой */
+  --accent-2-text: #EBD184;  /* текст на золотой плашке */
+  --accent-2-bg: #3E3416;  /* золотая плашка */
+
+  /* Цвета: состояния */
+  --success: #75D6A0;  /* успех: текст, значок */
+  --success-bg: #1B3527;  /* плашка успеха */
+  --warning: #F2C45A;  /* внимание: текст, значок */
+  --warning-bg: #3E3012;  /* плашка внимания */
+  --error: #FF9F96;  /* ошибка: текст, значок, рамка */
+  --error-bg: #4C2420;  /* плашка ошибки */
+  --focus: #9DBBF2;  /* рамка фокуса */
+
+  /* Цвета: шапка, «следующая пара», нижняя панель, знак */
+  --header-bg: #1C1815;  /* фон шапки */
+  --on-header: #F6ECDF;  /* текст в шапке */
+  --header-muted: #C4B7A5;  /* мелкий текст в шапке */
+  --hero-bg: #3E3416;  /* фон блока «следующая пара» */
+  --on-hero: #F6ECDF;  /* текст на нём */
+  --on-hero-muted: #D6C9B6;  /* мелкий текст на нём */
+  --nav-bg: #282220;  /* фон нижней панели */
+  --nav-icon: #C4B7A5;  /* вкладка (значок и подпись) */
+  --nav-active: #9DBBF2;  /* активная вкладка */
+  --nav-active-bg: #3E3416;  /* плашка активной вкладки */
+  --logo-plate: #FFFFFF;  /* плашка под знаком (в тёмной теме белая) */
+
+  /* Псевдонимы повторены: тема должна работать и на вложенном блоке .dark, не только на html */
+  --card-border: 1px solid var(--border);  /* рамка карточки */
+  --h2-color: var(--text);  /* цвет заголовка раздела */
+  --btn-main-bg: var(--primary);  /* фон главной кнопки */
+  --btn-main-fg: var(--on-primary);  /* текст главной кнопки */
+  --avatar-bg: var(--primary-soft);  /* фон аватара */
+  --avatar-fg: var(--primary);  /* инициалы в аватаре */
+}
+
+/*
+ * Tailwind 4: переменные выше становятся утилитами. Блок inline читает значение в момент
+ * использования, поэтому тема .dark переключает и утилиты. Скругления названы иначе, чем
+ * переменные (--radius-card и т. п.), иначе имя ссылалось бы само на себя:
+ * surface = карточка, control = поле, pill = кнопка и плашка, nav-bar = верхние углы панели.
+ */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-card: var(--card);
+  --color-text: var(--text);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-primary-soft: var(--primary-soft);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-accent-text: var(--accent-text);
+  --color-accent-2: var(--accent-2);
+  --color-accent-2-text: var(--accent-2-text);
+  --color-accent-2-bg: var(--accent-2-bg);
+  --color-success: var(--success);
+  --color-success-bg: var(--success-bg);
+  --color-warning: var(--warning);
+  --color-warning-bg: var(--warning-bg);
+  --color-error: var(--error);
+  --color-error-bg: var(--error-bg);
+  --color-focus: var(--focus);
+  --color-header-bg: var(--header-bg);
+  --color-on-header: var(--on-header);
+  --color-header-muted: var(--header-muted);
+  --color-hero-bg: var(--hero-bg);
+  --color-on-hero: var(--on-hero);
+  --color-on-hero-muted: var(--on-hero-muted);
+  --color-nav-bg: var(--nav-bg);
+  --color-nav-icon: var(--nav-icon);
+  --color-nav-active: var(--nav-active);
+  --color-nav-active-bg: var(--nav-active-bg);
+  --color-logo-plate: var(--logo-plate);
+  --color-btn-main-bg: var(--btn-main-bg);
+  --color-btn-main-fg: var(--btn-main-fg);
+  --color-avatar-bg: var(--avatar-bg);
+  --color-avatar-fg: var(--avatar-fg);
+
+  --radius-surface: var(--radius-card);
+  --radius-control: var(--radius-ctl);
+  --radius-pill: var(--radius-btn);
+  --radius-nav-bar: var(--radius-nav);
+
+  --shadow-card: var(--card-shadow);
+  --shadow-nav: var(--nav-shadow);
+
+  --font-sans: 'Nunito Variable', 'Nunito', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}

@@ -72,7 +72,21 @@ export interface LessonItem {
   kind: string
   room: string
   teacher: string
-  change: { kind: string; note: string } | null
+  change: LessonChange | null
+}
+
+/**
+ * Изменение пары. Поля `new*` заполнены только у переноса (`moved`), и только те, что меняются;
+ * у отмены, смены аудитории и смены преподавателя они пусты. Смена аудитории кладёт новое место в `newRoom`.
+ * Время — «ЧЧ:ММ», дата — «ГГГГ-ММ-ДД».
+ */
+export interface LessonChange {
+  kind: string
+  note: string
+  newDate: string | null
+  newStartsAt: string | null
+  newEndsAt: string | null
+  newRoom: string | null
 }
 
 /** Пары группы студента за промежуток дат (включительно). Группа — из сессии, не из запроса. */
@@ -91,6 +105,10 @@ export async function listMyLessons(actor: Actor, from: string, to: string): Pro
       teacher: lessons.teacher,
       changeKind: lessonChanges.kind,
       changeNote: lessonChanges.note,
+      changeNewDate: lessonChanges.newDate,
+      changeNewStartsAt: lessonChanges.newStartsAt,
+      changeNewEndsAt: lessonChanges.newEndsAt,
+      changeNewRoom: lessonChanges.newRoom,
     })
     .from(lessons)
     .leftJoin(lessonChanges, eq(lessonChanges.lessonId, lessons.id))
@@ -105,7 +123,17 @@ export async function listMyLessons(actor: Actor, from: string, to: string): Pro
     kind: r.kind,
     room: r.room,
     teacher: r.teacher,
-    change: r.changeKind && r.changeNote ? { kind: r.changeKind, note: r.changeNote } : null,
+    change:
+      r.changeKind && r.changeNote
+        ? {
+            kind: r.changeKind,
+            note: r.changeNote,
+            newDate: r.changeNewDate ?? null,
+            newStartsAt: r.changeNewStartsAt?.slice(0, 5) ?? null,
+            newEndsAt: r.changeNewEndsAt?.slice(0, 5) ?? null,
+            newRoom: r.changeNewRoom ?? null,
+          }
+        : null,
   }))
 }
 
