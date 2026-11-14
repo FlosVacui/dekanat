@@ -260,7 +260,7 @@ items:
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-14, end: 2026-11-16}
-    fact: {2026-11-14: "В работе"}
+    fact: {2026-11-14: "Выполнено"}
   - id: "3.4"
     title: "Заявки и справки: подача и статус"
     person: "А"
@@ -949,6 +949,13 @@ history:
     who: "builder, Sonnet 5.5 / high"
     commit: "592358f"
     tokens: 78965
+  - date: 2026-11-14
+    item: "3.3"
+    what: "Смена 23: этап Б — сводка, виды «Семестр» и «Сессия», экран дисциплины, сквозные тесты, снимки; ревью RV-3.3-1 — принять с замечаниями; PR №24 слит squash; замечания R-3.3-1…7 отложены, IMP-033"
+    who: "builder и reviewer — Sonnet 5.5 / high; оркестратор — Claude Fable 5.2"
+    commit: "ad2f6fa"
+    rounds: 1
+    tokens: 410087
 
 reviews:
   - id: "R-0.3-1"
