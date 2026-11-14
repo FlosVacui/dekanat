@@ -15,6 +15,17 @@ export function changeKindLabel(kind: string): string {
   return CHANGE_KINDS[kind] ?? kind
 }
 
+/** Короткая подпись плашки изменения пары на экране «Расписание»: одно-два слова. */
+const CHANGE_BADGES: Record<string, string> = {
+  cancelled: 'Отменена',
+  moved: 'Перенесена',
+  room_changed: 'Сменилась аудитория',
+  teacher_changed: 'Сменился преподаватель',
+}
+export function changeBadgeLabel(kind: string): string {
+  return CHANGE_BADGES[kind] ?? kind
+}
+
 export function controlKindLabel(kind: string): string {
   return kind === 'exam' ? 'Экзамен' : kind === 'credit' ? 'Зачёт' : kind
 }
