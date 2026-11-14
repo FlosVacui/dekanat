@@ -27,7 +27,7 @@ export default async function RequestsPage() {
       <PageTitle>Заявки</PageTitle>
       <section aria-label="Заказать" className="mb-4 flex flex-col gap-2">
         {REQUEST_KINDS.map((kind) => (
-          <LinkButton key={kind} href={`/requests/new?type=${kind}`} variant="secondary" className="justify-start">
+          <LinkButton key={kind} href={`/requests/new?type=${kind}`} variant="ghost" className="justify-start">
             {REQUEST_KIND_INFO[kind].title}
           </LinkButton>
         ))}

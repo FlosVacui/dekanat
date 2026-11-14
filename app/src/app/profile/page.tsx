@@ -33,7 +33,7 @@ export default async function ProfilePage() {
         </dl>
       </Card>
       <form action={logoutAction} className="mt-4">
-        <SubmitButton variant="secondary" className="w-full">
+        <SubmitButton variant="ghost" className="w-full">
           Выйти
         </SubmitButton>
       </form>

@@ -8,6 +8,6 @@ export function LinkButton({
   className,
   variant,
   ...props
-}: ComponentProps<typeof Link> & { variant?: 'primary' | 'secondary' }) {
+}: ComponentProps<typeof Link> & { variant?: 'primary' | 'ghost' }) {
   return <Link className={cn(buttonVariants({ variant }), 'text-center', className)} {...props} />
 }

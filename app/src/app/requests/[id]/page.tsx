@@ -131,7 +131,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
 
       <div className="flex flex-col gap-2">
         {rejected ? <LinkButton href={`/requests/new?type=${kind}&from=${request.id}`}>Подать снова</LinkButton> : null}
-        <LinkButton href="/requests" variant="secondary">
+        <LinkButton href="/requests" variant="ghost">
           К списку заявок
         </LinkButton>
       </div>

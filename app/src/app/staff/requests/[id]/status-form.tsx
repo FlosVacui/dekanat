@@ -46,7 +46,7 @@ export function StatusForm({
           <Button
             key={o.status}
             type="button"
-            variant={target === o.status ? 'primary' : 'secondary'}
+            variant={target === o.status ? 'primary' : 'ghost'}
             aria-pressed={target === o.status}
             onClick={() => setPicked(o.status)}
           >

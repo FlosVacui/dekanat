@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { todayIn, weekInfo } from '@/lib/dates'
@@ -6,10 +7,35 @@ import { getConfig } from '@/server/config'
 import { countMyUnreadNotifications, getMyProfile } from '@/server/dal/student'
 import type { Actor } from '@/server/auth/session'
 
-// Каркас экранов студента Э-2…Э-10 (S-2.1, раздел 2): шапка с группой и неделей, колокольчик и аватар вверху,
-// четыре вкладки внизу. Пометка «Концепт…» стоит в подвале страницы — layout.tsx.
+// Каркас экранов студента Э-2…Э-10 (S-2.1, раздел 2): шапка со знаком, группой и неделей, колокольчик и аватар вверху,
+// четыре вкладки внизу. Вид — раздел 6 дизайн-системы (D-2.2-system); знак — раздел 7.
+// Пометка «Концепт…» стоит в подвале страницы — layout.tsx.
 
 export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests'
+
+// Значки вкладок — простые контуры 24×24 (штрих 2, скруглённые концы), по образцу макета V-AC; встроенные, без пакета значков.
+const TAB_ICONS: Record<StudentTab, ReactNode> = {
+  today: (
+    <>
+      <rect x="4" y="5" width="16" height="15" rx="3" />
+      <path d="M8 3v4M16 3v4M4 10h16" />
+      <circle cx="12" cy="15" r="1.6" fill="currentColor" />
+    </>
+  ),
+  schedule: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </>
+  ),
+  grades: <path d="M5 20v-9M12 20V5M19 20v-6" />,
+  requests: (
+    <>
+      <path d="M7 3h7l4 4v14H7z" />
+      <path d="M14 3v4h4M10 12h5M10 16h5" />
+    </>
+  ),
+}
 
 const TABS: { id: StudentTab; label: string; href: string }[] = [
   { id: 'today', label: 'Сегодня', href: '/' },
@@ -22,6 +48,9 @@ function initials(fullName: string): string {
   const parts = fullName.trim().split(/\s+/)
   return ((parts[0]?.[0] ?? '') + (parts[1]?.[0] ?? '')).toUpperCase()
 }
+
+// Рамка фокуса в шапке: 3 px, цвет --on-header (раздел 5, общие правила).
+const HEADER_FOCUS = 'focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-on-header'
 
 export async function StudentShell({
   actor,
@@ -37,70 +66,81 @@ export async function StudentShell({
   const week = weekInfo(todayIn(getConfig().timezone))
   return (
     <div className="mx-auto w-full max-w-3xl">
-      <header className="flex items-center justify-between gap-2 border-b border-neutral-300 bg-white px-4 py-2">
-        <div className="min-w-0">
-          <div className="text-base font-semibold">Деканат в кармане</div>
-          <div className="text-xs text-neutral-700">
+      <header className="flex items-center gap-1 bg-header-bg px-[var(--pad-x)] pb-[var(--sp-3)] pt-[var(--sp-4)] text-on-header">
+        {/* Знак 40×40 внутри круга 44×44. Подложка круга — переменная системы: прозрачная в светлой теме. */}
+        <div className="grid size-11 flex-none place-items-center rounded-full bg-logo-plate">
+          <Image src="/owl-128.png" alt="" width={40} height={40} unoptimized />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[length:var(--fs-md)] font-bold leading-[1.2]">Деканат в кармане</div>
+          <div className="text-[length:var(--fs-xs)] leading-[1.3] text-header-muted">
             {profile?.groupName ?? ''}
             {week ? ` · ${week.number}-я неделя, ${week.kind}` : ''}
           </div>
         </div>
-        <div className="flex items-center gap-1">
-          <Link
-            href="/notifications"
-            aria-label={`Уведомления, непрочитанных: ${unread}`}
-            className="relative inline-flex min-h-11 min-w-11 items-center justify-center rounded-full"
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M6 9a6 6 0 0 1 12 0c0 6 2 7 2 8H4c0-1 2-2 2-8Z" />
-              <path d="M10 20a2 2 0 0 0 4 0" />
-            </svg>
-            {unread > 0 ? (
-              <span
-                data-testid="bell-count"
-                className="absolute right-0 top-0 min-w-5 rounded-full bg-red-700 px-1 text-center text-xs font-medium leading-5 text-white"
-              >
-                {unread}
-              </span>
-            ) : null}
-          </Link>
-          <Link
-            href="/profile"
-            aria-label="Профиль"
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-full bg-blue-700 text-sm font-semibold text-white"
-          >
+        <Link
+          href="/notifications"
+          aria-label={`Уведомления, непрочитанных: ${unread}`}
+          className={cn('relative grid size-11 flex-none place-items-center rounded-full text-on-header', HEADER_FOCUS)}
+        >
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z" />
+            <path d="M10 21.5h4" />
+          </svg>
+          {unread > 0 ? (
+            <span
+              data-testid="bell-count"
+              className="absolute right-px top-[3px] h-5 min-w-5 rounded-full bg-accent px-[5px] text-center text-[length:var(--fs-xs)] font-extrabold leading-5 text-on-accent"
+            >
+              {unread}
+            </span>
+          ) : null}
+        </Link>
+        <Link
+          href="/profile"
+          aria-label="Профиль"
+          className={cn('grid size-11 flex-none place-items-center rounded-full', HEADER_FOCUS)}
+        >
+          <span className="grid size-9 place-items-center rounded-full bg-avatar-bg text-[length:var(--fs-sm)] font-extrabold text-avatar-fg">
             {initials(profile?.fullName ?? '')}
-          </Link>
-        </div>
+          </span>
+        </Link>
       </header>
-      <main className="p-4">{children}</main>
+      <main className="px-[var(--pad-x)] py-[var(--sp-4)]">{children}</main>
       <nav
         data-tabbar
         aria-label="Разделы"
-        className="fixed inset-x-0 bottom-0 z-10 border-t border-neutral-300 bg-white"
+        className="fixed inset-x-0 bottom-0 z-10 rounded-t-nav-bar border-t border-border bg-nav-bg shadow-nav"
       >
-        <ul className="mx-auto flex max-w-3xl">
-          {TABS.map((tab) => (
-            <li key={tab.id} className="flex-1">
-              <Link
-                href={tab.href}
-                aria-current={tab.id === active ? 'page' : undefined}
-                data-tab={tab.id}
-                className={cn(
-                  'flex min-h-16 flex-col items-center justify-center px-1 text-xs',
-                  tab.id === active ? 'font-semibold text-blue-800' : 'text-neutral-800',
-                )}
-              >
-                <span
-                  className={cn('mb-1 h-1 w-8 rounded-full', tab.id === active ? 'bg-blue-700' : 'bg-transparent')}
-                  aria-hidden="true"
-                />
-                <span data-tab-label className="block w-full overflow-hidden whitespace-nowrap text-center">
-                  {tab.label}
-                </span>
-              </Link>
-            </li>
-          ))}
+        <ul className="mx-auto grid max-w-3xl grid-cols-4">
+          {TABS.map((tab) => {
+            const isActive = tab.id === active
+            return (
+              <li key={tab.id}>
+                <Link
+                  href={tab.href}
+                  aria-current={isActive ? 'page' : undefined}
+                  data-tab={tab.id}
+                  className={cn(
+                    'flex min-h-[var(--nav-h)] flex-col items-center justify-center gap-0.5 px-0 py-1.5 text-[length:var(--fs-xs)] leading-[1.2] focus-visible:outline-[3px] focus-visible:-outline-offset-4 focus-visible:outline-nav-active',
+                    isActive ? 'font-bold text-nav-active' : 'font-semibold text-nav-icon',
+                  )}
+                >
+                  <span
+                    className={cn('grid h-8 w-[60px] place-items-center rounded-[16px]', isActive ? 'bg-nav-active-bg' : 'bg-transparent')}
+                    aria-hidden="true"
+                  >
+                    <svg focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      {TAB_ICONS[tab.id]}
+                    </svg>
+                  </span>
+                  <span data-tab-label className="block w-full overflow-hidden whitespace-nowrap px-0.5 text-center">
+                    {tab.label}
+                  </span>
+                </Link>
+              </li>
+            )
+          })}
         </ul>
       </nav>
     </div>
