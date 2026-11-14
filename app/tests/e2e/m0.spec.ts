@@ -158,8 +158,12 @@ test('сквозной сценарий М0: вход, расписание, о�
     await expect(page.getByRole('heading', { name: /Расписание на сегодня/ })).toBeVisible()
     if (lesson1) {
       await expect(page.getByText(lesson1.discipline).first()).toBeVisible()
-      await expect(page.getByText(`Аудитория: ${lesson1.room}`).first()).toBeVisible()
-      await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
+      // Пакет 3.2: при смене аудитории экран показывает новую, а прежнюю — строкой «Было»; при замене преподавателя прежний стоит в «Было».
+      const room1 = lesson1.change?.kind === 'room_changed' && lesson1.change.newRoom ? lesson1.change.newRoom : lesson1.room
+      await expect(page.getByText(`Аудитория: ${room1}`).first()).toBeVisible()
+      if (room1 !== lesson1.room) await expect(page.getByText(`ауд. ${lesson1.room}`).first()).toBeVisible()
+      if (lesson1.change?.kind === 'teacher_changed') await expect(page.getByText(lesson1.teacher).first()).toBeVisible()
+      else await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
     } else {
       // Воскресенье и суббота нижней недели — без пар (черновик данных, раздел 3).
       await expect(page.getByText('Сегодня пар нет')).toBeVisible()

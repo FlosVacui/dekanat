@@ -1,6 +1,7 @@
 // Снимки экранов на 360 и на 1280 пикселей. Запуск: npm run screenshots.
 // Пакет 2.4: каждый экран М0. Пакет 3.1: экран входа с отказами «неверная пара» и «подождите» (login-invalid, login-wait).
-// Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.1/; прежние папки (например, 2026-11-11-2.4) не трогаются.
+// Пакет 3.2: расписание — день с переносом, день с отменой, неделя, пустой день (schedule-day-moved, -cancelled, schedule-week, -empty).
+// Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.2/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-11-2.4) не трогаются.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
 // Данные — вымышленный основной набор (ТР-5, ТР-11). Адрес посетителя шлётся заголовком, как это делает прокси.
 import { chromium, type Browser, type BrowserContext, type Page } from '@playwright/test'
@@ -12,11 +13,12 @@ import { todayIn } from '../../src/lib/dates'
 import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import { holdPair } from './helpers/db'
+import { dayPath, planSchedule } from './helpers/schedule-plan'
 import { BASE_URL, startServer, stopServer } from './helpers/server'
 
 const REPO_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
 const date = process.env.SCREENSHOT_DATE ?? todayIn('Europe/Moscow')
-const outDir = process.env.SCREENSHOT_DIR ?? join(REPO_ROOT, 'docs', 'evidence', 'screenshots', `${date}-3.1`)
+const outDir = process.env.SCREENSHOT_DIR ?? join(REPO_ROOT, 'docs', 'evidence', 'screenshots', `${date}-3.2`)
 
 const [student1] = MAIN_COHORT.students
 if (!student1) throw new Error('В основном наборе нет студента')
@@ -35,7 +37,14 @@ async function newContext(browser: Browser, width: Width, ip?: string): Promise<
   )
 }
 
+const schedulePlan = planSchedule(todayIn('Europe/Moscow'))
+
 let failed = 0
+
+function failMissing(name: string, why: string): void {
+  failed += 1
+  console.error(`FAIL ${name}: ${why}`)
+}
 
 /**
  * Снимок всей страницы. Окно на время снимка растягивается до высоты страницы: так нижняя панель вкладок остаётся
@@ -138,6 +147,14 @@ async function main(): Promise<void> {
       const firstRequest = await page.locator('a[href^="/requests/"]:not([href^="/requests/new"])').first().getAttribute('href')
       await shoot(page, width, 'today', `${BASE_URL}/`)
       await shoot(page, width, 'schedule-day', `${BASE_URL}/schedule`)
+      // Пакет 3.2: дни ищутся по данным плана набора, а не по номеру дня недели (helpers/schedule-plan.ts).
+      if (schedulePlan.movedSameDay) await shoot(page, width, 'schedule-day-moved', `${BASE_URL}${dayPath(schedulePlan.movedSameDay.date)}`)
+      else failMissing('schedule-day-moved', 'в окне нет переноса внутри дня')
+      if (schedulePlan.cancelled) await shoot(page, width, 'schedule-day-cancelled', `${BASE_URL}${dayPath(schedulePlan.cancelled.date)}`)
+      else failMissing('schedule-day-cancelled', 'в окне нет отменённой пары')
+      await shoot(page, width, 'schedule-week', `${BASE_URL}/schedule?view=week`)
+      if (schedulePlan.emptyDate) await shoot(page, width, 'schedule-day-empty', `${BASE_URL}${dayPath(schedulePlan.emptyDate)}`)
+      else failMissing('schedule-day-empty', 'в окне нет пустого дня')
       await shoot(page, width, 'grades-semester', `${BASE_URL}/grades`)
       await shoot(page, width, 'grades-session', `${BASE_URL}/grades?view=session`)
       await shoot(page, width, 'requests', `${BASE_URL}/requests`)
