@@ -2,6 +2,9 @@
 // Проверки — R-1.5, раздел 4; таблица «когда» — ADR-0005. Доказательство — чужая метка в ответе, а не код ответа.
 // Студент А и Б, сотрудник — основной набор (app/db/seed-data.ts). Тест сам поднимает и гасит сервер на порту 3100.
 import { expect, test } from '@playwright/test'
+import { MAIN_COHORT } from '../../db/seed-data'
+import { buildCohortPlan } from '../../db/seed-plan'
+import { todayIn } from '../../src/lib/dates'
 import { BASE_URL, startServer, stopServer, type RunningServer } from '../e2e/helpers/server'
 import {
   A,
@@ -45,6 +48,14 @@ const STUDENT_PAGES = ['/', '/profile', '/schedule', '/grades', '/notifications'
 const STAFF_PAGES = ['/staff/requests']
 const NOT_SAVED = 'Статус сохранён'
 
+// Страница /schedule показывает только сегодняшний день, а пары набора с пакета 3.8 зависят от дня недели и от верхней или нижней
+// недели. Метка A.markers.schedule есть не в каждом дне, поэтому «своё на странице» — преподаватель первой сегодняшней пары
+// студента А по плану набора (тем же кодом заполнена база), а в день без пар — строка пустого дня.
+// Сама метка остаётся в markersOf(A): на страницах Б её по-прежнему ищут как чужую. Правка оркестратора по слову пользователя 14.11.2026.
+const TODAY = todayIn('Europe/Moscow')
+const firstLessonA = buildCohortPlan(MAIN_COHORT, TODAY).lessons.find((l) => l.groupName === A.groupName && l.date === TODAY)
+const OWN_SCHEDULE_TEXT = firstLessonA ? firstLessonA.teacher : 'Сегодня пар нет'
+
 function expectNoMarkers(text: string, markers: string[], where: string): void {
   for (const m of markers) expect(text.includes(m), `${where}: найдена чужая метка «${m}»`).toBe(false)
 }
@@ -69,7 +80,7 @@ test.afterAll(async () => {
 test('контроль: стенд жив, вход под А работает, свои метки А видны', async () => {
   const pages: Record<string, string> = {
     '/profile': A.markers.profile,
-    '/schedule': A.markers.schedule,
+    '/schedule': OWN_SCHEDULE_TEXT,
     '/grades': A.markers.grades,
     '/notifications': A.markers.notifications,
   }
@@ -128,8 +139,8 @@ test.describe('П-01: чужая запись по номеру в адресе'
   test('страницы А с подставленными параметрами Б не отдают данных Б (R-2.3-14: группа из профиля)', async () => {
     const tampered = [
       '/profile?studentId=x&userId=x',
-      '/schedule?group=П-22-1&groupId=x&studentId=x',
-      '/grades?view=all&studentId=x&group=П-22-1',
+      `/schedule?group=${B.groupName}&groupId=x&studentId=x`,
+      `/grades?view=all&studentId=x&group=${B.groupName}`,
       '/notifications?studentId=x',
       `/requests?studentId=x&limit=1000&page=2`,
     ]
@@ -138,8 +149,8 @@ test.describe('П-01: чужая запись по номеру в адресе'
       expect(res.status, path).toBe(200)
       expectNoMarkers(res.text, markersOf(B), path)
     }
-    const schedule = await raw(encodeURI('/schedule?group=П-22-1'), { token: a.token })
-    expect(schedule.text).toContain(A.markers.schedule)
+    const schedule = await raw(encodeURI(`/schedule?group=${B.groupName}`), { token: a.token })
+    expect(schedule.text).toContain(OWN_SCHEDULE_TEXT)
   })
 
   test('ни одна страница А не содержит меток Б, и наоборот', async () => {

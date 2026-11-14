@@ -1,5 +1,5 @@
 // Второй набор вымышленных данных — создаётся только в тестах (ADR-0005): студент и сотрудник другого набора.
-// Резервные наборы для жюри — пакет 3.8; их здесь нет.
+// Резервные наборы для жюри — app/db/seed-reserve-lib.ts; их здесь нет.
 import { MAIN_COHORT } from '../../db/seed-data'
 import type { CohortSpec } from '../../db/seed-lib'
 
@@ -11,9 +11,17 @@ export const ALT_COHORT: CohortSpec = {
     {
       name: 'ТЕСТ-Г-9',
       faculty: 'Факультет тестовых данных',
-      dailyLessons: [
-        { start: '08:30', end: '10:00', discipline: 'Теория тестов', kind: 'lecture', room: 'Т-900', teacher: 'Тестов А. А.' },
-      ],
+      // По паре в каждый учебный день обеих недель.
+      week: ([1, 2, 3, 4, 5, 6] as const).map((weekday) => ({
+        weekday,
+        weeks: 'both' as const,
+        pair: 1,
+        discipline: 'Теория тестов',
+        kind: 'lecture' as const,
+        room: 'Т-900',
+        teacher: 'Тестов А. А.',
+      })),
+      changes: [],
       disciplines: [{ name: 'Теория тестов', controlKind: 'exam', semester: 1, exam: { dayOffset: 30, time: '10:00', room: 'Т-900' }, assignments: [] }],
     },
   ],
@@ -27,9 +35,18 @@ export const ALT_COHORT: CohortSpec = {
       course: 1,
       groupName: 'ТЕСТ-Г-9',
       grades: [{ discipline: 'Теория тестов', points: 50, outcome: 'pending' }],
-      requests: [{ key: 'seed-1', kind: 'dean_certificate', status: 'submitted', note: 'Метка второго набора Ω-77', daysAgo: 1 }],
+      requests: [
+        {
+          key: 'seed-1',
+          kind: 'dean_certificate',
+          purpose: 'on_demand',
+          note: 'Метка второго набора Ω-77',
+          steps: [{ status: 'submitted', dayOffset: -1 }],
+        },
+      ],
       notifications: [],
-      markers: { profile: 'Тестовый Тест', schedule: 'Тестов А. А.', grades: 'Теория тестов', requests: 'Ω-77', notifications: '—' },
+      // Метка уведомлений — не тире: тире стоит в текстах основного набора («Сессия — с 28 декабря»), и тест «метки не просачиваются» краснел бы.
+      markers: { profile: 'Тестовый Тест', schedule: 'Тестов А. А.', grades: 'Теория тестов', requests: 'Ω-77', notifications: 'Ω-78' },
     },
   ],
   announcements: [],

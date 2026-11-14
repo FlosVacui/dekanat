@@ -61,7 +61,7 @@ describe('тексты статусов и сроки', () => {
       issuedOn: null,
       rejectReason: null,
     })
-    expect(text).toContain('120а')
+    expect(text).toContain('105, 1 корпус')
     expect(text).toContain('20.11.2026')
     expect(text).toContain('студенческий билет')
   })
@@ -98,7 +98,7 @@ describe('statusText: тексты по таблице задания 3.4', () =
   })
 
   it.each([
-    ['dean_certificate', '120а, 1 корпус'],
+    ['dean_certificate', '105, 1 корпус'],
     ['tuition_certificate', '118, 1 корпус'],
   ] as const)('«Готова», %s: без изменений', (kind, room) => {
     expect(text(kind, 'ready')).toBe(`Получите и заверьте в деканате, кабинет ${room}, до 17.11.2026. Возьмите студенческий билет`)

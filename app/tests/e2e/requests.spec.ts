@@ -266,7 +266,7 @@ test('Э-8 во всех видах: подана, в работе, готова
     await expect(steps.nth(0)).toContainText('Деканат её получил.')
     for (const i of [1, 2, 3]) await expect(steps.nth(i)).toContainText('ДАЛЬШЕ')
     await expect(steps.nth(2)).not.toContainText('ДАЛЬШЕ — ВАМ')
-    await expect(steps.nth(2)).toContainText('Забрать в деканате лично, кабинет 120а, 1 корпус')
+    await expect(steps.nth(2)).toContainText('Забрать в деканате лично, кабинет 105, 1 корпус')
     await expect(page.getByRole('link', { name: 'Подать снова' })).toHaveCount(0)
     await expect(page.getByRole('link', { name: 'К списку заявок' })).toBeVisible()
 
@@ -285,12 +285,12 @@ test('Э-8 во всех видах: подана, в работе, готова
 
     await staffSets(browser, id, 'Готова')
     await state('Готова')
-    await expect(page.getByTestId('request-status-text')).toContainText('кабинет 120а, 1 корпус')
+    await expect(page.getByTestId('request-status-text')).toContainText('кабинет 105, 1 корпус')
     steps = stepsOf(page)
     await expect(steps.nth(2)).toContainText('СЕЙЧАС')
     await expect(steps.nth(2)).toHaveAttribute('aria-current', 'step')
     await expect(steps.nth(2).getByText('Куда', { exact: true })).toBeVisible()
-    await expect(steps.nth(2).getByText('120а, 1 корпус')).toBeVisible()
+    await expect(steps.nth(2).getByText('105, 1 корпус')).toBeVisible()
     await expect(steps.nth(2).getByText('До какого дня')).toBeVisible()
     await expect(page.getByText('До какого дня')).toHaveCount(1)
 

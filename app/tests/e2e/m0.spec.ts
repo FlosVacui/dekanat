@@ -3,6 +3,8 @@
 // Данные — основной набор вымышленных аккаунтов (ТР-11); их пароли публичны по заданию (ТР-9.2).
 import { expect, request as playwrightRequest, test, type Browser, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
+import { buildCohortPlan } from '../../db/seed-plan'
+import { addDays, todayIn } from '../../src/lib/dates'
 import { addressHeaders } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import { BASE_URL, startServer, stopServer, type RunningServer } from './helpers/server'
@@ -10,9 +12,16 @@ import { BASE_URL, startServer, stopServer, type RunningServer } from './helpers
 const [student1, student2] = MAIN_COHORT.students
 const staff = MAIN_COHORT.staff
 if (!student1 || !student2) throw new Error('В основном наборе должно быть два студента')
-const group1 = MAIN_COHORT.groups.find((g) => g.name === student1.groupName)
-const lesson1 = group1?.dailyLessons[0]
-if (!lesson1) throw new Error('У группы первого студента нет пар')
+// Расписание набора на сегодня считается тем же кодом, что заполнил базу (seed-plan.ts): пары зависят от дня недели и от верхней или
+// нижней недели, поэтому тест при любом дне ждёт то, что в наборе, а не одну пару «на всякий день».
+const today = todayIn('Europe/Moscow')
+const tomorrow = addDays(today, 1)
+const plan = buildCohortPlan(MAIN_COHORT, today)
+const group1Lessons = plan.lessons.filter((l) => l.groupName === student1.groupName)
+const todaysLessons = group1Lessons.filter((l) => l.date === today)
+const lesson1 = todaysLessons[0]
+// Экран «Сегодня» показывает изменения на дни Д и Д+1; смена аудитории студента 1 поставлена на ближайшую пару этих дней.
+const roomChange = group1Lessons.find((l) => l.change?.kind === 'room_changed' && (l.date === today || l.date === tomorrow))
 
 let server: RunningServer | null = null
 
@@ -101,7 +110,14 @@ test('сквозной сценарий М0: вход, расписание, о�
     }
     // Изменение расписания названо один раз: подпись вида, затем только новое сведение (R-2.4-1).
     const changes = page.locator('section', { has: page.getByRole('heading', { name: 'Изменения в расписании' }) })
-    await expect(changes).toContainText('Сменилась аудитория: Б-311 → Б-312')
+    if (roomChange?.change) {
+      // При Д-понедельнике это «Сменилась аудитория: 2-210 → 2-108»; при другом Д пара другая, новая аудитория та же.
+      await expect(changes).toContainText(`Сменилась аудитория: ${roomChange.change.note}`)
+    } else {
+      // Единственный день без пар в Д и Д+1 — суббота нижней недели: показать смену аудитории экрану не на чем.
+      expect(group1Lessons.filter((l) => l.date === today || l.date === tomorrow), 'пары есть, а смена аудитории не поставлена').toHaveLength(0)
+      await expect(changes).toContainText('На сегодня и завтра изменений нет')
+    }
     await expect(changes).not.toContainText('Аудитория изменена')
     const labels = ['Сегодня', 'Расписание', 'Успеваемость', 'Заявки']
     const nav = page.getByRole('navigation', { name: 'Разделы' })
@@ -140,9 +156,14 @@ test('сквозной сценарий М0: вход, расписание, о�
     await touch(touches, page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Расписание' }), 'вкладка «Расписание»')
     await expect(page).toHaveURL(`${BASE_URL}/schedule`)
     await expect(page.getByRole('heading', { name: /Расписание на сегодня/ })).toBeVisible()
-    await expect(page.getByText(lesson1.discipline).first()).toBeVisible()
-    await expect(page.getByText(`Аудитория: ${lesson1.room}`).first()).toBeVisible()
-    await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
+    if (lesson1) {
+      await expect(page.getByText(lesson1.discipline).first()).toBeVisible()
+      await expect(page.getByText(`Аудитория: ${lesson1.room}`).first()).toBeVisible()
+      await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
+    } else {
+      // Воскресенье и суббота нижней недели — без пар (черновик данных, раздел 3).
+      await expect(page.getByText('Сегодня пар нет')).toBeVisible()
+    }
     // Расписание принадлежит группе: метки группы второго студента здесь нет.
     await expect(page.locator('body')).not.toContainText(student2.markers.schedule)
     // Переключателя «день / неделя» и других неработающих элементов нет.
