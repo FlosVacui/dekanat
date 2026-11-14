@@ -52,3 +52,71 @@ def test_product_step_is_skipped_without_stand():
     assert "база не отвечает" in reason(True, True, needs_stand=True, has_env=True, db_up=False)
     assert reason(True, True, needs_stand=True, has_env=True, db_up=True) is None
     assert all(r.endswith("пропущено") for r in (reason(False, True), reason(True, False)))
+
+
+# Строки — из настоящих журналов прогонов 14.11.2026: docs/research/R-node-crashes.md.
+WORKER_CRASH = (
+    "Error: [vitest-pool]: Worker forks emitted error.\n"
+    "Caused by: Error: Worker exited unexpectedly with exit code 3221225477 during started state "
+    "while running test file tests/unit/seed-cohort.test.ts\n"
+    " Test Files  21 passed (22)\n      Tests  420 passed (427)\n     Errors  1 error\n"
+)
+REAL_FAILURES = " Test Files  4 failed | 18 passed (22)\n      Tests  20 failed | 407 passed (427)\n"
+CRASH_WITH_FAILURES = (
+    "Caused by: Error: Worker exited unexpectedly with exit code 3221225794 during starting state\n"
+    " Test Files  2 failed (2)\n      Tests  19 failed | 15 passed | 10 skipped (44)\n"
+)
+
+
+def test_crash_reason_tells_a_dead_process_from_a_failed_check():
+    reason = check_all.crash_reason
+    assert "3221225477" in reason(1, WORKER_CRASH)
+    assert "3221225477" in reason(1, "\x1b[31m" + WORKER_CRASH + "\x1b[39m")
+    assert "3221225622" in reason(3221225622, "")
+    assert "0xc0000005" in reason(1, "browser process exited with 0xc0000005").lower()
+    assert reason(0, WORKER_CRASH) is None
+    assert reason(None, "нет npm — пропущено") is None
+    assert reason(1, REAL_FAILURES) is None
+    assert reason(1, CRASH_WITH_FAILURES) is None
+    assert reason(1, "error TS2322: Type 'string' is not assignable to type 'number'.") is None
+    assert reason(1, "Error: read ECONNRESET\n  1 failed\n") is None
+
+
+def run_main(monkeypatch, capsys, answers: dict):
+    """`answers` — имя шага → список ответов по порядку вызовов; остальные шаги зелёные."""
+    calls: dict[str, int] = {}
+
+    def check(name):
+        def call():
+            calls[name] = calls.get(name, 0) + 1
+            queue = answers.get(name, [(0, "")])
+            return queue[min(calls[name], len(queue)) - 1]
+
+        return call
+
+    monkeypatch.setattr(check_all, "CHECKS", {n: check(n) for n in check_all.STEP_NAMES + check_all.PRODUCT_STEP_NAMES})
+    monkeypatch.setattr(sys.stdout, "reconfigure", lambda **_: None, raising=False)
+    code = check_all.main()
+    return code, calls, capsys.readouterr().out
+
+
+def test_crashed_product_step_is_retried_once_and_named(monkeypatch, capsys):
+    code, calls, out = run_main(monkeypatch, capsys, {check_all.APP_UNIT: [(1, WORKER_CRASH), (0, "")]})
+    assert code == 0 and calls[check_all.APP_UNIT] == 2
+    assert "Повтор после падения процесса" in out and check_all.APP_UNIT + ": рабочий процесс" in out
+    assert out.count("  ок ") == len(check_all.STEP_NAMES + check_all.PRODUCT_STEP_NAMES)
+
+
+def test_second_crash_is_an_error_and_there_is_no_third_run(monkeypatch, capsys):
+    code, calls, out = run_main(monkeypatch, capsys, {check_all.APP_UNIT: [(1, WORKER_CRASH)]})
+    assert code == 1 and calls[check_all.APP_UNIT] == 2
+    assert "Не прошло: " + check_all.APP_UNIT in out
+    assert "повтор тоже упал: рабочий процесс тестов вышел с кодом 3221225477" in out
+
+
+def test_failed_check_and_ci_step_are_not_retried(monkeypatch, capsys):
+    code, calls, out = run_main(
+        monkeypatch, capsys, {check_all.APP_UNIT: [(1, REAL_FAILURES)], check_all.TESTS: [(3221225477, "")]}
+    )
+    assert code == 1 and calls[check_all.APP_UNIT] == 1 and calls[check_all.TESTS] == 1
+    assert "Повтор после падения процесса" not in out
