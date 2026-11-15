@@ -282,6 +282,7 @@ items:
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-15, end: 2026-11-17}
+    fact: {2026-11-16: "В работе"}
   - id: "3.7"
     title: "Состояния: пусто, ошибка, загрузка"
     person: "Б"
@@ -3055,6 +3056,54 @@ reviews:
     by: "Sonnet 5.5 / high"
     status: "отложено"
     comment: "Отложено по ответу участника А 15.11.2026, смена 27: строка IMP-035"
+  - id: "R-3.6-1"
+    item: "3.6"
+    round: 1
+    severity: "блокирующее"
+    text: "Тест уведомлений красный с 00:00 до 00:54 МСК при отдельном прогоне файла: в виде «Напоминания» нет записей старше новой"
+    repro: "RV-3.6-1"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.6-2"
+    item: "3.6"
+    round: 1
+    severity: "незначительное"
+    text: "На «Сегодня» вид изменения назван дважды: в плашке и в строке"
+    repro: "RV-3.6-1"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.6-3"
+    item: "3.6"
+    round: 1
+    severity: "незначительное"
+    text: "Вызов scheduleRange в экранах не проверяет ни один тест"
+    repro: "RV-3.6-1"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.6-4"
+    item: "3.6"
+    round: 1
+    severity: "предложение"
+    text: "В plannedCountToday две строки ничего не проверяют"
+    repro: "RV-3.6-1"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.6-5"
+    item: "3.6"
+    round: 1
+    severity: "предложение"
+    text: "snapshotFeedState читает без ORDER BY"
+    repro: "RV-3.6-1"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.6-6"
+    item: "3.6"
+    round: 1
+    severity: "предложение"
+    text: "Запись DECISIONS вошла в коммит кода пакета"
+    repro: "RV-3.6-1"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
 
 decisions:
   - id: "Р-0"
