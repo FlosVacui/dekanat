@@ -2,6 +2,7 @@
 // Пакет 2.4: каждый экран М0. Пакет 3.1: экран входа с отказами «неверная пара» и «подождите» (login-invalid, login-wait).
 // Пакет 3.2: расписание — день с переносом, день с отменой, неделя, пустой день (schedule-day-moved, -cancelled, schedule-week, -empty).
 // Пакет 3.3: успеваемость — «Семестр», «Сессия», дисциплина с долгом, дисциплина впереди (grades-semester, grades-session, grades-discipline-debt, grades-discipline-ahead).
+// Пакет 3.5: уведомления — лента «Все» (notifications), «Новости и объявления» (notifications-news), «Напоминания» (notifications-reminders), после «Отметить все прочитанными» (notifications-all-read).
 // Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
 // Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
@@ -14,7 +15,7 @@ import { MAIN_COHORT } from '../../db/seed-data'
 import { todayIn } from '../../src/lib/dates'
 import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
-import { holdPair } from './helpers/db'
+import { holdPair, resetFeedToSeed } from './helpers/db'
 import { planGrades } from './helpers/grades-plan'
 import { dayPath, planSchedule } from './helpers/schedule-plan'
 import { BASE_URL, startServer, stopServer } from './helpers/server'
@@ -184,6 +185,27 @@ async function main(): Promise<void> {
         console.error('FAIL request-detail: у студента нет заявок')
       }
       await shoot(page, width, 'notifications', `${BASE_URL}/notifications`)
+      // Пакет 3.5: лента с фильтрами и после «Отметить все прочитанными». Прочитанность ставится «как после db:seed» до снимков
+      // и после них, чтобы остальные снимки и следующие прогоны видели число у колокольчика из набора. Лента «Все» — снимок
+      // `notifications` выше. Пустого состояния в основном наборе нет: у обоих студентов в обеих лентах есть записи.
+      if (!only || ['notifications-news', 'notifications-reminders', 'notifications-all-read'].some((name) => only.test(name))) {
+        await resetFeedToSeed(studentLogin)
+        await shoot(page, width, 'notifications-news', `${BASE_URL}/notifications?filter=news`)
+        await shoot(page, width, 'notifications-reminders', `${BASE_URL}/notifications?filter=reminders`)
+        if (!only || only.test('notifications-all-read')) {
+          try {
+            await page.goto(`${BASE_URL}/notifications`)
+            await page.getByRole('button', { name: 'Отметить все прочитанными', exact: true }).click()
+            await page.waitForURL(`${BASE_URL}/notifications`)
+            await page.getByText('Непрочитанных: 0', { exact: true }).waitFor({ state: 'visible' })
+            await shoot(page, width, 'notifications-all-read', `${BASE_URL}/notifications`)
+          } catch (error) {
+            failMissing(`${width}-notifications-all-read`, error instanceof Error ? error.message : String(error))
+          }
+        }
+        await resetFeedToSeed(studentLogin)
+        skipMissing(`${width}-notifications-empty`, 'в основном наборе у студентов нет пустой ленты и пустого фильтра; данные не меняются, снимок не делается')
+      }
       await shoot(page, width, 'profile', `${BASE_URL}/profile`)
       await studentContext.close()
 

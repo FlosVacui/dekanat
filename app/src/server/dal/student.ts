@@ -420,13 +420,39 @@ export interface NotificationItem {
   read: boolean
 }
 
+/** Факультет студента — из профиля. Нет профиля — null: объявлений для него нет (как в `listMyUnreadAnnouncements`). */
+async function facultyOf(studentId: string): Promise<string | null> {
+  const profile = await getDb().select({ faculty: students.faculty }).from(students).where(eq(students.userId, studentId)).limit(1)
+  return profile[0]?.faculty ?? null
+}
+
+/** Объявления, адресованные группе или факультету студента. */
+function addressedTo(groupId: string, faculty: string) {
+  return sql`(${announcements.groupId} = ${groupId} or ${announcements.faculty} = ${faculty})`
+}
+
+/**
+ * Число непрочитанного: личные уведомления плюс объявления группы или факультета, которых студент не отмечал.
+ * Число у колокольчика и строка «Непрочитанных: N» на экране берутся отсюда: один счёт.
+ */
 export async function countMyUnreadNotifications(actor: Actor): Promise<number> {
-  const { studentId } = requireStudent(actor)
-  const rows = await getDb()
+  const { studentId, groupId } = requireStudent(actor)
+  const db = getDb()
+  const own = await db
     .select({ n: sql<number>`count(*)::int` })
     .from(notifications)
     .where(and(eq(notifications.studentId, studentId), isNull(notifications.readAt)))
-  return rows[0]?.n ?? 0
+  const faculty = await facultyOf(studentId)
+  if (!faculty) return own[0]?.n ?? 0
+  const board = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(announcements)
+    .leftJoin(
+      announcementReads,
+      and(eq(announcementReads.announcementId, announcements.id), eq(announcementReads.studentId, studentId)),
+    )
+    .where(and(isNull(announcementReads.announcementId), addressedTo(groupId, faculty)))
+  return (own[0]?.n ?? 0) + (board[0]?.n ?? 0)
 }
 
 export async function listMyNotifications(actor: Actor): Promise<NotificationItem[]> {
@@ -485,4 +511,136 @@ export async function listMyUnreadAnnouncements(actor: Actor): Promise<Announcem
       ),
     )
     .orderBy(desc(announcements.publishedAt))
+}
+
+// Единая лента: личные уведомления и объявления группы или факультета (пакет 3.5, ЯД-5).
+
+export type FeedSource = 'notification' | 'announcement'
+/** Лента фильтра: `reminder` — «Напоминания»; `news` — «Новости и объявления». */
+export type FeedKind = 'reminder' | 'news'
+
+export interface FeedItem {
+  source: FeedSource
+  id: string
+  feed: FeedKind
+  title: string
+  body: string
+  /** У объявления ссылки нет. */
+  link: string | null
+  at: Date
+  read: boolean
+}
+
+const FEED_LIMIT = 100
+
+/** Личные уведомления и объявления своей группы или факультета одним списком по времени, новые сверху, не больше 100. */
+export async function listMyFeed(actor: Actor): Promise<FeedItem[]> {
+  const { studentId, groupId } = requireStudent(actor)
+  const db = getDb()
+  const own = await db
+    .select({
+      id: notifications.id,
+      kind: notifications.kind,
+      title: notifications.title,
+      body: notifications.body,
+      link: notifications.link,
+      at: notifications.createdAt,
+      readAt: notifications.readAt,
+    })
+    .from(notifications)
+    .where(eq(notifications.studentId, studentId))
+    .orderBy(desc(notifications.createdAt))
+    .limit(FEED_LIMIT)
+  const items: FeedItem[] = own.map((n) => ({
+    source: 'notification',
+    id: n.id,
+    feed: n.kind === 'news' ? 'news' : 'reminder',
+    title: n.title,
+    body: n.body,
+    link: n.link,
+    at: n.at,
+    read: n.readAt !== null,
+  }))
+  const faculty = await facultyOf(studentId)
+  if (faculty) {
+    const board = await db
+      .select({
+        id: announcements.id,
+        title: announcements.title,
+        body: announcements.body,
+        at: announcements.publishedAt,
+        readId: announcementReads.announcementId,
+      })
+      .from(announcements)
+      .leftJoin(
+        announcementReads,
+        and(eq(announcementReads.announcementId, announcements.id), eq(announcementReads.studentId, studentId)),
+      )
+      .where(addressedTo(groupId, faculty))
+      .orderBy(desc(announcements.publishedAt))
+      .limit(FEED_LIMIT)
+    for (const a of board) {
+      items.push({ source: 'announcement', id: a.id, feed: 'news', title: a.title, body: a.body, link: null, at: a.at, read: a.readId !== null })
+    }
+  }
+  items.sort((x, y) => y.at.getTime() - x.at.getTime())
+  return items.slice(0, FEED_LIMIT)
+}
+
+/**
+ * Отметить одну запись ленты прочитанной. Уведомление: `read_at` ставится строке с этим номером и этим студентом.
+ * Объявление: отметка вставляется, только если оно адресовано группе или факультету студента; повтор — не ошибка.
+ * Возвращает ссылку своего уведомления или null. Чужая, несуществующая запись и мусор вместо номера дают один ответ
+ * (null) и ничего не меняют.
+ */
+export async function markMyFeedItemRead(actor: Actor, source: unknown, id: unknown): Promise<string | null> {
+  const { studentId, groupId } = requireStudent(actor)
+  if (!isUuid(id)) return null
+  const db = getDb()
+  if (source === 'notification') {
+    const rows = await db
+      .update(notifications)
+      .set({ readAt: sql`coalesce(${notifications.readAt}, now())` })
+      .where(and(eq(notifications.id, id), eq(notifications.studentId, studentId)))
+      .returning({ link: notifications.link })
+    return rows[0]?.link ?? null
+  }
+  if (source === 'announcement') {
+    const faculty = await facultyOf(studentId)
+    if (!faculty) return null
+    const addressed = await db
+      .select({ id: announcements.id })
+      .from(announcements)
+      .where(and(eq(announcements.id, id), addressedTo(groupId, faculty)))
+      .limit(1)
+    if (addressed[0]) await db.insert(announcementReads).values({ announcementId: id, studentId }).onConflictDoNothing()
+  }
+  return null
+}
+
+/** Отметить всё непрочитанное этого студента — личные уведомления и объявления его группы или факультета — одной транзакцией. */
+export async function markAllMyFeedRead(actor: Actor): Promise<void> {
+  const { studentId, groupId } = requireStudent(actor)
+  const faculty = await facultyOf(studentId)
+  await getDb().transaction(async (tx) => {
+    await tx
+      .update(notifications)
+      .set({ readAt: sql`now()` })
+      .where(and(eq(notifications.studentId, studentId), isNull(notifications.readAt)))
+    if (!faculty) return
+    const unread = await tx
+      .select({ id: announcements.id })
+      .from(announcements)
+      .leftJoin(
+        announcementReads,
+        and(eq(announcementReads.announcementId, announcements.id), eq(announcementReads.studentId, studentId)),
+      )
+      .where(and(isNull(announcementReads.announcementId), addressedTo(groupId, faculty)))
+    if (unread.length > 0) {
+      await tx
+        .insert(announcementReads)
+        .values(unread.map((a) => ({ announcementId: a.id, studentId })))
+        .onConflictDoNothing()
+    }
+  })
 }

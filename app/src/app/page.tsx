@@ -141,7 +141,7 @@ export default async function TodayPage() {
             <ul className="flex flex-col gap-2 text-sm">
               {announcements.map((a) => (
                 <li key={a.id}>
-                  <Link href="/notifications" className="block min-h-11">
+                  <Link href="/notifications?filter=news" className="block min-h-11">
                     <span className="font-medium">{a.title}</span>
                     <br />
                     {a.body}
