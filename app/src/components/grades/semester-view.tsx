@@ -57,7 +57,7 @@ function DisciplineCard({ item }: { item: GradeItem }) {
       <Link
         href={`/grades/${item.disciplineId}`}
         className={cn(
-          'flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border bg-card p-[var(--card-pad)] shadow-card focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus',
+          'flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border bg-card p-[var(--card-pad)] shadow-card focus-visible:-outline-offset-3',
           state.kind === 'debt' ? 'border-2 border-error' : state.kind === 'ahead_no_admission' ? 'border-2 border-warning' : 'border-border',
         )}
       >

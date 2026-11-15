@@ -1,17 +1,13 @@
 import type { ReactNode } from 'react'
+import { GRADE_ICON_PATHS, type GradeIconName } from '@/components/grades/icons'
 
 // Значки экранов заявок, уведомлений и страниц «не найдено» (D-2.2-system, 5.4–5.11): встроенный svg, без пакета значков
 // (политика содержимого запрещает data: и внешние адреса). Значок скрыт от экранного чтеца: смысл несёт слово рядом.
-// Контуры общие с вкладками нижней панели и значками «Успеваемости»; свои — «метка» (pin) и «информация» (info).
-export type RequestIconName = 'inbox' | 'requests' | 'pin' | 'check' | 'x' | 'clock' | 'back' | 'info' | 'alert' | 'chevron' | 'down'
+// Семь общих контуров (check, x, clock, alert, chevron, back, inbox) лежат в `grades/icons.tsx` и берутся оттуда;
+// здесь — только свои: «заявки» (requests), «метка» (pin), «информация» (info) и «вниз» (down).
+export type RequestIconName = GradeIconName | 'requests' | 'pin' | 'info' | 'down'
 
-const PATHS: Record<RequestIconName, ReactNode> = {
-  inbox: (
-    <>
-      <path d="M4 13l2-8h12l2 8v6H4z" />
-      <path d="M4 13h5l1 2h4l1-2h5" />
-    </>
-  ),
+const OWN_PATHS: Record<Exclude<RequestIconName, GradeIconName>, ReactNode> = {
   requests: (
     <>
       <path d="M7 3h7l4 4v14H7z" />
@@ -24,29 +20,17 @@ const PATHS: Record<RequestIconName, ReactNode> = {
       <circle cx="12" cy="11" r="2.2" />
     </>
   ),
-  check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
-  x: <path d="M6 6l12 12M18 6L6 18" />,
-  clock: (
-    <>
-      <circle cx="12" cy="12" r="8" />
-      <path d="M12 8v4l3 2" />
-    </>
-  ),
-  back: <path d="M15 5l-7 7 7 7" />,
   info: (
     <>
       <circle cx="12" cy="12" r="9" />
       <path d="M12 11v5M12 7.8v.1" />
     </>
   ),
-  alert: (
-    <>
-      <path d="M12 4l9 16H3z" />
-      <path d="M12 10v4M12 17.5v.01" />
-    </>
-  ),
-  chevron: <path d="M9 5l7 7-7 7" />,
   down: <path d="M6 9l6 6 6-6" />,
+}
+
+function pathOf(name: RequestIconName): ReactNode {
+  return name in GRADE_ICON_PATHS ? GRADE_ICON_PATHS[name as GradeIconName] : OWN_PATHS[name as keyof typeof OWN_PATHS]
 }
 
 export function RequestIcon({ name, className, strokeWidth = 2.4 }: { name: RequestIconName; className?: string; strokeWidth?: number }) {
@@ -62,7 +46,7 @@ export function RequestIcon({ name, className, strokeWidth = 2.4 }: { name: Requ
       strokeLinejoin="round"
       className={className ?? 'size-3.5 flex-none'}
     >
-      {PATHS[name]}
+      {pathOf(name)}
     </svg>
   )
 }

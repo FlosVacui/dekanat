@@ -21,6 +21,15 @@ export const SCHEDULE_DAYS = 7
  */
 export const SCHEDULE_LOOKBACK_DAYS = 14
 
+/**
+ * Промежуток запроса пар для экранов «Расписание» и «Сегодня»: с `today − SCHEDULE_LOOKBACK_DAYS` по `today + SCHEDULE_DAYS − 1`.
+ * Один источник для обоих экранов: запрос выбирает по дате старого места, поэтому пара, перенесённая с прошедшего дня
+ * на сегодня, попадает в ответ только с запасом назад.
+ */
+export function scheduleRange(today: string): { from: string; to: string } {
+  return { from: addDays(today, -SCHEDULE_LOOKBACK_DAYS), to: addDays(today, SCHEDULE_DAYS - 1) }
+}
+
 /** Виды изменения пары — как в базе. */
 export type ScheduleChangeKind = 'cancelled' | 'moved' | 'room_changed' | 'teacher_changed'
 

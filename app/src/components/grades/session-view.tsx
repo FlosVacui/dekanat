@@ -25,7 +25,7 @@ function Row({ item, past }: { item: GradeItem; past: boolean }) {
     <li>
       <Link
         href={`/grades/${item.disciplineId}`}
-        className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card focus-visible:-outline-offset-3"
       >
         <div className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
           {past ? null : <Chip tone={STATUS_TONE[status.kind]}>{status.word}</Chip>}

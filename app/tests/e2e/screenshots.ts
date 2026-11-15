@@ -3,6 +3,7 @@
 // Пакет 3.2: расписание — день с переносом, день с отменой, неделя, пустой день (schedule-day-moved, -cancelled, schedule-week, -empty).
 // Пакет 3.3: успеваемость — «Семестр», «Сессия», дисциплина с долгом, дисциплина впереди (grades-semester, grades-session, grades-discipline-debt, grades-discipline-ahead).
 // Пакет 3.5: уведомления — лента «Все» (notifications), «Новости и объявления» (notifications-news), «Напоминания» (notifications-reminders), после «Отметить все прочитанными» (notifications-all-read).
+// Пакет 3.6: экран «Сегодня» — `today` на 360 и 1280 px (папку задаёт SCREENSHOT_DIR).
 // Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
 // Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
@@ -159,6 +160,9 @@ async function main(): Promise<void> {
       await loginVia(page, studentLogin, studentPassword)
       await page.goto(`${BASE_URL}/requests`)
       const firstRequest = await page.locator('a[href^="/requests/"]:not([href^="/requests/new"])').first().getAttribute('href')
+      // Пакет 3.6: «Сегодня» на дизайн-системе (снимок `today`). Прочитанность ставится «как после db:seed», чтобы блок «Объявления»
+      // был с плашкой «Новых: N», а не пустым; какой блок пуст в день запуска, зависит от набора и дня, и это видно на снимке.
+      if (!only || only.test('today')) await resetFeedToSeed(studentLogin)
       await shoot(page, width, 'today', `${BASE_URL}/`)
       await shoot(page, width, 'schedule-day', `${BASE_URL}/schedule`)
       // Пакет 3.2: дни ищутся по данным плана набора, а не по номеру дня недели (helpers/schedule-plan.ts).

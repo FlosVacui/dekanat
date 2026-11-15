@@ -62,9 +62,9 @@ export interface FeedState {
 /** Что сейчас прочитано у студентов: отметки личных уведомлений и объявлений. */
 export async function snapshotFeedState(logins: string[]): Promise<FeedState> {
   return withOwner(async (c) => {
-    const n = await c.query('select n.id, n.read_at from notifications n join users u on u.id = n.student_id where u.login = any($1)', [logins])
+    const n = await c.query('select n.id, n.read_at from notifications n join users u on u.id = n.student_id where u.login = any($1) order by n.id', [logins])
     const r = await c.query(
-      'select r.announcement_id, u.login, r.read_at from announcement_reads r join users u on u.id = r.student_id where u.login = any($1)',
+      'select r.announcement_id, u.login, r.read_at from announcement_reads r join users u on u.id = r.student_id where u.login = any($1) order by r.announcement_id, u.login',
       [logins],
     )
     return {
@@ -127,5 +127,118 @@ export async function removeTestRequests(requestIds: string[]): Promise<void> {
   await withOwner(async (c) => {
     await c.query('delete from notifications where link = any($1)', [requestIds.map((id) => `/requests/${id}`)])
     await c.query('delete from requests where id = any($1::uuid[])', [requestIds])
+  })
+}
+
+// Пакет 3.6: данные, которые экран «Сегодня» показывает по часам и по состоянию базы. Тест берёт их из базы, а не из часов теста.
+
+/** Запись ленты студента с точным временем: личное уведомление (`link` — адрес) или объявление (`link` — null). */
+export interface FeedRecord {
+  id: string
+  title: string
+  body: string
+  link: string | null
+  at: Date
+}
+
+/** Личные уведомления студента и объявления его группы и факультета с временем создания: так лента упорядочена (R-3.5-1). */
+export async function feedRecords(login: string): Promise<FeedRecord[]> {
+  return withOwner(async (c) => {
+    const own = await c.query(
+      'select n.id, n.title, n.body, n.link, n.created_at from notifications n join users u on u.id = n.student_id where u.login = $1',
+      [login],
+    )
+    const board = await c.query(
+      `select a.id, a.title, a.body, a.published_at from announcements a
+       join students s on (a.group_id = s.group_id or a.faculty = s.faculty)
+       join users u on u.id = s.user_id where u.login = $1`,
+      [login],
+    )
+    return [
+      ...own.rows.map((r) => ({ id: r.id as string, title: r.title as string, body: r.body as string, link: (r.link as string | null) ?? null, at: r.created_at as Date })),
+      ...board.rows.map((r) => ({ id: r.id as string, title: r.title as string, body: r.body as string, link: null, at: r.published_at as Date })),
+    ]
+  })
+}
+
+export interface DueRecord {
+  id: string
+  title: string
+  discipline: string
+  disciplineId: string
+  dueDate: string
+}
+
+/** Работы дисциплин группы студента со сроком от `from` до `to` включительно, по сроку: то же, что «Что сдать на этой неделе». */
+export async function dueRecords(login: string, from: string, to: string): Promise<DueRecord[]> {
+  return withOwner(async (c) => {
+    const res = await c.query(
+      `select a.id, a.title, d.name as discipline, d.id as discipline_id, to_char(a.due_date, 'YYYY-MM-DD') as due_date
+       from assignments a join disciplines d on d.id = a.discipline_id
+       join students s on s.group_id = d.group_id join users u on u.id = s.user_id
+       where u.login = $1 and a.due_date between $2::date and $3::date order by a.due_date, a.title`,
+      [login, from, to],
+    )
+    return res.rows.map((r) => ({
+      id: r.id as string,
+      title: r.title as string,
+      discipline: r.discipline as string,
+      disciplineId: r.discipline_id as string,
+      dueDate: r.due_date as string,
+    }))
+  })
+}
+
+/**
+ * Работа со сроком `dueDate` у первой по названию дисциплины группы студента: тест «Сегодня» создаёт её, чтобы блок
+ * «Что сдать на этой неделе» не был пуст в любой день запуска (в воскресенье неделя кончается сегодня). Удаляется `removeAssignments`.
+ */
+export async function addAssignment(login: string, title: string, dueDate: string): Promise<DueRecord> {
+  return withOwner(async (c) => {
+    const res = await c.query(
+      `insert into assignments (id, discipline_id, title, due_date, max_points)
+       select gen_random_uuid(), d.id, $2, $3::date, 10 from disciplines d
+       join students s on s.group_id = d.group_id join users u on u.id = s.user_id
+       where u.login = $1 order by d.name limit 1
+       returning id, discipline_id, (select name from disciplines where id = discipline_id) as discipline`,
+      [login, title, dueDate],
+    )
+    const row = res.rows[0]
+    if (!row) throw new Error('addAssignment: у студента нет дисциплин')
+    return { id: row.id as string, title, discipline: row.discipline as string, disciplineId: row.discipline_id as string, dueDate }
+  })
+}
+
+/** Убирает работы, созданные `addAssignment`. */
+export async function removeAssignments(ids: string[]): Promise<void> {
+  if (ids.length === 0) return
+  await withOwner(async (c) => {
+    await c.query('delete from assignments where id = any($1::uuid[])', [ids])
+  })
+}
+
+/** Сколько у студента непрочитанных объявлений (то, что стоит в «Новых: N» на экране «Сегодня»). */
+export async function unreadAnnouncementCount(login: string): Promise<number> {
+  return withOwner(async (c) => {
+    const res = await c.query(
+      `select count(*)::int as n from announcements a
+       join students s on (a.group_id = s.group_id or a.faculty = s.faculty)
+       join users u on u.id = s.user_id
+       where u.login = $1 and not exists (select 1 from announcement_reads r where r.announcement_id = a.id and r.student_id = s.user_id)`,
+      [login],
+    )
+    return res.rows[0].n as number
+  })
+}
+
+/** Заявки студента, о которых «Сегодня» говорит в блоке «Мои заявки»: в работе, готова, отклонена. */
+export async function requestNewsCount(login: string): Promise<number> {
+  return withOwner(async (c) => {
+    const res = await c.query(
+      `select count(*)::int as n from requests r join users u on u.id = r.student_id
+       where u.login = $1 and r.status in ('in_progress', 'ready', 'rejected')`,
+      [login],
+    )
+    return res.rows[0].n as number
   })
 }

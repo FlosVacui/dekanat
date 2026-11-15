@@ -1,3 +1,4 @@
+import { CHIP_CLASS } from '@/components/grades/chip'
 import { STATUS_LABELS, type RequestStatus } from '@/lib/requests'
 import { cn } from '@/lib/utils'
 import { RequestIcon, type RequestIconName } from './icons'
@@ -19,9 +20,6 @@ const STATUS_ICON: Record<RequestStatus, RequestIconName> = {
   issued: 'check',
   rejected: 'x',
 }
-
-const CHIP_CLASS =
-  'inline-flex items-center gap-1 self-start whitespace-nowrap rounded-pill px-2 py-1 align-middle text-[length:var(--fs-xs)] font-bold leading-[1.2]'
 
 /**
  * Плашка статуса заявки.

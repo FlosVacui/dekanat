@@ -13,11 +13,15 @@ const TONE_CLASS: Record<ChipTone, string> = {
 }
 const TONE_ICON: Record<ChipTone, GradeIconName> = { ok: 'check', err: 'x', warn: 'alert', info: 'clock' }
 
+/** Общий класс плашки: его берёт и плашка статуса заявки (`requests/status-chip.tsx`). */
+export const CHIP_CLASS =
+  'inline-flex items-center gap-1 self-start whitespace-nowrap rounded-pill px-2 py-1 align-middle text-[length:var(--fs-xs)] font-bold leading-[1.2]'
+
 export function Chip({ tone, children, className }: { tone: ChipTone; children: string; className?: string }) {
   return (
     <span
       className={cn(
-        'inline-flex items-center gap-1 self-start whitespace-nowrap rounded-pill px-2 py-1 align-middle text-[length:var(--fs-xs)] font-bold leading-[1.2]',
+        CHIP_CLASS,
         TONE_CLASS[tone],
         className,
       )}
