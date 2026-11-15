@@ -1018,6 +1018,19 @@ history:
     commit: "186f688"
     rounds: 2
     tokens: 521082
+  - date: 2026-11-16
+    item: "3.7"
+    what: "Пакет 3.7, заход 1: состояние «ошибка» у каждого раздела, каркас без данных, вид кнопки soft, сверка пустых состояний; «загрузка» не подключена — loading.tsx ломал коды ответа; задание B-3.7-states"
+    who: "builder, Sonnet 5.5 / high"
+    commit: "7b83809"
+    rounds: 1
+    tokens: 254971
+  - date: 2026-11-16
+    item: "3.7"
+    what: "Ревью RV-3.7-1 захода 1: принять с замечаниями — одно существенное, три незначительных, три предложения; все открыты до ответа участника А"
+    who: "reviewer, Sonnet 5.5 / high"
+    commit: "7b83809"
+    rounds: 1
 
 reviews:
   - id: "R-0.3-1"
@@ -3127,6 +3140,62 @@ reviews:
     by: "Sonnet 5.5 / high"
     status: "исправлено"
     comment: "Строка IMP-036 дописана в ISSUES, смена 28"
+  - id: "R-3.7-10"
+    item: "3.7"
+    round: 1
+    severity: "существенное"
+    text: "Состояние «загрузка» не подключено: критерий пакета «у каждого экрана три состояния» не выполнен; файлы loading.tsx меняли коды ответа 307, 403, 404 на 200"
+    repro: "Отчёт RV-3.7-1; журналы исполнителя 3.7-probe-1.log и 3.7-sec-1.log; справка Next.js loading.md"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.7-11"
+    item: "3.7"
+    round: 1
+    severity: "незначительное"
+    text: "У кнопки «Повторить» нет состояния ожидания: раздел 5.6 системы его требует, текста для него в решениях нет"
+    repro: "app/src/components/states/error-card.tsx; прогон ревьюера при длящемся отказе"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.7-12"
+    item: "3.7"
+    round: 1
+    severity: "незначительное"
+    text: "LoadingCard и классы .skel-* в globals.css не подключены, комментарии в коде об этом молчат; абзац 5.7 системы называет красными П-05 и П-06, прогоном показан только П-01"
+    repro: "app/src/components/states/loading-card.tsx, app/src/app/globals.css, docs/design/D-2.2-system.md, раздел 5.7"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.7-13"
+    item: "3.7"
+    round: 1
+    severity: "незначительное"
+    text: "Если процесс тестов погибнет между отзывом права чтения и возвратом, право останется отозванным: db:seed его не возвращает, возвращает db:migrate; самолечения в beforeAll нет"
+    repro: "app/tests/e2e/states.spec.ts, helpers/db.ts; проверка ревьюера"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.7-14"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "Тест «служебного текста нет» смотрит только innerText, а не тело ответа и данные RSC"
+    repro: "app/tests/e2e/states.spec.ts; проба ревьюера: в теле только digest"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.7-15"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "global-error.tsx ничем не проверен; на нём нет подвала «Концепт…»; в сборке лежит _global-error.html со стандартным текстом Next.js"
+    repro: "app/src/app/global-error.tsx; сборка"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.7-16"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "При отказе базы Next.js пишет в журнал сервера текст запроса, параметры и стек: согласовать с ADR-0003 для боевого запуска"
+    repro: "Журнал сервера при пробе ревьюера"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
 
 decisions:
   - id: "Р-0"
