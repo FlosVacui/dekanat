@@ -282,7 +282,7 @@ items:
     owner: "Разработчик (Sonnet 5.5 / high)"
     review: "Ревьюер (Sonnet 5.5 / high)"
     plan: {start: 2026-11-15, end: 2026-11-17}
-    fact: {2026-11-16: "В работе"}
+    fact: {2026-11-16: "Выполнено"}
   - id: "3.7"
     title: "Состояния: пусто, ошибка, загрузка"
     person: "Б"
@@ -1010,6 +1010,13 @@ history:
     what: "Сервер на main dc0151b, таймер освежения проверен счётом строк, монитор PingWin на домене — со слов участника А; пакет — «Выполнено» по его ответу"
     who: "Участник А; оркестратор — Fable 5.2"
     commit: "33d8bff"
+  - date: 2026-11-16
+    item: "3.6"
+    what: "Пакет 3.6: экран «Сегодня» по дизайн-системе, переносы на сегодня, одна функция промежутка, ссылка «что сдать», правки теста уведомлений; ревью RV-3.6-1 и RV-3.6-2"
+    who: "Opus 5.5; builder и reviewer — Sonnet 5.5 / high"
+    commit: "186f688"
+    rounds: 2
+    tokens: 521082
 
 reviews:
   - id: "R-0.3-1"
@@ -2812,7 +2819,7 @@ reviews:
     repro: "Расчёт ревьюера: RV-3.2-2"
     by: "Sonnet 5.5 / high"
     status: "отложено"
-    comment: "IMP-032"
+    comment: "Наполовину сделано в 417d851; остаток — IMP-036"
   - id: "R-3.2-12"
     item: "3.2"
     round: 2
@@ -2820,8 +2827,8 @@ reviews:
     text: "Модульный тест по 14 дням не проверяет допущение С-2 о завтрашнем дне и ветки шага 3 теста М0"
     repro: "RV-3.2-2"
     by: "Sonnet 5.5 / high"
-    status: "отложено"
-    comment: "IMP-032"
+    status: "исправлено"
+    comment: "417d851; ревью RV-3.6-1"
   - id: "R-3.2-13"
     item: "3.2"
     round: 2
@@ -2829,8 +2836,8 @@ reviews:
     text: "В шаге 3 теста М0 заметка не по шаблону тихо уводит в слабую ветку"
     repro: "RV-3.2-2"
     by: "Sonnet 5.5 / high"
-    status: "отложено"
-    comment: "IMP-032"
+    status: "исправлено"
+    comment: "417d851; ревью RV-3.6-1"
   - id: "R-3.3-1"
     item: "3.3"
     round: 1
@@ -2964,8 +2971,8 @@ reviews:
     text: "RV-IMP-020-3-1. Отступ рамки фокуса у карточек-ссылок расходится: на экранах успеваемости +2 px, на заявках, уведомлениях и у сотрудника −3 px по «Общим правилам» раздела 5 дизайн-системы"
     repro: "grep outline-offset: app/src/components/grades/semester-view.tsx:60, session-view.tsx:28; app/src/app/requests/page.tsx:52, notifications/page.tsx:45, staff/requests/page.tsx"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "отложено"
-    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
+    status: "исправлено"
+    comment: "417d851; ревью RV-3.6-1"
   - id: "R-3.7-7"
     item: "3.7"
     round: 1
@@ -2973,8 +2980,8 @@ reviews:
     text: "RV-IMP-020-3-1. Семь значков и класс плашки в app/src/components/requests/ дословно повторяют grades/icons.tsx и grades/chip.tsx"
     repro: "app/src/components/requests/icons.tsx:8–50, status-chip.tsx:23–24 против app/src/components/grades/icons.tsx и chip.tsx"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "отложено"
-    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
+    status: "исправлено"
+    comment: "417d851; ревью RV-3.6-1"
   - id: "R-3.7-8"
     item: "3.7"
     round: 1
@@ -2982,8 +2989,8 @@ reviews:
     text: "RV-IMP-020-3-1. В дизайн-системе остались устаревшие абзацы «Как ложится на …» в разделах 5.1, 5.2, 5.8, 5.9, 5.10, 5.11: описывают разметку до захода 2. Задание разрешало исполнителю менять только абзац «Шапка»"
     repro: "docs/design/D-2.2-system.md:405, 476, 765, 822, 848, 878"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "отложено"
-    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
+    status: "исправлено"
+    comment: "417d851; ревью RV-3.6-1"
   - id: "R-3.7-9"
     item: "3.7"
     round: 1
@@ -3000,8 +3007,8 @@ reviews:
     text: "Сквозная проверка «запись сверху» в notifications.spec.ts ложно красная весь час 00:00–00:58 МСК: уведомления набора стоят на 00:59−N сегодняшней даты и новее созданного now()"
     repro: "Расчёт по app/db/seed-plan.ts:668 и seed-lib.ts:113-119; прогоном в эти часы не проверено"
     by: "Sonnet 5.5 / high"
-    status: "отложено"
-    comment: "Отложено по ответу участника А 15.11.2026, смена 27: строка IMP-035"
+    status: "исправлено"
+    comment: "417d851 и 186f688; ревью RV-3.6-1 и RV-3.6-2"
   - id: "R-3.5-2"
     item: "3.5"
     round: 1
@@ -3009,8 +3016,8 @@ reviews:
     text: "Проверка зоны касания у карточек-ссылок в notifications.spec.ts:363 идёт ноль раз: в состоянии набора все карточки со ссылкой непрочитаны, то есть кнопки"
     repro: "Замер ревьюера на состоянии с прочитанными: высоты 134–176 px, продукт верный, проверка пустая"
     by: "Sonnet 5.5 / high"
-    status: "отложено"
-    comment: "Отложено по ответу участника А 15.11.2026, смена 27: строка IMP-035"
+    status: "исправлено"
+    comment: "417d851 и 186f688; ревью RV-3.6-1 и RV-3.6-2"
   - id: "R-3.5-3"
     item: "3.5"
     round: 1
@@ -3018,8 +3025,8 @@ reviews:
     text: "Тест «предзагрузка ничего не отмечает» предзагрузку не проверяет: открывает пять адресов через page.goto"
     repro: "notifications.spec.ts:323-338; прогон ревьюера: запросы _rsc были, база не менялась"
     by: "Sonnet 5.5 / high"
-    status: "отложено"
-    comment: "Отложено по ответу участника А 15.11.2026, смена 27: строка IMP-035"
+    status: "исправлено"
+    comment: "417d851 и 186f688; ревью RV-3.6-1 и RV-3.6-2"
   - id: "R-3.5-4"
     item: "3.5"
     round: 1
@@ -3063,7 +3070,8 @@ reviews:
     text: "Тест уведомлений красный с 00:00 до 00:54 МСК при отдельном прогоне файла: в виде «Напоминания» нет записей старше новой"
     repro: "RV-3.6-1"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "186f688; ревью RV-3.6-2"
   - id: "R-3.6-2"
     item: "3.6"
     round: 1
@@ -3071,7 +3079,8 @@ reviews:
     text: "На «Сегодня» вид изменения назван дважды: в плашке и в строке"
     repro: "RV-3.6-1"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "186f688; ревью RV-3.6-2"
   - id: "R-3.6-3"
     item: "3.6"
     round: 1
@@ -3079,7 +3088,8 @@ reviews:
     text: "Вызов scheduleRange в экранах не проверяет ни один тест"
     repro: "RV-3.6-1"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "отложено"
+    comment: "Строка IMP-036, ответ пользователя 16.11"
   - id: "R-3.6-4"
     item: "3.6"
     round: 1
@@ -3087,7 +3097,8 @@ reviews:
     text: "В plannedCountToday две строки ничего не проверяют"
     repro: "RV-3.6-1"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "186f688; ревью RV-3.6-2"
   - id: "R-3.6-5"
     item: "3.6"
     round: 1
@@ -3095,7 +3106,8 @@ reviews:
     text: "snapshotFeedState читает без ORDER BY"
     repro: "RV-3.6-1"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "186f688; ревью RV-3.6-2"
   - id: "R-3.6-6"
     item: "3.6"
     round: 1
@@ -3103,7 +3115,17 @@ reviews:
     text: "Запись DECISIONS вошла в коммит кода пакета"
     repro: "RV-3.6-1"
     by: "Sonnet 5.5 / high"
-    status: "открыто"
+    status: "отклонено"
+    comment: "Принято как есть по ответу пользователя 16.11"
+  - id: "R-3.6-7"
+    item: "3.6"
+    round: 2
+    severity: "незначительное"
+    text: "Строки IMP-036 нет в ISSUES, хотя DECISIONS на неё ссылается"
+    repro: "RV-3.6-2"
+    by: "Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Строка IMP-036 дописана в ISSUES, смена 28"
 
 decisions:
   - id: "Р-0"
