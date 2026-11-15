@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { Card, PageTitle } from '@/components/card'
 import { LinkButton } from '@/components/link-button'
+import { RequestIcon } from '@/components/requests/icons'
+import { SelectField } from '@/components/requests/select-field'
 import { StudentShell } from '@/components/student-shell'
 import { SubmitButton } from '@/components/submit-button'
 import {
@@ -29,8 +31,6 @@ const LIMIT_TEXT: Record<string, string> = {
   account: 'Сегодня с этого аккаунта подано слишком много заявок. Попробуйте завтра',
 }
 
-const FIELD_CLASS = 'min-h-11 w-full rounded border border-neutral-400 bg-white px-3 text-base text-neutral-900'
-
 export default async function NewRequestPage({
   searchParams,
 }: {
@@ -58,67 +58,69 @@ export default async function NewRequestPage({
   return (
     <StudentShell actor={actor} active="requests">
       <PageTitle>Новая заявка</PageTitle>
-      {limitText ? (
-        <p role="alert" data-testid="request-limit" className="mb-3 rounded border border-red-700 bg-red-50 p-2 text-sm text-red-900">
-          {limitText}
-        </p>
-      ) : null}
-      <Card>
-        <dl className="flex flex-col gap-3 text-sm">
-          <div>
-            <dt className="text-neutral-700">Вид</dt>
-            <dd className="text-base font-semibold">{info.title}</dd>
-          </div>
-          <div>
-            <dt className="text-neutral-700">Срок изготовления</dt>
-            <dd>{info.productionTime}</dd>
-          </div>
-          <div>
-            <dt className="text-neutral-700">Где и как получить</dt>
-            <dd>{info.pickup}</dd>
-          </div>
-        </dl>
-      </Card>
-      <form action={createRequestAction} className="mt-4 flex flex-col gap-2">
-        <input type="hidden" name="kind" value={type} />
-        {type === 'dean_certificate' && fieldTitle ? (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="request-purpose" className="text-sm font-medium">
-              {fieldTitle}
-            </label>
-            <select id="request-purpose" name="purpose" defaultValue={fields.purpose ?? undefined} className={FIELD_CLASS}>
-              {DEAN_PURPOSES.map((p) => (
-                <option key={p.key} value={p.key}>
-                  {p.label}
-                </option>
-              ))}
-            </select>
+      <div className="flex flex-col gap-[var(--gap)]">
+        {limitText ? (
+          // Отказ по лимиту по 5.6: значок «внимание» в круге --error-bg и текст --fs-md, вес 800, цвет --error. Объявляется сам (role="alert").
+          <div role="alert" data-testid="request-limit" className="flex items-center gap-[var(--sp-3)] rounded-surface border border-error bg-card p-[var(--card-pad)] shadow-card">
+            <span className="grid size-11 flex-none place-items-center rounded-full bg-error-bg text-error">
+              <RequestIcon name="alert" className="size-6" strokeWidth={2} />
+            </span>
+            <p className="min-w-0 text-[length:var(--fs-md)] font-extrabold leading-[1.3] text-error">{limitText}</p>
           </div>
         ) : null}
-        {type === 'tuition_certificate' && fieldTitle ? (
-          <div className="flex flex-col gap-1">
-            <label htmlFor="request-payment-year" className="text-sm font-medium">
-              {fieldTitle}
-            </label>
-            <select
-              id="request-payment-year"
-              name="paymentYear"
-              defaultValue={fields.paymentYear === null ? undefined : String(fields.paymentYear)}
-              className={FIELD_CLASS}
-            >
-              {paymentYears(year).map((y) => (
-                <option key={y} value={String(y)}>
-                  {y}
-                </option>
-              ))}
-            </select>
+        <Card>
+          <dl className="flex flex-col gap-[var(--sp-3)]">
+            <div>
+              <dt className="text-[length:var(--fs-sm)] text-muted">Вид</dt>
+              <dd className="text-[length:var(--fs-md)] font-bold">{info.title}</dd>
+            </div>
+            <div>
+              <dt className="text-[length:var(--fs-sm)] text-muted">Срок изготовления</dt>
+              <dd className="text-[length:var(--fs-md)]">{info.productionTime}</dd>
+            </div>
+            <div>
+              <dt className="text-[length:var(--fs-sm)] text-muted">Где и как получить</dt>
+              <dd className="text-[length:var(--fs-md)]">{info.pickup}</dd>
+            </div>
+          </dl>
+        </Card>
+        <form action={createRequestAction} className="flex flex-col gap-[var(--gap)]">
+          <input type="hidden" name="kind" value={type} />
+          {type === 'dean_certificate' && fieldTitle ? (
+            <Card>
+              <SelectField id="request-purpose" name="purpose" label={fieldTitle} defaultValue={fields.purpose ?? undefined}>
+                {DEAN_PURPOSES.map((p) => (
+                  <option key={p.key} value={p.key}>
+                    {p.label}
+                  </option>
+                ))}
+              </SelectField>
+            </Card>
+          ) : null}
+          {type === 'tuition_certificate' && fieldTitle ? (
+            <Card>
+              <SelectField
+                id="request-payment-year"
+                name="paymentYear"
+                label={fieldTitle}
+                defaultValue={fields.paymentYear === null ? undefined : String(fields.paymentYear)}
+              >
+                {paymentYears(year).map((y) => (
+                  <option key={y} value={String(y)}>
+                    {y}
+                  </option>
+                ))}
+              </SelectField>
+            </Card>
+          ) : null}
+          <div className="flex flex-col gap-[var(--sp-2)]">
+            <SubmitButton>Отправить</SubmitButton>
+            <LinkButton href="/requests" variant="ghost">
+              Назад к заявкам
+            </LinkButton>
           </div>
-        ) : null}
-        <SubmitButton>Отправить</SubmitButton>
-        <LinkButton href="/requests" variant="ghost">
-          Назад к заявкам
-        </LinkButton>
-      </form>
+        </form>
+      </div>
     </StudentShell>
   )
 }

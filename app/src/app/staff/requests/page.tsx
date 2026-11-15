@@ -1,5 +1,8 @@
 import Link from 'next/link'
-import { Card, PageTitle } from '@/components/card'
+import { PageTitle } from '@/components/card'
+import { EmptyState } from '@/components/grades/empty-state'
+import { RequestIcon } from '@/components/requests/icons'
+import { RequestStatusChip } from '@/components/requests/status-chip'
 import { StaffShell } from '@/components/staff-shell'
 import { formatDate, todayIn } from '@/lib/dates'
 import { REQUEST_KIND_INFO, STATUS_LABELS, isRequestKind, isRequestStatus } from '@/lib/requests'
@@ -18,21 +21,28 @@ export default async function StaffRequestsPage() {
     <StaffShell>
       <PageTitle>Заявки студентов</PageTitle>
       {items.length === 0 ? (
-        <Card>
-          <p className="text-sm">Заявок пока нет</p>
-        </Card>
+        <EmptyState title="Заявок пока нет" text="Когда студенты подадут заявки, они появятся здесь" />
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex flex-col gap-[var(--gap)]">
           {items.map((r) => (
             <li key={r.id}>
-              <Link href={`/staff/requests/${r.id}`} className="block rounded-lg border border-neutral-300 bg-white p-4">
-                <span className="block text-base font-semibold">{r.studentName}</span>
-                <span className="block text-sm text-neutral-700">Группа {r.groupName}</span>
-                <span className="block text-sm">{isRequestKind(r.kind) ? REQUEST_KIND_INFO[r.kind].title : 'Заявка'}</span>
-                <span className="block text-sm text-neutral-700">Подана {formatDate(todayIn(tz, r.createdAt))}</span>
-                <span className="mt-1 block text-sm font-medium">
-                  Статус: {isRequestStatus(r.status) ? STATUS_LABELS[r.status] : r.status}
+              {/* Карточка-ссылка: рамка фокуса внутри карточки, отступ −3 px. Текст «Статус: Подана» — одним узлом: по нему скрипт снимков находит заявку. */}
+              <Link
+                href={`/staff/requests/${r.id}`}
+                className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card active:bg-primary-soft focus-visible:-outline-offset-3"
+              >
+                <span className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
+                  <span className="text-[length:var(--fs-md)] font-bold leading-[1.3]">{r.studentName}</span>
+                  <span className="text-[length:var(--fs-sm)] text-muted">Группа {r.groupName}</span>
+                  <span className="text-[length:var(--fs-sm)]">{isRequestKind(r.kind) ? REQUEST_KIND_INFO[r.kind].title : 'Заявка'}</span>
+                  <span className="text-[length:var(--fs-sm)] text-muted">Подана {formatDate(todayIn(tz, r.createdAt))}</span>
+                  {isRequestStatus(r.status) ? (
+                    <RequestStatusChip status={r.status} label={`Статус: ${STATUS_LABELS[r.status]}`} />
+                  ) : (
+                    <span className="text-[length:var(--fs-sm)] font-bold">Статус: {r.status}</span>
+                  )}
                 </span>
+                <RequestIcon name="chevron" className="mt-1 size-4 flex-none text-primary" />
               </Link>
             </li>
           ))}

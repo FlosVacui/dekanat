@@ -1,6 +1,7 @@
-import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { Card, CardTitle, PageTitle } from '@/components/card'
+import { BackLink } from '@/components/requests/back-link'
+import { RequestStatusChip } from '@/components/requests/status-chip'
 import { StaffShell } from '@/components/staff-shell'
 import { formatDate, todayIn } from '@/lib/dates'
 import {
@@ -34,54 +35,54 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
   const reasons = REJECT_REASONS.map((reason) => ({ status: reason, label: REJECT_REASON_LABELS[reason] }))
   return (
     <StaffShell>
-      <Link href="/staff/requests" className="mb-2 inline-flex min-h-11 items-center text-sm text-blue-800 underline">
-        К списку заявок
-      </Link>
-      <PageTitle>{REQUEST_KIND_INFO[request.kind].title}</PageTitle>
-      <Card className="mb-3">
-        <dl className="flex flex-col gap-2 text-sm">
-          <div>
-            <dt className="text-neutral-700">Студент</dt>
-            <dd className="text-base font-medium">{request.studentName}</dd>
-          </div>
-          {fieldView ? (
+      <div className="flex flex-col gap-[var(--gap)]">
+        <BackLink href="/staff/requests">К списку заявок</BackLink>
+        <PageTitle>{REQUEST_KIND_INFO[request.kind].title}</PageTitle>
+        <Card>
+          <dl className="flex flex-col gap-[var(--sp-3)]">
             <div>
-              <dt className="text-neutral-700">{fieldView.title}</dt>
-              <dd className="break-words">{fieldView.value}</dd>
+              <dt className="text-[length:var(--fs-sm)] text-muted">Студент</dt>
+              <dd className="text-[length:var(--fs-md)] font-bold">{request.studentName}</dd>
             </div>
-          ) : null}
-          <div>
-            <dt className="text-neutral-700">Группа</dt>
-            <dd>{request.groupName}</dd>
-          </div>
-          <div>
-            <dt className="text-neutral-700">Подана</dt>
-            <dd>{formatDate(todayIn(tz, request.createdAt))}</dd>
-          </div>
-          <div>
-            <dt className="text-neutral-700">Статус</dt>
-            <dd data-testid="staff-request-status" className="text-base font-semibold">
-              {STATUS_LABELS[request.status]}
-            </dd>
-          </div>
-        </dl>
-      </Card>
+            {fieldView ? (
+              <div>
+                <dt className="text-[length:var(--fs-sm)] text-muted">{fieldView.title}</dt>
+                <dd className="break-words text-[length:var(--fs-md)]">{fieldView.value}</dd>
+              </div>
+            ) : null}
+            <div>
+              <dt className="text-[length:var(--fs-sm)] text-muted">Группа</dt>
+              <dd className="text-[length:var(--fs-md)]">{request.groupName}</dd>
+            </div>
+            <div>
+              <dt className="text-[length:var(--fs-sm)] text-muted">Подана</dt>
+              <dd className="text-[length:var(--fs-md)]">{formatDate(todayIn(tz, request.createdAt))}</dd>
+            </div>
+            <div className="flex flex-col items-start gap-1">
+              <dt className="text-[length:var(--fs-sm)] text-muted">Статус</dt>
+              <dd>
+                <RequestStatusChip status={request.status} statusTestId="staff-request-status" />
+              </dd>
+            </div>
+          </dl>
+        </Card>
 
-      <Card className="mb-3">
-        <CardTitle>История статусов</CardTitle>
-        <ol className="flex flex-col gap-1 text-sm">
-          {request.events.map((e, index) => (
-            <li key={`${e.status}-${index}`}>
-              {formatDate(todayIn(tz, e.createdAt))} — {isRequestStatus(e.status) ? STATUS_LABELS[e.status] : e.status}
-            </li>
-          ))}
-        </ol>
-      </Card>
+        <Card>
+          <CardTitle>История статусов</CardTitle>
+          <ol className="flex flex-col gap-[var(--sp-1)] text-[length:var(--fs-sm)]">
+            {request.events.map((e, index) => (
+              <li key={`${e.status}-${index}`}>
+                {formatDate(todayIn(tz, e.createdAt))} — {isRequestStatus(e.status) ? STATUS_LABELS[e.status] : e.status}
+              </li>
+            ))}
+          </ol>
+        </Card>
 
-      <Card>
-        <CardTitle>Сменить статус</CardTitle>
-        <StatusForm requestId={request.id} options={options} reasons={reasons} />
-      </Card>
+        <Card>
+          <CardTitle>Сменить статус</CardTitle>
+          <StatusForm requestId={request.id} options={options} reasons={reasons} />
+        </Card>
+      </div>
     </StaffShell>
   )
 }
