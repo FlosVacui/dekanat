@@ -7,7 +7,7 @@ import { describe, expect, it } from 'vitest'
 import { MAIN_COHORT } from '../../db/seed-data'
 import { buildCohortPlan } from '../../db/seed-plan'
 import { addDays, todayIn } from '../../src/lib/dates'
-import { buildSchedule, SCHEDULE_DAYS, SCHEDULE_LOOKBACK_DAYS, type ScheduleLesson } from '../../src/lib/schedule'
+import { buildSchedule, SCHEDULE_DAYS, SCHEDULE_LOOKBACK_DAYS, scheduleRange, type ScheduleLesson } from '../../src/lib/schedule'
 import { planSchedule } from '../e2e/helpers/schedule-plan-core'
 
 const [student1] = MAIN_COHORT.students
@@ -103,4 +103,76 @@ describe(`сквозные тесты расписания: 14 дней подр
 
 describe(`сквозные тесты расписания: 14 дней подряд с ${NOVEMBER_14}`, () => {
   for (const today of dayRange(NOVEMBER_14)) it(`«сегодня» — ${today}`, () => checkDay(today))
+})
+
+// Пакет 3.6, IMP-032 (R-3.2-11): промежуток запроса — одна функция, её берут экраны «Расписание» и «Сегодня».
+describe('промежуток запроса пар: scheduleRange', () => {
+  it('начинается за SCHEDULE_LOOKBACK_DAYS дней до сегодня и кончается на сегодня + 6', () => {
+    for (const today of ['2026-11-14', '2026-11-16', '2026-12-30']) {
+      const range = scheduleRange(today)
+      expect(range.from, `${today}: начало`).toBe(addDays(today, -SCHEDULE_LOOKBACK_DAYS))
+      expect(range.to, `${today}: конец`).toBe(addDays(today, SCHEDULE_DAYS - 1))
+      // Вернуть «сегодня … сегодня+6» нельзя: начало должно быть раньше сегодняшнего дня.
+      expect(range.from < today, `${today}: начало не раньше сегодня`).toBe(true)
+      expect(range.to).toBe(addDays(today, 6))
+    }
+    expect(SCHEDULE_LOOKBACK_DAYS).toBeGreaterThan(0)
+    expect(scheduleRange('2026-11-16')).toEqual({ from: '2026-11-02', to: '2026-11-22' })
+  })
+
+  it('пара, перенесённая с прошедшего дня на сегодня, приходит из запроса с этим промежутком и попадает в раскладку', () => {
+    const today = '2026-11-16'
+    // В базе пара стоит на дате СТАРОГО места — за 5 дней до сегодня; перенесена на сегодня.
+    const stored: ScheduleLesson = {
+      id: 'moved-from-past',
+      date: addDays(today, -5),
+      startsAt: '10:10',
+      endsAt: '11:40',
+      discipline: 'Математический анализ',
+      kind: 'lecture',
+      room: '314',
+      teacher: 'Л. А. Примерова',
+      change: { kind: 'moved', note: 'заметка', newDate: today, newStartsAt: '14:00', newEndsAt: '15:30', newRoom: null },
+    }
+    // Слой доступа выбирает пары по дате старого места внутри промежутка.
+    const inRange = (range: { from: string; to: string }): ScheduleLesson[] => [stored].filter((l) => l.date >= range.from && l.date <= range.to)
+
+    const asked = inRange(scheduleRange(today))
+    expect(asked, 'запрос с запасом назад должен вернуть пару').toHaveLength(1)
+    const day = buildSchedule(asked, today).find((d) => d.date === today)
+    expect(day?.entries.map((e) => `${e.lessonId}:${e.placement}`)).toEqual(['moved-from-past:moved_to'])
+    expect(day?.lessonCount).toBe(1)
+
+    // Тот же вызов с промежутком «сегодня … сегодня+6» пары не получает: так выглядела ошибка IMP-028.
+    const wrong = inRange({ from: today, to: addDays(today, 6) })
+    expect(wrong).toHaveLength(0)
+  })
+})
+
+// Пакет 3.6, IMP-032 (R-3.2-12): допущения сквозных тестов о завтрашнем и сегодняшнем дне.
+// С-2 (schedule.spec.ts): если у группы нет пар с датой «завтра», на завтрашнем дне экрана записей нет («В этот день пар нет»).
+// М0, шаг 3: если пар по сетке на сегодня нет и на сегодня ничего не перенесено, на сегодняшнем дне записей нет («Сегодня пар нет»).
+function checkTomorrowAndToday(today: string): void {
+  const tomorrow = addDays(today, 1)
+  const days = buildSchedule(screenInput(today), today)
+  const byDate = new Map(days.map((d) => [d.date, d]))
+  const group = buildCohortPlan(MAIN_COHORT, today).lessons.filter((l) => l.groupName === student1!.groupName)
+  const movedOnto = (date: string) => group.some((l) => l.date !== date && l.change?.kind === 'moved' && l.change.newDate === date)
+
+  const tomorrowGrid = group.filter((l) => l.date === tomorrow)
+  const tomorrowEntries = byDate.get(tomorrow)?.entries ?? []
+  expect(byDate.has(tomorrow), `${tomorrow}: завтрашнего дня нет в ленте`).toBe(true)
+  if (tomorrowGrid.length === 0 && !movedOnto(tomorrow)) expect(tomorrowEntries, `${tomorrow}: пар нет, а записи на экране есть`).toEqual([])
+  for (const l of tomorrowGrid) expect(tomorrowEntries.some((e) => e.lessonId === l.id), `${tomorrow}: пары ${l.discipline} нет на экране`).toBe(true)
+
+  const todayGrid = group.filter((l) => l.date === today)
+  const todayEntries = byDate.get(today)?.entries ?? []
+  if (todayGrid.length === 0 && !movedOnto(today)) expect(todayEntries, `${today}: пар нет, а записи на экране есть`).toEqual([])
+  if (todayGrid.length === 0 && movedOnto(today)) expect(todayEntries.length, `${today}: на сегодня перенесена пара, а записей нет`).toBeGreaterThan(0)
+}
+
+describe('допущения о завтрашнем и сегодняшнем дне (С-2, шаг 3 М0)', () => {
+  for (const start of [RUN_DAY, NOVEMBER_14]) {
+    for (const today of dayRange(start)) it(`«сегодня» — ${today}`, () => checkTomorrowAndToday(today))
+  }
 })

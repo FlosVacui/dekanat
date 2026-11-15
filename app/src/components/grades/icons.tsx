@@ -4,7 +4,7 @@ import type { ReactNode } from 'react'
 // смысл несёт слово рядом.
 export type GradeIconName = 'check' | 'x' | 'clock' | 'alert' | 'chevron' | 'inbox' | 'back'
 
-const PATHS: Record<GradeIconName, ReactNode> = {
+export const GRADE_ICON_PATHS: Record<GradeIconName, ReactNode> = {
   check: <path d="M5 12.5l4.5 4.5L19 7.5" />,
   x: <path d="M6 6l12 12M18 6L6 18" />,
   clock: (
@@ -42,7 +42,7 @@ export function GradeIcon({ name, className }: { name: GradeIconName; className?
       strokeLinejoin="round"
       className={className ?? 'size-3.5 flex-none'}
     >
-      {PATHS[name]}
+      {GRADE_ICON_PATHS[name]}
     </svg>
   )
 }

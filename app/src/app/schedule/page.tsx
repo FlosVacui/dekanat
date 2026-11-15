@@ -5,8 +5,8 @@ import { LessonCard } from '@/components/schedule/lesson-card'
 import { ViewSwitch } from '@/components/schedule/view-switch'
 import { WeekList } from '@/components/schedule/week-list'
 import { StudentShell } from '@/components/student-shell'
-import { addDays, todayIn, weekInfo } from '@/lib/dates'
-import { buildSchedule, pickDay, pickView, SCHEDULE_DAYS, SCHEDULE_LOOKBACK_DAYS } from '@/lib/schedule'
+import { todayIn, weekInfo } from '@/lib/dates'
+import { buildSchedule, pickDay, pickView, scheduleRange } from '@/lib/schedule'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
 import { listMyLessons } from '@/server/dal/student'
@@ -27,7 +27,8 @@ export default async function SchedulePage({ searchParams }: { searchParams: Pro
   const selected = pickDay(params.day, today)
   // Пары просятся и за прошедшие дни: запрос выбирает по дате СТАРОГО места, а перенесённая вчера пара стоит сегодня на новом.
   // buildSchedule оставляет из прошлых пар только новое место переноса, попавшее в ленту.
-  const lessons = await listMyLessons(actor, addDays(today, -SCHEDULE_LOOKBACK_DAYS), addDays(today, SCHEDULE_DAYS - 1))
+  const range = scheduleRange(today)
+  const lessons = await listMyLessons(actor, range.from, range.to)
   const days = buildSchedule(lessons, today)
   const day = days.find((d) => d.date === selected) ?? days[0]
   const week = weekInfo(view === 'week' ? today : selected)

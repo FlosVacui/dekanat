@@ -14,6 +14,7 @@ import { MAIN_COHORT } from '../../db/seed-data'
 import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import {
+  feedRecords,
   forceNotificationKind,
   removeTestRequests,
   resetFeedToSeed,
@@ -174,17 +175,53 @@ test('событие в кабинете: сотрудник сменил ста
     await expect(page).toHaveURL(`${BASE_URL}/notifications`)
     expect(await unreadNumber(page)).toBe(before + 1)
 
-    const top = cards(page).first()
-    await expect(top).toContainText('Новое')
-    await expect(top).toContainText('В работе')
-    await expect(top).toContainText('Статус заявки изменился')
+    // Новая запись найдена по своему тексту, а не взята «первой»: записи набора стоят на 00:59−N сегодняшней даты и с 00:00 до 00:58
+    // новее записи, созданной сейчас. Порядок проверяется по времени из базы: запись стоит выше каждой записи с более ранним временем.
+    const records = await feedRecords(student1.login)
+    const fresh = records.find((r) => r.link === `/requests/${requestId}`)
+    expect(fresh, 'в базе нет уведомления со ссылкой на заявку').toBeDefined()
+    // В наборе есть своя запись «Статус заявки изменился … В работе»: новую отличает номер уведомления в скрытом поле карточки-формы.
+    const freshCard = cards(page)
+      .filter({ hasText: 'Статус заявки изменился' })
+      .filter({ hasText: 'В работе' })
+      .filter({ has: page.locator(`input[name="id"][value="${fresh!.id}"]`) })
+    await expect(freshCard).toHaveCount(1)
+    await expect(freshCard).toContainText('Новое')
+    const order = async (): Promise<void> => {
+      const texts = await cards(page).allInnerTexts()
+      const ids = await cards(page).evaluateAll((els) => els.map((el) => el.querySelector('input[name="id"]')?.getAttribute('value') ?? null))
+      const freshIndex = ids.indexOf(fresh!.id)
+      expect(freshIndex, 'новая запись в ленте').toBeGreaterThanOrEqual(0)
+      // Время остальных карточек — из базы: карточка берёт самую новую из ещё не занятых записей с её заголовком и текстом.
+      const pool = records.filter((r) => r.id !== fresh!.id).sort((a, b) => b.at.getTime() - a.at.getTime())
+      const at: (Date | null)[] = texts.map((t, index) => {
+        if (index === freshIndex) return fresh!.at
+        const i = pool.findIndex((r) => t.includes(r.title) && t.includes(r.body))
+        return i < 0 ? null : pool.splice(i, 1)[0]!.at
+      })
+      expect(at.every((x) => x !== null), 'у каждой карточки есть запись в базе').toBe(true)
+      let older = 0
+      at.forEach((time, index) => {
+        if (index === freshIndex || time === null) return
+        if (time.getTime() < fresh!.at.getTime()) {
+          older += 1
+          expect(index, `карточка ${index} старше новой записи, а стоит выше неё (${freshIndex})`).toBeGreaterThan(freshIndex)
+        }
+      })
+      expect(older, 'записей старше новой для сравнения порядка').toBeGreaterThan(0)
+      // Лента упорядочена по времени: у соседних карточек время не растёт.
+      for (let i = 1; i < at.length; i += 1) expect(at[i]!.getTime(), `порядок ленты на месте ${i}`).toBeLessThanOrEqual(at[i - 1]!.getTime())
+    }
+    await order()
 
-    // Запись видна под фильтром «Напоминания» и по-прежнему первая.
+    // Запись видна под фильтром «Напоминания» и стоит выше каждой записи с более ранним временем.
     await filterGroup(page).getByRole('link', { name: 'Напоминания', exact: true }).click()
     await expect(page).toHaveURL(`${BASE_URL}/notifications?filter=reminders`)
-    const topReminder = cards(page).first()
+    const topReminder = cards(page).filter({ has: page.locator(`input[name="id"][value="${fresh!.id}"]`) })
+    await expect(topReminder).toHaveCount(1)
     await expect(topReminder).toContainText('Статус заявки изменился')
     await expect(topReminder).toContainText('Новое')
+    await order()
 
     // Касание ведёт на экран этой заявки.
     await topReminder.getByRole('button').click()
@@ -324,14 +361,33 @@ test('предзагрузка и обычный переход по ссылк�
   await resetFeedToSeed(student1.login)
   const { context, page } = await asStudent(browser, student1)
   try {
+    // Запросы предзагрузки Next.js помечает заголовком `Next-Router-Prefetch: 1` (виден в запросах прогона); слушаем с первого открытия экрана.
+    const prefetched: string[] = []
+    page.on('request', (request) => {
+      if (request.headers()['next-router-prefetch'] === '1') prefetched.push(new URL(request.url()).pathname + new URL(request.url()).search)
+    })
+    const stateBefore = await snapshotFeedState(LOGINS)
     await page.goto('/notifications')
     const before = await unreadNumber(page)
-    // Все адреса, на которые ведёт экран, открываются обычным переходом: число не меняется.
+    // Продукт сам предзагружает ссылки в видимой части экрана (вкладки, колокольчик, фильтр): ждём, пока запросы предзагрузки пойдут.
+    await expect.poll(() => prefetched.length, { message: 'запросов предзагрузки не было', timeout: 15_000 }).toBeGreaterThan(0)
+    // Ссылка вкладки «Успеваемость» в видимой части: её предзагрузка должна быть среди запросов.
+    await expect
+      .poll(() => prefetched.some((p) => p.startsWith('/grades')), { message: `предзагрузки «/grades» не было; были: ${prefetched.join(', ')}`, timeout: 15_000 })
+      .toBe(true)
+    // Предзагрузка прошла, а прочитанность не изменилась: ни число на экране и у колокольчика, ни записи в базе.
+    expect(await unreadNumber(page)).toBe(before)
+    expect(await bellCount(page)).toBe(before)
+    const stateAfter = await snapshotFeedState(LOGINS)
+    expect(stateAfter.notifications.length).toBeGreaterThan(0)
+    expect(stateAfter).toEqual(stateBefore)
+    // Обычный переход по тем же адресам тоже ничего не отмечает.
     for (const path of ['/notifications?filter=news', '/notifications?filter=reminders', '/grades', '/schedule', '/notifications']) {
       await page.goto(path)
     }
     expect(await unreadNumber(page)).toBe(before)
     expect(await bellCount(page)).toBe(before)
+    expect(await snapshotFeedState(LOGINS)).toEqual(stateBefore)
   } finally {
     await context.close()
   }
@@ -341,6 +397,12 @@ test('360 px: прокрутки вбок нет ни в одном виде л�
   await resetFeedToSeed(student1.login)
   const { context, page } = await asStudent(browser, student1)
   try {
+    // В состоянии набора все карточки со ссылкой непрочитаны, то есть кнопки. Чтобы карточка-ссылка была, одно напоминание
+    // со ссылкой отмечается открытием: после него оно прочитано и стоит ссылкой (R-3.5-2).
+    await page.goto('/notifications')
+    await cards(page).filter({ hasText: 'Расчётная работа №3' }).getByRole('button').click()
+    await expect(page).not.toHaveURL(`${BASE_URL}/notifications`)
+    let linkCardsTotal = 0
     for (const path of ['/notifications', '/notifications?filter=news', '/notifications?filter=reminders']) {
       await page.goto(path)
       await expectNoHorizontalScroll(page, path)
@@ -360,8 +422,13 @@ test('360 px: прокрутки вбок нет ни в одном виде л�
       }
       await expectTapSize(page.getByRole('button', { name: 'Отметить все прочитанными', exact: true }), `${path}: «Отметить все прочитанными»`)
       for (const button of await cards(page).getByRole('button').all()) await expectTapSize(button, `${path}: карточка-кнопка`)
-      for (const link of await cards(page).getByRole('link').all()) await expectTapSize(link, `${path}: карточка-ссылка`)
+      const linkCards = await cards(page).getByRole('link').all()
+      // В «Все» и «Напоминания» отмеченное напоминание стоит ссылкой; в «Новости и объявления» его нет.
+      if (path !== '/notifications?filter=news') expect(linkCards.length, `${path}: карточек-ссылок`).toBeGreaterThan(0)
+      for (const link of linkCards) await expectTapSize(link, `${path}: карточка-ссылка`)
+      linkCardsTotal += linkCards.length
     }
+    expect(linkCardsTotal, 'карточек-ссылок во всех видах ленты').toBeGreaterThan(0)
     // Кнопки «Отметить прочитанным» стоят у объявлений.
     await page.goto('/notifications?filter=news')
     const own = await page.getByRole('button', { name: 'Отметить прочитанным', exact: true }).all()

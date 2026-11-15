@@ -99,13 +99,9 @@ test('сквозной сценарий М0: вход, расписание, о�
   })
 
   await test.step('Шаг 2. Э-2: «Сегодня» с пятью блоками; четыре вкладки, подписи не обрезаны', async () => {
-    for (const title of [
-      'Следующая пара',
-      'Изменения в расписании',
-      'Что сдать на этой неделе',
-      'Заявки: новости и что сделать',
-      'Непрочитанные объявления',
-    ]) {
+    // Блок «следующая пара» — секция с подписью, в нём заголовок уровня 2 — название пары; остальные четыре блока — заголовки уровня 2.
+    await expect(page.getByRole('region', { name: 'Следующая пара', exact: true })).toBeVisible()
+    for (const title of ['Изменения в расписании', 'Что сдать на этой неделе', 'Мои заявки', 'Объявления']) {
       await expect(page.getByRole('heading', { name: title })).toBeVisible()
     }
     // Изменение расписания названо один раз: подпись вида, затем только новое сведение (R-2.4-1).
@@ -167,10 +163,9 @@ test('сквозной сценарий М0: вход, расписание, о�
       if (room1 !== lesson1.room) await expect(page.getByText(`ауд. ${lesson1.room}`).first()).toBeVisible()
       if (lesson1.change?.kind === 'teacher_changed') {
         const swap = /^Ведёт\s+(.+?)\s+вместо\s+(.+)$/.exec(lesson1.change.note)
-        if (swap) {
-          await expect(page.getByText(`Преподаватель: ${swap[1]}`).first()).toBeVisible()
-          await expect(page.getByText(swap[2]!).first()).toBeVisible()
-        } else await expect(page.getByText(lesson1.teacher).first()).toBeVisible()
+        expect(swap, 'заметка замены не по шаблону «Ведёт … вместо …»').not.toBeNull()
+        await expect(page.getByText(`Преподаватель: ${swap![1]}`).first()).toBeVisible()
+        await expect(page.getByText(swap![2]!).first()).toBeVisible()
       } else await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
     } else if (movedToToday.length > 0) {
       // Пар по сетке на сегодня нет, но на сегодня перенесена пара с другого дня: «Сегодня пар нет» быть не должно.
