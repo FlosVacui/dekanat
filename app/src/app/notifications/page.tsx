@@ -20,7 +20,7 @@ export default async function NotificationsPage() {
     <StudentShell actor={actor} active={null}>
       <PageTitle>Уведомления</PageTitle>
       {items.length === 0 ? (
-        <EmptyState title="Уведомлений пока нет" text="Сообщения деканата о ваших заявках появятся здесь" />
+        <EmptyState title="Уведомлений пока нет" text="Здесь появятся сообщения о заявках, сроках и изменениях в расписании" />
       ) : (
         <ul className="flex flex-col gap-[var(--gap)]">
           {items.map((n) => {
