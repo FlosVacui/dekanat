@@ -62,9 +62,9 @@ export interface FeedState {
 /** Что сейчас прочитано у студентов: отметки личных уведомлений и объявлений. */
 export async function snapshotFeedState(logins: string[]): Promise<FeedState> {
   return withOwner(async (c) => {
-    const n = await c.query('select n.id, n.read_at from notifications n join users u on u.id = n.student_id where u.login = any($1)', [logins])
+    const n = await c.query('select n.id, n.read_at from notifications n join users u on u.id = n.student_id where u.login = any($1) order by n.id', [logins])
     const r = await c.query(
-      'select r.announcement_id, u.login, r.read_at from announcement_reads r join users u on u.id = r.student_id where u.login = any($1)',
+      'select r.announcement_id, u.login, r.read_at from announcement_reads r join users u on u.id = r.student_id where u.login = any($1) order by r.announcement_id, u.login',
       [logins],
     )
     return {

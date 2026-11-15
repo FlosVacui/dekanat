@@ -63,8 +63,6 @@ const mainLinks = (page: Page) => page.locator('main').getByRole('link')
 
 /** Число пар сегодня по плану набора: без отменённых и без пар, перенесённых на другой день; перенесённые на сегодня считаются. */
 function plannedCountToday(): number {
-  const group = MAIN_COHORT.students.filter((s) => s.groupName === student1!.groupName)
-  expect(group.length).toBeGreaterThan(0)
   return plan.lessons.filter((l) => {
     if (l.change?.kind === 'cancelled') return false
     const date = l.change?.kind === 'moved' ? (l.change.newDate ?? l.date) : l.date

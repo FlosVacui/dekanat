@@ -69,7 +69,7 @@ export default async function TodayPage() {
                   title={`${dayWord}, ${entry.startsAt} · ${entry.discipline}`}
                   meta={
                     <>
-                      {entry.changeKind && entry.note ? <RowMeta>{`${changeKindLabel(entry.changeKind)}: ${entry.note}`}</RowMeta> : null}
+                      {entry.changeKind && entry.note ? <RowMeta>{entry.note}</RowMeta> : null}
                       {entry.movedTo ?? entry.was ? <RowMeta>{entry.movedTo ?? entry.was}</RowMeta> : null}
                     </>
                   }

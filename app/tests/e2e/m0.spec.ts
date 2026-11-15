@@ -107,8 +107,10 @@ test('сквозной сценарий М0: вход, расписание, о�
     // Изменение расписания названо один раз: подпись вида, затем только новое сведение (R-2.4-1).
     const changes = page.locator('section', { has: page.getByRole('heading', { name: 'Изменения в расписании' }) })
     if (roomChange?.change) {
-      // При Д-понедельнике это «Сменилась аудитория: 2-210 → 2-108»; при другом Д пара другая, новая аудитория та же.
-      await expect(changes).toContainText(`Сменилась аудитория: ${roomChange.change.note}`)
+      // Вид изменения — в плашке, в строке — только новое сведение: при Д-понедельнике «2-210 → 2-108» (R-3.6-2).
+      await expect(changes).toContainText('Сменилась аудитория')
+      await expect(changes).toContainText(roomChange.change.note)
+      await expect(changes).not.toContainText(`Сменилась аудитория: ${roomChange.change.note}`)
     } else {
       // Единственный день без пар в Д и Д+1 — суббота нижней недели: показать смену аудитории экрану не на чем.
       expect(group1Lessons.filter((l) => l.date === today || l.date === tomorrow), 'пары есть, а смена аудитории не поставлена').toHaveLength(0)

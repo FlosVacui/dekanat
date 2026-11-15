@@ -187,7 +187,9 @@ test('событие в кабинете: сотрудник сменил ста
       .filter({ has: page.locator(`input[name="id"][value="${fresh!.id}"]`) })
     await expect(freshCard).toHaveCount(1)
     await expect(freshCard).toContainText('Новое')
-    const order = async (): Promise<void> => {
+    // Возвращает, со сколькими записями старше новой сверен порядок. В виде «Напоминания» с 00:00 до 00:54 МСК таких записей нет:
+    // напоминания набора стоят на 00:55–00:59 сегодняшней даты и новее новой записи (R-3.6-1). Поэтому «больше нуля» требуется только в «Все».
+    const order = async (): Promise<number> => {
       const texts = await cards(page).allInnerTexts()
       const ids = await cards(page).evaluateAll((els) => els.map((el) => el.querySelector('input[name="id"]')?.getAttribute('value') ?? null))
       const freshIndex = ids.indexOf(fresh!.id)
@@ -208,11 +210,12 @@ test('событие в кабинете: сотрудник сменил ста
           expect(index, `карточка ${index} старше новой записи, а стоит выше неё (${freshIndex})`).toBeGreaterThan(freshIndex)
         }
       })
-      expect(older, 'записей старше новой для сравнения порядка').toBeGreaterThan(0)
       // Лента упорядочена по времени: у соседних карточек время не растёт.
+      expect(at.length, 'карточек для сравнения порядка').toBeGreaterThan(1)
       for (let i = 1; i < at.length; i += 1) expect(at[i]!.getTime(), `порядок ленты на месте ${i}`).toBeLessThanOrEqual(at[i - 1]!.getTime())
+      return older
     }
-    await order()
+    expect(await order(), 'в ленте «Все» записей старше новой для сравнения порядка').toBeGreaterThan(0)
 
     // Запись видна под фильтром «Напоминания» и стоит выше каждой записи с более ранним временем.
     await filterGroup(page).getByRole('link', { name: 'Напоминания', exact: true }).click()
