@@ -976,6 +976,13 @@ history:
     commit: "2defcb1"
     rounds: 1
     tokens: 195634
+  - date: 2026-11-15
+    item: "3.7"
+    what: "Смена 26: IMP-020, заход 2 из двух — экраны заявок, кабинета сотрудника, профиля, уведомлений, страницы «не найдено» и «нет доступа» на дизайн-системе; общее правило рамки фокуса; IMP-024, пункты 1, 3, 4; ревью RV-IMP-020-3-1 — принять с замечаниями, R-3.7-5…9"
+    who: "designer, Sonnet 5.5 / high; reviewer, Sonnet 5.5 / high"
+    commit: "e0a3e99"
+    rounds: 1
+    tokens: 532488
 
 reviews:
   - id: "R-0.3-1"
@@ -2886,7 +2893,7 @@ reviews:
     repro: "Сборка ef02ef3, окно 360×800, вымышленный студент, страница /, 40 раз Tab — ссылка высотой 44 px закрыта целиком; /requests — у восьми карточек закрыто по 69 px"
     by: "reviewer, Sonnet 5.5 / high"
     status: "исправлено"
-    comment: "Исправлено в 933620c: правило scroll-padding-bottom в globals.css; замер после правки — ревьюер захода 2"
+    comment: "Исправлено в 933620c: правило scroll-padding-bottom в globals.css. Повторный замер ревьюера захода 2, RV-IMP-020-3-1, 360×800: на / — 18 элементов в фокусе, на /requests — 12, панелью закрыто 0, наименьший зазор 16,8 px"
   - id: "R-3.7-2"
     item: "3.7"
     round: 1
@@ -2903,7 +2910,8 @@ reviews:
     text: "R-IMP-020-3 в отчёте RV-IMP-020-2-1. Зона касания 44 px названа «ЗД-5»; в матрице ЗД-5 — «каждый студент видит только свои данные», работа на телефоне — ЗД-4, размер кнопок — ADR-0001. Ошибка ссылки в комментарии button.tsx:5 и в трёх заданиях"
     repro: "grep ЗД-5 по docs/REQUIREMENTS.md, app/src, docs/briefs"
     by: "reviewer, Sonnet 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "Исправлено в e0a3e99: комментарий button.tsx называет ЗД-4 и ADR-0001; подтверждено ревью RV-IMP-020-3-1"
   - id: "R-3.7-4"
     item: "3.7"
     round: 1
@@ -2911,6 +2919,47 @@ reviews:
     text: "R-IMP-020-4 в отчёте RV-IMP-020-2-1. У ссылок в карточках содержимого рамка фокуса стандартная браузерная, auto 1px; общего правила :focus-visible в globals.css нет"
     repro: "Замер outline у элемента в фокусе на /, /requests"
     by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в e0a3e99: общее правило :focus-visible в слое @layer base файла globals.css. Ревью RV-IMP-020-3-1 прогоном: классы шапки и вкладок правило не перебивает; у карточек-ссылок рамка 3 px"
+  - id: "R-3.7-5"
+    item: "3.7"
+    round: 1
+    severity: "незначительное"
+    text: "RV-IMP-020-3-1, заход 2 строки IMP-020. Новый текст пустого состояния уведомлений «Сообщения деканата о ваших заявках появятся здесь» описывает ленту уже, чем она есть: в данных набора это ещё сроки работ, переносы и отмена пар, пересдача. Текст добавил исполнитель сверх задания"
+    repro: "app/src/app/notifications/page.tsx:23; app/db/seed-data.ts:246, 262, 278"
+    by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
+    status: "открыто"
+  - id: "R-3.7-6"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "RV-IMP-020-3-1. Отступ рамки фокуса у карточек-ссылок расходится: на экранах успеваемости +2 px, на заявках, уведомлениях и у сотрудника −3 px по «Общим правилам» раздела 5 дизайн-системы"
+    repro: "grep outline-offset: app/src/components/grades/semester-view.tsx:60, session-view.tsx:28; app/src/app/requests/page.tsx:52, notifications/page.tsx:45, staff/requests/page.tsx"
+    by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
+    status: "открыто"
+  - id: "R-3.7-7"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "RV-IMP-020-3-1. Семь значков и класс плашки в app/src/components/requests/ дословно повторяют grades/icons.tsx и grades/chip.tsx"
+    repro: "app/src/components/requests/icons.tsx:8–50, status-chip.tsx:23–24 против app/src/components/grades/icons.tsx и chip.tsx"
+    by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
+    status: "открыто"
+  - id: "R-3.7-8"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "RV-IMP-020-3-1. В дизайн-системе остались устаревшие абзацы «Как ложится на …» в разделах 5.1, 5.2, 5.8, 5.9, 5.10, 5.11: описывают разметку до захода 2. Задание разрешало исполнителю менять только абзац «Шапка»"
+    repro: "docs/design/D-2.2-system.md:405, 476, 765, 822, 848, 878"
+    by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
+    status: "открыто"
+  - id: "R-3.7-9"
+    item: "3.7"
+    round: 1
+    severity: "предложение"
+    text: "RV-IMP-020-3-1. Перенос длинного значения в закрытом select «Куда справка» держится на appearance: none и проверен только в Chromium. Safari на iPhone и Firefox не проверены: значение может остаться обрезанным"
+    repro: "app/src/components/requests/select-field.tsx:29–34; снимок 360-request-new-longest-select.png снят в Chromium"
+    by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
     status: "открыто"
 
 decisions:
