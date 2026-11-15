@@ -2928,7 +2928,8 @@ reviews:
     text: "RV-IMP-020-3-1, заход 2 строки IMP-020. Новый текст пустого состояния уведомлений «Сообщения деканата о ваших заявках появятся здесь» описывает ленту уже, чем она есть: в данных набора это ещё сроки работ, переносы и отмена пар, пересдача. Текст добавил исполнитель сверх задания"
     repro: "app/src/app/notifications/page.tsx:23; app/db/seed-data.ts:246, 262, 278"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "открыто"
+    status: "исправлено"
+    comment: "Исправлено в e4ad12e оркестратором по ответу пользователя 15.11: текст «Здесь появятся сообщения о заявках, сроках и изменениях в расписании»; перепроверки, кроме общей проверки, нет"
   - id: "R-3.7-6"
     item: "3.7"
     round: 1
@@ -2936,7 +2937,8 @@ reviews:
     text: "RV-IMP-020-3-1. Отступ рамки фокуса у карточек-ссылок расходится: на экранах успеваемости +2 px, на заявках, уведомлениях и у сотрудника −3 px по «Общим правилам» раздела 5 дизайн-системы"
     repro: "grep outline-offset: app/src/components/grades/semester-view.tsx:60, session-view.tsx:28; app/src/app/requests/page.tsx:52, notifications/page.tsx:45, staff/requests/page.tsx"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "открыто"
+    status: "отложено"
+    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
   - id: "R-3.7-7"
     item: "3.7"
     round: 1
@@ -2944,7 +2946,8 @@ reviews:
     text: "RV-IMP-020-3-1. Семь значков и класс плашки в app/src/components/requests/ дословно повторяют grades/icons.tsx и grades/chip.tsx"
     repro: "app/src/components/requests/icons.tsx:8–50, status-chip.tsx:23–24 против app/src/components/grades/icons.tsx и chip.tsx"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "открыто"
+    status: "отложено"
+    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
   - id: "R-3.7-8"
     item: "3.7"
     round: 1
@@ -2952,7 +2955,8 @@ reviews:
     text: "RV-IMP-020-3-1. В дизайн-системе остались устаревшие абзацы «Как ложится на …» в разделах 5.1, 5.2, 5.8, 5.9, 5.10, 5.11: описывают разметку до захода 2. Задание разрешало исполнителю менять только абзац «Шапка»"
     repro: "docs/design/D-2.2-system.md:405, 476, 765, 822, 848, 878"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "открыто"
+    status: "отложено"
+    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
   - id: "R-3.7-9"
     item: "3.7"
     round: 1
@@ -2960,7 +2964,8 @@ reviews:
     text: "RV-IMP-020-3-1. Перенос длинного значения в закрытом select «Куда справка» держится на appearance: none и проверен только в Chromium. Safari на iPhone и Firefox не проверены: значение может остаться обрезанным"
     repro: "app/src/components/requests/select-field.tsx:29–34; снимок 360-request-new-longest-select.png снят в Chromium"
     by: "reviewer, Sonnet 5.5 / high; RV-IMP-020-3-1"
-    status: "открыто"
+    status: "отложено"
+    comment: "Отложено по ответу пользователя 15.11: строка IMP-034 в ISSUES"
 
 decisions:
   - id: "Р-0"
