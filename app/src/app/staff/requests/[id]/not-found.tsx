@@ -1,15 +1,10 @@
-import { Card, PageTitle } from '@/components/card'
-import { LinkButton } from '@/components/link-button'
+import { NotFoundView } from '@/components/requests/not-found-view'
 
 // Заявка другого набора и несуществующая выглядят одинаково (ADR-0002).
 export default function StaffRequestNotFound() {
   return (
-    <main className="mx-auto max-w-sm p-4">
-      <PageTitle>Нет такой заявки</PageTitle>
-      <Card>
-        <p className="mb-3 text-sm">Заявки с таким номером в вашем наборе нет.</p>
-        <LinkButton href="/staff/requests">К списку заявок</LinkButton>
-      </Card>
-    </main>
+    <NotFoundView title="Нет такой заявки" href="/staff/requests" action="К списку заявок">
+      Заявки с таким номером в вашем наборе нет.
+    </NotFoundView>
   )
 }

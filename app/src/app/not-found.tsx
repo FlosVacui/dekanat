@@ -1,14 +1,9 @@
-import { Card, PageTitle } from '@/components/card'
-import { LinkButton } from '@/components/link-button'
+import { NotFoundView } from '@/components/requests/not-found-view'
 
 export default function NotFound() {
   return (
-    <main className="mx-auto max-w-sm p-4">
-      <PageTitle>Такой страницы нет</PageTitle>
-      <Card>
-        <p className="mb-3 text-sm">Проверьте адрес или вернитесь на главную.</p>
-        <LinkButton href="/">На главную</LinkButton>
-      </Card>
-    </main>
+    <NotFoundView title="Такой страницы нет" href="/" action="На главную">
+      Проверьте адрес или вернитесь на главную.
+    </NotFoundView>
   )
 }

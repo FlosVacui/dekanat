@@ -23,16 +23,16 @@ export default async function ProfilePage() {
     <StudentShell actor={actor} active={null}>
       <PageTitle>Профиль</PageTitle>
       <Card>
-        <dl className="flex flex-col gap-3 text-sm">
+        <dl className="flex flex-col gap-[var(--sp-3)]">
           {rows.map(([name, value]) => (
             <div key={name}>
-              <dt className="text-neutral-700">{name}</dt>
-              <dd className="text-base font-medium">{value}</dd>
+              <dt className="text-[length:var(--fs-sm)] text-muted">{name}</dt>
+              <dd className="text-[length:var(--fs-md)] font-bold">{value}</dd>
             </div>
           ))}
         </dl>
       </Card>
-      <form action={logoutAction} className="mt-4">
+      <form action={logoutAction} className="mt-[var(--gap)]">
         <SubmitButton variant="ghost" className="w-full">
           Выйти
         </SubmitButton>
