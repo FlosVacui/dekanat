@@ -14,6 +14,8 @@
 // первым делом (после оборванного прогона оно могло остаться отозванным). Последняя проверка файла спрашивает у базы, что право чтения
 // на месте у каждой таблицы, у которой оно отзывалось. Файл стоит после schedule.spec.ts и перед тестами безопасности.
 // Каждая проверка в цикле ведёт счёт шагов и сверяет, что цикл шёл больше нуля раз.
+// Проверки «все случаи ошибки (загрузки) прошли до конца» при запуске файла целиком сверяют случаи с полным списком, при запуске части
+// файла (`-g`, номер строки и т. п.) — начатые с законченными (`isPartialRun`). Код ответа при отказе базы сверяется с ожидаемым по группе страницы.
 import { randomUUID } from 'node:crypto'
 import { expect, test, type Browser, type BrowserContext, type Page, type Request as PwRequest, type Response } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
@@ -218,8 +220,48 @@ async function expectFrame(page: Page, c: Pick<Case, 'name' | 'who' | 'tab'>): P
   }
 }
 
-// Какие случаи ошибки начались и какие прошли до конца (R-3.7-13, б). Проверка «все случаи прошли» сверяет два набора, а не число
-// со всем списком: при запуске части файла (`-g`, номер строки) она не падает ложно, а при полном прогоне видит каждый начатый случай.
+/**
+ * Запущена ли только часть файла (R-3.7-21). Ответ берётся из командной строки запуска Playwright (`config.argv`: снимок `process.argv`
+ * процесса-распорядителя, его видно и из рабочего процесса). Часть файла — это отбор по названию (`-g`, `--grep`, `-gv`, `--grep-invert`,
+ * `--tag`), номер строки у пути (`файл:279`), повтор упавших (`--last-failed`), изменённых (`--only-changed`), списки (`--test-list`,
+ * `--test-list-invert`), доля (`--shard`), интерфейс с выбором (`--ui`, `--ui-host`, `--ui-port`). Отбор по названию стоит и в настройках
+ * (`config.grep`, `config.grepInvert`). Командной строки нет (пустой `argv`) — считаем, что запущена часть: ложное падение хуже пропуска.
+ */
+function isPartialRun(): boolean {
+  const { argv, grep, grepInvert } = test.info().config
+  if (argv.length === 0) return true
+  const grepIsDefault = !Array.isArray(grep) && grep.source === '.*'
+  if (!grepIsDefault || grepInvert !== null) return true
+  const flags = ['--grep', '--grep-invert', '--tag', '--last-failed', '--only-changed', '--test-list', '--test-list-invert', '--shard', '--ui', '--ui-host', '--ui-port']
+  const start = argv.indexOf('test')
+  const args = start === -1 ? argv.slice(2) : argv.slice(start + 1)
+  // После `--` идут чужие параметры (пример в справке Playwright): их не разбираем.
+  const own = args.includes('--') ? args.slice(0, args.indexOf('--')) : args
+  return own.some(
+    (a) => a === '-g' || a === '-gv' || (a.startsWith('-g') && !a.startsWith('--')) || flags.some((f) => a === f || a.startsWith(`${f}=`)) || (!a.startsWith('-') && /:\d+(:\d+)?$/.test(a)),
+  )
+}
+
+/**
+ * Сверка «все случаи прошли до конца» для одного списка. Полный запуск файла: каждый случай списка прошёл; не начавшийся случай — красный тест.
+ * Часть файла: сверяются начатые случаи с законченными; ни один не начат — тест пропускается с названной причиной, а не падает.
+ * Рабочий процесс после упавшей проверки запускается заново и счёт случаев начинается с нуля: при полном запуске такой тест красный вместе
+ * с упавшей проверкой, и разбирать надо упавшую проверку, а не этот тест.
+ */
+function expectAllCasesFinished(kind: string, all: string[], started: Set<string>, checked: Set<string>): void {
+  expect(all.length, `список случаев ${kind} пуст`).toBeGreaterThan(0)
+  if (isPartialRun()) {
+    test.skip(started.size === 0, `в этом запуске не было ни одного случая ${kind}`)
+  } else {
+    const notFinished = all.filter((name) => !checked.has(name))
+    expect(notFinished, `полный запуск файла: случаи ${kind}, которые не прошли до конца (не начались или упали)`).toEqual([])
+  }
+  const unfinished = [...started].filter((name) => !checked.has(name))
+  expect(unfinished, `случаи ${kind}, которые начались и не дошли до конца`).toEqual([])
+  expect(checked.size, `случаев ${kind} проверено`).toBe(started.size)
+}
+
+// Какие случаи ошибки начались и какие прошли до конца (R-3.7-13, б; R-3.7-21). См. `expectAllCasesFinished`.
 const casesStarted = new Set<string>()
 const casesChecked = new Set<string>()
 
@@ -277,12 +319,7 @@ test('чужая и несуществующая запись — «не най�
 })
 
 test('все случаи ошибки прошли до конца', async () => {
-  expect(CASES.length, 'список случаев ошибки пуст').toBeGreaterThan(0)
-  // Запуск части файла без случаев ошибки: проверять нечего, и тест не падает, а пропускается с названной причиной.
-  test.skip(casesStarted.size === 0, 'в этом запуске не было ни одного случая ошибки')
-  const unfinished = [...casesStarted].filter((name) => !casesChecked.has(name))
-  expect(unfinished, 'случаи ошибки, которые начались и не дошли до конца').toEqual([])
-  expect(casesChecked.size, 'случаев ошибки проверено').toBe(casesStarted.size)
+  expectAllCasesFinished('ошибки', CASES.map((c) => c.name), casesStarted, casesChecked)
 })
 
 // ---- Состояние «загрузка» (пакет 3.7, заход 2) ----
@@ -593,6 +630,8 @@ test('«Повторить» после ответа с ошибкой снов�
     await studentPage.goto('/schedule')
     const card = studentPage.locator('main').getByRole('alert')
     await expect(card).toBeVisible()
+    // При первом показе карточки фокус не переносится (R-3.7-18): он остаётся там, где был.
+    await expect(card.getByRole('button', { name: 'Повторить' }), 'при первом показе карточки фокус перенесён на «Повторить»').not.toBeFocused()
     // Право не возвращено: ответ придёт с той же ошибкой.
     lock = await holdTableLock('sessions', LOCK_MAX_MS)
     await card.getByRole('button', { name: 'Повторить' }).click()
@@ -603,6 +642,8 @@ test('«Повторить» после ответа с ошибкой снов�
     await expect(again, 'после ответа с ошибкой кнопка не стала «Повторить»').toBeVisible()
     await expect(again).not.toHaveAttribute('aria-busy', /.*/)
     await expect(again).not.toHaveAttribute('aria-disabled', /.*/)
+    // Фокус остался на «Повторить» (R-3.7-18): клавиатурный посетитель нажал её и не должен оказаться на `body` после ответа с ошибкой.
+    await expect(again, 'после ответа с ошибкой фокус не на кнопке «Повторить»').toBeFocused()
     // Причину устранили: нажатие работает, как в первый раз.
     await restoreRead('lessons')
     await again.click()
@@ -614,11 +655,56 @@ test('«Повторить» после ответа с ошибкой снов�
   }
 })
 
+test('«Повторить» после ответа с ошибкой не отбирает фокус, если посетитель сам перевёл его на другой элемент', async () => {
+  let lock: TableLock | null = null
+  try {
+    await revokeRead('lessons')
+    await studentPage.goto('/schedule')
+    const card = studentPage.locator('main').getByRole('alert')
+    await expect(card).toBeVisible()
+    lock = await holdTableLock('sessions', LOCK_MAX_MS)
+    await card.getByRole('button', { name: 'Повторить' }).click()
+    await expect(card.getByRole('button', { name: 'Загружаем…' }), '«Повторить» не перешла в ожидание').toBeVisible()
+    // Пока ответа нет, посетитель переходит на другой элемент. В самом приложении все элементы, которые берут фокус, стоят внутри границы
+    // ошибок и при повторном показе карточки пересоздаются, поэтому «другой элемент» берётся вне границы: тест кладёт в конец `body`
+    // свою кнопку. Подпись у неё служебная, посетитель её не увидит: кнопка живёт только в этой проверке.
+    await studentPage.evaluate(() => {
+      const other = document.createElement('button')
+      other.id = 'test-other-focus'
+      other.type = 'button'
+      other.textContent = 'test-other-focus'
+      document.body.appendChild(other)
+      other.focus()
+    })
+    const other = studentPage.locator('#test-other-focus')
+    await expect(other, 'проверочная кнопка не получила фокус до ответа').toBeFocused()
+    await lock.release()
+    const again = studentPage.locator('main').getByRole('alert').getByRole('button', { name: 'Повторить' })
+    await expect(again, 'после ответа с ошибкой кнопка не стала «Повторить»').toBeVisible()
+    await expect(again).not.toHaveAttribute('aria-busy', /.*/)
+    // Дать время фокусу: он мог бы перейти на кнопку с запозданием.
+    await studentPage.waitForTimeout(500)
+    await expect(again, 'фокус отобран у элемента, на который его перевёл посетитель').not.toBeFocused()
+    await expect(other, 'фокус ушёл с элемента посетителя').toBeFocused()
+  } finally {
+    await studentPage.evaluate(() => document.getElementById('test-other-focus')?.remove())
+    await lock?.release()
+    await restoreRead('lessons')
+  }
+})
+
 test('код ответа при отказе базы у каждой из восьми страниц записан; карточка ошибки показывается', async () => {
   // Способ «граница ожидания» отвечает 200, а не 500: код уходит вместе с первой частью потока (названный риск способа).
-  // Тест код не чинит: записывает его и проверяет, что карточка ошибки на экране.
+  // Тест код не чинит: записывает его, сверяет с ожидаемым (R-3.7-20) и проверяет, что карточка ошибки на экране.
+  // Ожидаемый код — по группе страницы: 200 у пяти страниц с границей ожидания (LOAD_CASES), 500 у трёх без неё (NO_BOUNDARY_CASES).
+  // Страница перешла из группы в группу — тест красный: код ответа поменялся, и это надо решить, а не терпеть молча.
+  const expected: { c: (typeof ALL_PAGES)[number]; code: number }[] = [
+    ...LOAD_CASES.map((c) => ({ c, code: 200 })),
+    ...NO_BOUNDARY_CASES.map((c) => ({ c, code: 500 })),
+  ]
+  expect(expected.length, 'в списке не восемь страниц').toBe(8)
   const codes: string[] = []
-  for (const c of ALL_PAGES) {
+  for (const { c, code } of expected) {
     const page = pageOf(c)
     try {
       await revokeRead(c.table)
@@ -628,7 +714,7 @@ test('код ответа при отказе базы у каждой из во
       codes.push(note)
       test.info().annotations.push({ type: 'код при отказе базы', description: note })
       console.log(`КОД ${note}`)
-      expect([200, 500], note).toContain(res.status())
+      expect(res.status(), `${note}; ожидался ${code}`).toBe(code)
       await page.goto(c.path)
       await expect(page.locator('main').getByRole('alert'), `${c.name}: карточки ошибки нет`).toBeVisible()
       await expect(page.locator('main').getByRole('alert').getByRole('button', { name: 'Повторить' })).toBeVisible()
@@ -644,11 +730,8 @@ test('все случаи загрузки прошли до конца', async 
   // Пять страниц с границей ожидания и три без неё (NO_BOUNDARY_CASES): вместе восемь страниц-списков.
   expect(LOAD_CASES.length, 'список случаев загрузки пуст или не пять страниц').toBe(5)
   expect(LOAD_CASES.length + NO_BOUNDARY_CASES.length, 'страниц-списков не восемь').toBe(8)
-  // Как и у случаев ошибки (R-3.7-13, б): сверяются начатые и законченные случаи, запуск части файла не даёт ложного падения.
-  test.skip(loadStarted.size === 0, 'в этом запуске не было ни одного случая загрузки')
-  const unfinished = [...loadStarted].filter((name) => !loadChecked.has(name))
-  expect(unfinished, 'случаи загрузки, которые начались и не дошли до конца').toEqual([])
-  expect(loadChecked.size, 'случаев загрузки проверено').toBe(loadStarted.size)
+  // Как и у случаев ошибки (R-3.7-13, б; R-3.7-21): полный запуск файла сверяет с полным списком, часть файла — начатые с законченными.
+  expectAllCasesFinished('загрузки', LOAD_CASES.map((c) => c.name), loadStarted, loadChecked)
 })
 
 // Последняя проверка файла: после неё идут тесты безопасности, и они не должны упасть из-за отозванного права.

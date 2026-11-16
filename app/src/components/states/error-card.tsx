@@ -1,6 +1,6 @@
 'use client'
 
-import { useTransition } from 'react'
+import { useEffect, useRef, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 
 // Состояние «ошибка» (D-2.2-system, 5.6): карточка в `role="alert"`; значок в круге 44 px и заголовок красные, пояснение и кнопка нет.
@@ -12,13 +12,48 @@ import { Button } from '@/components/ui/button'
 // Не `disabled`: фокус с кнопки не уходит. Пока `retry` из Next.js ждёт ответа сервера, переход (`useTransition`) не закончен и `pending` истинно;
 // повторное нажатие в это время ничего не делает. Ответ пришёл — содержимое заменяет карточку; ответ с ошибкой — карточка снова с «Повторить».
 // Значка-вращения `.spin` из 5.1 в продукте нет: остаётся значок-стрелка.
+//
+// Фокус после ответа с ошибкой (R-3.7-18). Ответ пришёл с ошибкой — граница ошибок показывает карточку заново, уже новым экземпляром:
+// старая кнопка убрана из страницы, и фокус уходит на `body`. Состояние внутри компонента такую замену не переживает, поэтому о нажатии
+// помнит переменная модуля `refocusAfterRetry`. Новый экземпляр при монтировании читает её и, если фокус стоит на `body`, ставит его на свою
+// кнопку «Повторить». Фокус на другом элементе — посетитель перешёл сам — не отбирается. При первом показе карточки переменная пуста
+// и фокус не переносится. Ответ без ошибки заменяет карточку содержимым: новой карточки нет, и размонтирование сбрасывает переменную по таймеру,
+// чтобы она не дожила до чужой ошибки.
 
 export const ERROR_TEXT = 'Ошибка на нашей стороне. Ваши данные не потеряны.'
 
+/** Нажали «Повторить», ответа ещё нет или он пришёл с ошибкой, а новая карточка не показана. */
+let refocusAfterRetry = false
+let refocusReset: ReturnType<typeof setTimeout> | undefined
+/** Сколько после размонтирования карточки новая карточка ещё считается ответом на то же нажатие. */
+const REFOCUS_WINDOW_MS = 1000
+
+function cancelRefocusReset(): void {
+  if (refocusReset !== undefined) clearTimeout(refocusReset)
+  refocusReset = undefined
+}
+
 export function ErrorCard({ title, onRetry }: { title: string; onRetry: () => void }) {
   const [pending, startTransition] = useTransition()
+  const section = useRef<HTMLElement>(null)
+  useEffect(() => {
+    cancelRefocusReset()
+    if (refocusAfterRetry) {
+      refocusAfterRetry = false
+      const active = document.activeElement
+      if (!active || active === document.body) section.current?.querySelector('button')?.focus()
+    }
+    return () => {
+      if (!refocusAfterRetry) return
+      cancelRefocusReset()
+      refocusReset = setTimeout(() => {
+        refocusAfterRetry = false
+        refocusReset = undefined
+      }, REFOCUS_WINDOW_MS)
+    }
+  }, [])
   return (
-    <section role="alert" className="flex flex-col gap-[var(--sp-3)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card">
+    <section ref={section} role="alert" className="flex flex-col gap-[var(--sp-3)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card">
       <div className="flex items-start gap-[var(--sp-3)]">
         <span className="grid size-11 flex-none place-items-center rounded-full bg-error-bg text-error">
           <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -38,6 +73,8 @@ export function ErrorCard({ title, onRetry }: { title: string; onRetry: () => vo
         aria-busy={pending ? 'true' : undefined}
         onClick={() => {
           if (pending) return
+          cancelRefocusReset()
+          refocusAfterRetry = true
           startTransition(() => onRetry())
         }}
         className={pending ? 'pointer-events-none w-full gap-[var(--sp-2)]' : 'w-full gap-[var(--sp-2)]'}

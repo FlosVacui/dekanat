@@ -70,7 +70,7 @@ describe('граница ожидания страниц', () => {
     })
   }
 
-  it('у «Новой заявки» оба redirect и чтение прежней заявки с denyRecord выше границы', () => {
+  it('у «Новой заявки» три redirect и чтение прежней заявки с denyRecord выше границы', () => {
     const source = code('requests/new/page.tsx')
     const boundary = source.indexOf('<Suspense')
     const redirects = [...source.matchAll(/redirect\('\/requests'\)/g)].map((m) => m.index)
