@@ -1,9 +1,12 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { PageTitle } from '@/components/card'
 import { EmptyState } from '@/components/grades/empty-state'
 import { LinkButton } from '@/components/link-button'
 import { RequestIcon } from '@/components/requests/icons'
 import { RequestStatusChip } from '@/components/requests/status-chip'
+import { LoadingCard } from '@/components/states/loading-card'
+import { StudentFrame } from '@/components/states/shell-parts'
 import { StudentShell } from '@/components/student-shell'
 import { formatDate, todayIn } from '@/lib/dates'
 import {
@@ -15,6 +18,7 @@ import {
   statusText,
 } from '@/lib/requests'
 import { requireStudentActor } from '@/server/auth/page-guards'
+import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
 import { listMyRequests } from '@/server/dal/student'
 
@@ -22,7 +26,24 @@ import { listMyRequests } from '@/server/dal/student'
 export const dynamic = 'force-dynamic'
 
 export default async function RequestsPage() {
+  // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
   const actor = await requireStudentActor()
+
+  return (
+    <Suspense
+      fallback={
+        <StudentFrame data={null} active="requests">
+          <LoadingCard label="Загружаем заявки…" />
+        </StudentFrame>
+      }
+    >
+      <RequestsContent actor={actor} />
+    </Suspense>
+  )
+}
+
+// Читает данные экрана и рисует его. Внутри границы нет redirect(), notFound(), forbidden() и denyRecord().
+async function RequestsContent({ actor }: { actor: Actor }) {
   const items = await listMyRequests(actor)
   return (
     <StudentShell actor={actor} active="requests">

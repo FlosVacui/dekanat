@@ -1,12 +1,15 @@
 import Link from 'next/link'
+import { Suspense } from 'react'
 import { PageTitle } from '@/components/card'
 import { EmptyState } from '@/components/grades/empty-state'
 import { RequestIcon } from '@/components/requests/icons'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { StaffShell } from '@/components/staff-shell'
+import { LoadingCard } from '@/components/states/loading-card'
 import { formatDate, todayIn } from '@/lib/dates'
 import { REQUEST_KIND_INFO, STATUS_LABELS, isRequestKind, isRequestStatus } from '@/lib/requests'
 import { requireStaffActor } from '@/server/auth/page-guards'
+import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
 import { listCohortRequests } from '@/server/dal/staff'
 
@@ -14,7 +17,24 @@ import { listCohortRequests } from '@/server/dal/staff'
 export const dynamic = 'force-dynamic'
 
 export default async function StaffRequestsPage() {
+  // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
   const actor = await requireStaffActor()
+
+  return (
+    <Suspense
+      fallback={
+        <StaffShell>
+          <LoadingCard label="Загружаем заявки…" />
+        </StaffShell>
+      }
+    >
+      <StaffRequestsContent actor={actor} />
+    </Suspense>
+  )
+}
+
+// Читает данные экрана и рисует его. Внутри границы нет redirect(), notFound(), forbidden() и denyRecord().
+async function StaffRequestsContent({ actor }: { actor: Actor }) {
   const items = await listCohortRequests(actor)
   const tz = getConfig().timezone
   return (
