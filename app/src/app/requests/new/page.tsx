@@ -1,8 +1,11 @@
 import { redirect } from 'next/navigation'
+import { Suspense } from 'react'
 import { Card, PageTitle } from '@/components/card'
 import { LinkButton } from '@/components/link-button'
 import { RequestIcon } from '@/components/requests/icons'
 import { SelectField } from '@/components/requests/select-field'
+import { LoadingCard } from '@/components/states/loading-card'
+import { StudentFrame } from '@/components/states/shell-parts'
 import { StudentShell } from '@/components/student-shell'
 import { SubmitButton } from '@/components/submit-button'
 import {
@@ -14,8 +17,11 @@ import {
   paymentYears,
   requestFieldView,
   reuseFields,
+  type RequestFields,
+  type RequestKind,
 } from '@/lib/requests'
 import { denyRecord, requireStudentActor } from '@/server/auth/page-guards'
+import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
 import { getMyRequest } from '@/server/dal/student'
 import { createRequestAction } from './actions'
@@ -36,10 +42,10 @@ export default async function NewRequestPage({
 }: {
   searchParams: Promise<{ type?: string | string[]; from?: string | string[]; limit?: string | string[] }>
 }) {
+  // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
   const actor = await requireStudentActor()
   const { type, from, limit } = await searchParams
   if (!isRequestKind(type)) redirect('/requests')
-  const info = REQUEST_KIND_INFO[type]
   const year = currentYearIn(getConfig().timezone)
 
   let fields = defaultFields(type, year)
@@ -52,6 +58,36 @@ export default async function NewRequestPage({
     fields = reuseFields(type, previous, year)
   }
 
+  // Всё, что могло увести на другую страницу или ответить «нет такой заявки», выше границы ожидания (пакет 3.7).
+  // Ниже — только разметка с каркасом: этой странице читать нечего, кроме шапки.
+  return (
+    <Suspense
+      fallback={
+        <StudentFrame data={null} active="requests">
+          <LoadingCard label="Загружаем заявки…" />
+        </StudentFrame>
+      }
+    >
+      <NewRequestContent actor={actor} type={type} fields={fields} year={year} limit={limit} />
+    </Suspense>
+  )
+}
+
+// Рисует экран. Внутри границы нет redirect(), notFound(), forbidden() и denyRecord().
+async function NewRequestContent({
+  actor,
+  type,
+  fields,
+  year,
+  limit,
+}: {
+  actor: Actor
+  type: RequestKind
+  fields: RequestFields
+  year: number
+  limit: string | string[] | undefined
+}) {
+  const info = REQUEST_KIND_INFO[type]
   const limitText = typeof limit === 'string' && Object.hasOwn(LIMIT_TEXT, limit) ? LIMIT_TEXT[limit] : undefined
   const fieldTitle = requestFieldView(type, fields)?.title
 

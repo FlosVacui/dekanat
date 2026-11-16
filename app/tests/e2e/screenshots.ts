@@ -5,7 +5,8 @@
 // Пакет 3.5: уведомления — лента «Все» (notifications), «Новости и объявления» (notifications-news), «Напоминания» (notifications-reminders), после «Отметить все прочитанными» (notifications-all-read).
 // Пакет 3.6: экран «Сегодня» — `today` на 360 и 1280 px (папку задаёт SCREENSHOT_DIR).
 // Пакет 3.7: состояние «ошибка» — today-error, schedule-error, staff-requests-error (отказ базы вызывает запрос владельца: отзыв права чтения, helpers/db.ts).
-// Состояния «загрузка» нет: файлов loading.tsx в пакете нет, см. отчёт по пакету 3.7.
+// Пакет 3.7, заход 2: состояние «загрузка» — schedule-loading (границу ожидания `<Suspense>` внутри страницы держит блокировка
+// таблицы `lessons`, которую берёт владелец, helpers/db.ts, `holdTableLock`; файлов loading.tsx в пакете нет).
 // Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
 // Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
@@ -18,7 +19,17 @@ import { MAIN_COHORT } from '../../db/seed-data'
 import { todayIn } from '../../src/lib/dates'
 import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
-import { REVOCABLE_TABLES, holdPair, resetFeedToSeed, restoreRead, revokeRead, type RevocableTable } from './helpers/db'
+import {
+  REVOCABLE_TABLES,
+  holdPair,
+  holdTableLock,
+  releaseAllLocks,
+  resetFeedToSeed,
+  restoreRead,
+  revokeRead,
+  type RevocableTable,
+  type TableLock,
+} from './helpers/db'
 import { planGrades } from './helpers/grades-plan'
 import { dayPath, planSchedule } from './helpers/schedule-plan'
 import { BASE_URL, startServer, stopServer } from './helpers/server'
@@ -137,6 +148,34 @@ async function shootError(page: Page, width: Width, name: string, path: string, 
   }
 }
 
+/**
+ * Снимок состояния «загрузка» (пакет 3.7, заход 2): владелец блокирует таблицу, которую читает экран, страница открывается,
+ * ждём карточку `role="status"` (первую секунду её не видно), снимок, блокировка снимается в `finally`. На время снимка включён запрет
+ * на движение: полосы стоят, пульс не попадает в кадр на середине. Анимации не отключаются совсем: иначе строка «Загрузка идёт дольше
+ * обычного» (её скрывает анимация на 10 секунд) попала бы на снимок сразу.
+ */
+async function shootLoading(page: Page, width: Width, name: string, path: string, table: RevocableTable): Promise<void> {
+  if (only && !only.test(name)) return
+  let lock: TableLock | null = null
+  try {
+    await page.emulateMedia({ reducedMotion: 'reduce' })
+    lock = await holdTableLock(table, 8000)
+    await page.goto(path, { waitUntil: 'commit' })
+    await page.locator('main [role="status"]').waitFor({ state: 'visible' })
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
+    if (overflow > 0) throw new Error(`горизонтальная прокрутка на ${overflow} px`)
+    await page.screenshot({ path: join(outDir, `${width}-${name}.png`) })
+    console.log(`ok   ${width}-${name}.png`)
+  } catch (error) {
+    failed += 1
+    await page.screenshot({ path: join(outDir, `fail-${width}-${name}.png`) }).catch(() => undefined)
+    console.error(`FAIL ${width}-${name}: ${error instanceof Error ? error.message : String(error)}`)
+  } finally {
+    await lock?.release()
+    await page.emulateMedia({ reducedMotion: null }).catch(() => undefined)
+  }
+}
+
 async function submitWrongLogin(page: Page, password: string): Promise<void> {
   await fillLogin(page, studentLogin, password)
   const answered = page.waitForResponse((res) => res.request().method() === 'POST' && new URL(res.url()).pathname === '/login')
@@ -240,6 +279,9 @@ async function main(): Promise<void> {
       // Пакет 3.7: «ошибка» на «Сегодня» и на расписании. Обе страницы читают таблицу `lessons`.
       await shootError(page, width, 'today-error', `${BASE_URL}/`, 'lessons')
       await shootError(page, width, 'schedule-error', `${BASE_URL}/schedule`, 'lessons')
+      // Пакет 3.7, заход 2: «загрузка» на расписании. У «Сегодня» границы ожидания нет: она ломала чужой сквозной тест
+      // (tests/e2e/notifications.spec.ts, С-16), страница возвращена к прежнему виду, снимка `today-loading` нет.
+      await shootLoading(page, width, 'schedule-loading', `${BASE_URL}/schedule`, 'lessons')
       await studentContext.close()
 
       // Сотрудник.
@@ -263,6 +305,7 @@ async function main(): Promise<void> {
     }
   } finally {
     // Право чтения возвращено в `finally` каждого снимка; здесь ещё раз для всех таблиц, на случай обрыва между отзывом и возвратом.
+    await releaseAllLocks()
     for (const table of REVOCABLE_TABLES) await restoreRead(table)
     await browser.close()
     await stopServer(server)

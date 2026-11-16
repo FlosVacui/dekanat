@@ -304,3 +304,65 @@ export async function requestNewsCount(login: string): Promise<number> {
     return res.rows[0].n as number
   })
 }
+
+// Пакет 3.7, заход 2: задержка базы для проверки состояния «загрузка». Задержка ответа средствами Playwright не годится: она держит
+// весь ответ, и скелет не приходит раньше содержимого. Поэтому владелец берёт блокировку таблицы в открытой транзакции: запрос приложения
+// к этой таблице ждёт, а проверка входа, которая таблицу не читает, отвечает сразу. Блокировка снимается откатом транзакции: вручную
+// (`release`), по таймеру `maxMs` или в `releaseAllLocks` (`finally` теста и `afterAll`). Запрос приложения, который ждёт дольше
+// 10 секунд, база обрывает (`statement_timeout`, server/dal/client.ts): `maxMs` и время до ручного снятия берут меньше. Только локальная
+// тестовая база; таблицы — те же, что у отзыва права.
+
+/** Таблицы, которые можно блокировать: список отзыва права и `sessions` (её читает проверка входа: блокировка держит ответ до первого байта). Имя идёт в запрос как идентификатор. */
+export const LOCKABLE_TABLES = [...REVOCABLE_TABLES, 'sessions'] as const
+export type LockableTable = (typeof LOCKABLE_TABLES)[number]
+
+export interface TableLock {
+  /** Снимает блокировку. Можно вызывать несколько раз. */
+  release: () => Promise<void>
+}
+
+const activeLocks = new Set<TableLock>()
+
+/**
+ * Берёт блокировку `ACCESS EXCLUSIVE` таблицы в открытой транзакции и возвращает управление, когда блокировка получена.
+ * Через `maxMs` миллисекунд снимает её сама: тест, который упал или забыл снять, базу не держит.
+ */
+export async function holdTableLock(table: LockableTable, maxMs: number): Promise<TableLock> {
+  if (!(LOCKABLE_TABLES as readonly string[]).includes(table)) throw new Error(`Таблица «${table}» не из списка LOCKABLE_TABLES`)
+  const client = new pg.Client({ connectionString: ownerUrl() })
+  await client.connect()
+  let released = false
+  const timer: { id?: ReturnType<typeof setTimeout> } = {}
+  const lock: TableLock = {
+    release: async () => {
+      if (released) return
+      released = true
+      if (timer.id) clearTimeout(timer.id)
+      activeLocks.delete(lock)
+      try {
+        await client.query('rollback')
+      } finally {
+        await client.end()
+      }
+    },
+  }
+  try {
+    await client.query('begin')
+    // Сама блокировка не ждёт дольше 15 секунд: если таблицу держит чужой запрос, тест падает, а не висит.
+    await client.query("set local lock_timeout = '15s'")
+    await client.query(`lock table ${client.escapeIdentifier(table)} in access exclusive mode`)
+  } catch (error) {
+    await lock.release().catch(() => undefined)
+    throw error
+  }
+  activeLocks.add(lock)
+  timer.id = setTimeout(() => {
+    void lock.release().catch(() => undefined)
+  }, maxMs)
+  return lock
+}
+
+/** Снимает все блокировки, взятые `holdTableLock` и ещё не снятые. */
+export async function releaseAllLocks(): Promise<void> {
+  for (const lock of [...activeLocks]) await lock.release().catch(() => undefined)
+}

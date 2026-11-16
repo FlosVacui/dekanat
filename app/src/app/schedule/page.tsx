@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import { PageTitle } from '@/components/card'
 import { DayStrip } from '@/components/schedule/day-strip'
 import { EmptyDay } from '@/components/schedule/empty-day'
@@ -5,9 +6,12 @@ import { LessonCard } from '@/components/schedule/lesson-card'
 import { ViewSwitch } from '@/components/schedule/view-switch'
 import { WeekList } from '@/components/schedule/week-list'
 import { StudentShell } from '@/components/student-shell'
+import { LoadingCard } from '@/components/states/loading-card'
+import { StudentFrame } from '@/components/states/shell-parts'
 import { todayIn, weekInfo } from '@/lib/dates'
 import { buildSchedule, pickDay, pickView, scheduleRange } from '@/lib/schedule'
 import { requireStudentActor } from '@/server/auth/page-guards'
+import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
 import { listMyLessons } from '@/server/dal/student'
 
@@ -20,11 +24,28 @@ export const dynamic = 'force-dynamic'
 type Param = string | string[] | undefined
 
 export default async function SchedulePage({ searchParams }: { searchParams: Promise<{ day?: Param; view?: Param }> }) {
+  // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
   const actor = await requireStudentActor()
   const params = await searchParams
   const today = todayIn(getConfig().timezone)
   const view = pickView(params.view)
   const selected = pickDay(params.day, today)
+
+  return (
+    <Suspense
+      fallback={
+        <StudentFrame data={null} active="schedule">
+          <LoadingCard label="Загружаем расписание…" />
+        </StudentFrame>
+      }
+    >
+      <ScheduleContent actor={actor} today={today} view={view} selected={selected} />
+    </Suspense>
+  )
+}
+
+// Читает данные экрана и рисует его. Внутри границы нет redirect(), notFound(), forbidden() и denyRecord().
+async function ScheduleContent({ actor, today, view, selected }: { actor: Actor; today: string; view: 'day' | 'week'; selected: string }) {
   // Пары просятся и за прошедшие дни: запрос выбирает по дате СТАРОГО места, а перенесённая вчера пара стоит сегодня на новом.
   // buildSchedule оставляет из прошлых пар только новое место переноса, попавшее в ленту.
   const range = scheduleRange(today)
