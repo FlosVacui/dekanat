@@ -91,7 +91,7 @@ export function FeedList({ items, filter, tz }: { items: FeedItem[]; filter: Not
               {body}
               <form action={openFeedItemAction}>
                 <HiddenFields item={item} filter={filter} />
-                <Button type="submit" variant="ghost" className="w-full">
+                <Button type="submit" variant="soft" className="w-full">
                   Отметить прочитанным
                 </Button>
               </form>

@@ -231,6 +231,68 @@ export async function unreadAnnouncementCount(login: string): Promise<number> {
   })
 }
 
+// Пакет 3.7: отказ базы для проверки состояния «ошибка». Владелец отзывает у роли приложения право чтения одной таблицы:
+// запрос слоя доступа к ней падает, страница бросает ошибку, и Next.js показывает error.tsx. В продукте для этого нет ни обходного
+// входа, ни переключателя. Только локальная тестовая база. Тест возвращает право в `finally` каждой проверки и в `afterAll`.
+
+/** Таблицы, у которых тест отзывает право чтения. Другие имена не принимаются: имя идёт в запрос как идентификатор. */
+export const REVOCABLE_TABLES = ['lessons', 'disciplines', 'requests', 'notifications', 'groups'] as const
+export type RevocableTable = (typeof REVOCABLE_TABLES)[number]
+
+function assertRevocable(table: string): asserts table is RevocableTable {
+  if (!(REVOCABLE_TABLES as readonly string[]).includes(table)) throw new Error(`Таблица «${table}» не из списка REVOCABLE_TABLES`)
+}
+
+/** Имя роли приложения — из адреса базы приложения (DATABASE_URL). Файл окружения читается тем же способом, что у адреса владельца; значения не печатаются. */
+function appRole(): string {
+  ownerUrl()
+  const url = process.env.DATABASE_URL
+  if (!url) throw new Error('Нет DATABASE_URL: имя роли приложения взять неоткуда')
+  const role = decodeURIComponent(new URL(url).username)
+  if (!role) throw new Error('В DATABASE_URL нет имени роли')
+  return role
+}
+
+/** Есть ли у роли приложения право чтения таблицы. */
+export async function appCanRead(table: RevocableTable): Promise<boolean> {
+  assertRevocable(table)
+  const role = appRole()
+  return withOwner(async (c) => {
+    const res = await c.query('select has_table_privilege($1, $2, $3) as ok', [role, table, 'select'])
+    return res.rows[0].ok as boolean
+  })
+}
+
+/** Отзывает у роли приложения право чтения таблицы. Право не пропало — тест не может вызвать отказ базы этим способом: ошибка. */
+export async function revokeRead(table: RevocableTable): Promise<void> {
+  assertRevocable(table)
+  const role = appRole()
+  await withOwner(async (c) => {
+    await c.query(`revoke select on table ${c.escapeIdentifier(table)} from ${c.escapeIdentifier(role)}`)
+  })
+  if (await appCanRead(table)) throw new Error(`Право чтения «${table}» после отзыва осталось: способ с отзывом права не работает`)
+}
+
+/** Возвращает право чтения, как его выдают миграции (`GRANT SELECT ON ALL TABLES`, app/db/migrate-lib.ts). Можно вызывать, когда право на месте. */
+export async function restoreRead(table: RevocableTable): Promise<void> {
+  assertRevocable(table)
+  const role = appRole()
+  await withOwner(async (c) => {
+    await c.query(`grant select on table ${c.escapeIdentifier(table)} to ${c.escapeIdentifier(role)}`)
+  })
+}
+
+/** Номер первой по времени заявки студента: для проверки чужой заявки. Заявок нет — null. */
+export async function firstRequestIdOf(login: string): Promise<string | null> {
+  return withOwner(async (c) => {
+    const res = await c.query(
+      'select r.id from requests r join users u on u.id = r.student_id where u.login = $1 order by r.created_at, r.id limit 1',
+      [login],
+    )
+    return (res.rows[0]?.id as string | undefined) ?? null
+  })
+}
+
 /** Заявки студента, о которых «Сегодня» говорит в блоке «Мои заявки»: в работе, готова, отклонена. */
 export async function requestNewsCount(login: string): Promise<number> {
   return withOwner(async (c) => {
