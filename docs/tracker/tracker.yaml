@@ -1072,6 +1072,10 @@ history:
     item: "3.8"
     what: "Смена В-5: правка — сессия датами календаря, экзамены не уезжают на праздники; ветка fix/data-session-dates"
     who: "Участник В"
+  - date: 2026-11-17
+    item: "2.2"
+    what: "Смена В-5, часть 9: вёрстка для компьютера от 1024 px, фильтр и поиск заявок у сотрудника; PR №25, 36–43 слиты в integrate; ревью RV-В5-1"
+    who: "Участник В за участников А и Б; оркестратор Opus 5.5; reviewer Sonnet 5.5 / high"
 
 reviews:
   - id: "R-0.3-1"
@@ -3433,6 +3437,64 @@ reviews:
     by: "Sonnet 5.5 / medium"
     status: "отложено"
     comment: "Ответ пользователя 17.11, смена 32: строка IMP-041"
+  - id: "R-3.8-28"
+    item: "3.8"
+    round: 1
+    severity: "предложение"
+    text: "RV-В5-1, R-В5-1: пары расписания попадают на зачётную неделю и дни контроля"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.8-29"
+    item: "3.8"
+    round: 1
+    severity: "незначительное"
+    text: "RV-В5-1, R-В5-2: ссылки на docs/data/check-2026-11-17.md до слияния docs/data-check"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "docs/data-check слита в integrate раньше fix/data-session-dates"
+  - id: "R-3.8-30"
+    item: "3.8"
+    round: 1
+    severity: "предложение"
+    text: "RV-В5-1, R-В5-3: инварианты дат сессии держатся только при Д до 18.12"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.8-31"
+    item: "3.8"
+    round: 1
+    severity: "предложение"
+    text: "RV-В5-1, R-В5-4: текст отказа просит учебные годы, а поля в форме нет; draft.md не обновлён"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.10-3"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-В5-1, R-В5-5: запас «Сохранить» около 5 px на 360×800; случай «Отклонена» не покрыт"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.10-4"
+    item: "3.10"
+    round: 1
+    severity: "незначительное"
+    text: "RV-В5-1, R-В5-6: описание markMyFeedItemRead над интерфейсом и устарело"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Исправлено в a04dc2b"
+  - id: "R-3.10-5"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-В5-1, R-В5-7: тест R-3.5-4 проверяет только «не 500»; итог R-3.10-2 в журнале неоднозначен"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.10-6"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-В5-1, R-В5-8: события отказа пишутся без предела"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
 
 decisions:
   - id: "Р-0"
