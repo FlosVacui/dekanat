@@ -20,6 +20,8 @@ export function notificationsHref(filter: NotificationsFilter | null): string {
 export function safeInternalPath(link: string | null | undefined): string | null {
   if (typeof link !== 'string' || link === '') return null
   if (!link.startsWith('/') || link.startsWith('//') || link.startsWith('/\\')) return null
-  if (/[\u0000- \u007f\\]/.test(link)) return null
+  // Годятся только видимые знаки ASCII без обратной черты. Знаки выше U+007F — тоже нет: U+2028 и похожие
+  // ломали redirect() ответом 500 (R-3.5-4). Ссылки уведомлений в продукте — пути из латиницы, цифр и знаков URL.
+  if (/[^\u0021-\u007e]|\\/.test(link)) return null
   return link
 }

@@ -2,8 +2,10 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { getClientIp } from '@/server/auth/cookie'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import { markAllMyFeedRead, markMyFeedItemRead } from '@/server/dal/student'
+import { logSecurityEvent } from '@/server/security-log'
 import { notificationsHref, parseFilter, safeInternalPath } from './filter'
 
 /**
@@ -15,7 +17,9 @@ import { notificationsHref, parseFilter, safeInternalPath } from './filter'
 export async function openFeedItemAction(formData: FormData): Promise<void> {
   const actor = await requireStudentActor()
   const filter = parseFilter(formData.get('filter'))
-  const link = await markMyFeedItemRead(actor, formData.get('source'), formData.get('id'))
+  const { found, link } = await markMyFeedItemRead(actor, formData.get('source'), formData.get('id'))
+  // Чужая или несуществующая запись — подделанная форма: событие, как у страницы чужой записи (R-3.5-5, denyRecord).
+  if (!found) logSecurityEvent('access_denied_record', { userId: actor.userId, ip: await getClientIp() })
   // Число у колокольчика стоит на каждом экране: кэш переходов браузера сбрасывается, чтобы «Назад» не показал старое число.
   revalidatePath('/', 'layout')
   if (link === null || link === '/notifications') redirect(notificationsHref(filter))

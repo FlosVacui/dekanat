@@ -593,9 +593,18 @@ export async function listMyFeed(actor: Actor): Promise<FeedItem[]> {
  * Возвращает ссылку своего уведомления или null. Чужая, несуществующая запись и мусор вместо номера дают один ответ
  * (null) и ничего не меняют.
  */
-export async function markMyFeedItemRead(actor: Actor, source: unknown, id: unknown): Promise<string | null> {
+export interface FeedItemMark {
+  /** Запись есть в ленте этого студента. `false` — чужая, несуществующая или мусор в форме: действие пишет отказ (R-3.5-5). */
+  found: boolean
+  /** Ссылка своего уведомления из базы; у объявления и у уведомления без ссылки — `null`. */
+  link: string | null
+}
+
+const NOT_FOUND: FeedItemMark = { found: false, link: null }
+
+export async function markMyFeedItemRead(actor: Actor, source: unknown, id: unknown): Promise<FeedItemMark> {
   const { studentId, groupId } = requireStudent(actor)
-  if (!isUuid(id)) return null
+  if (!isUuid(id)) return NOT_FOUND
   const db = getDb()
   if (source === 'notification') {
     const rows = await db
@@ -603,19 +612,21 @@ export async function markMyFeedItemRead(actor: Actor, source: unknown, id: unkn
       .set({ readAt: sql`coalesce(${notifications.readAt}, now())` })
       .where(and(eq(notifications.id, id), eq(notifications.studentId, studentId)))
       .returning({ link: notifications.link })
-    return rows[0]?.link ?? null
+    return rows[0] ? { found: true, link: rows[0].link ?? null } : NOT_FOUND
   }
   if (source === 'announcement') {
     const faculty = await facultyOf(studentId)
-    if (!faculty) return null
+    if (!faculty) return NOT_FOUND
     const addressed = await db
       .select({ id: announcements.id })
       .from(announcements)
       .where(and(eq(announcements.id, id), addressedTo(groupId, faculty)))
       .limit(1)
-    if (addressed[0]) await db.insert(announcementReads).values({ announcementId: id, studentId }).onConflictDoNothing()
+    if (!addressed[0]) return NOT_FOUND
+    await db.insert(announcementReads).values({ announcementId: id, studentId }).onConflictDoNothing()
+    return { found: true, link: null }
   }
-  return null
+  return NOT_FOUND
 }
 
 /** Отметить всё непрочитанное этого студента — личные уведомления и объявления его группы или факультета — одной транзакцией. */
