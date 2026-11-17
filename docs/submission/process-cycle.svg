@@ -1,0 +1,158 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1040 640" width="1040" height="640" font-family="Segoe UI, Arial, sans-serif" role="img" aria-labelledby="t d">
+  <title id="t">Как устроена работа с ИИ: цикл пакета и смена</title>
+  <desc id="d">Оркестратор пишет задание, субагент-исполнитель делает работу, другой агент проводит ревью, правки идут не больше двух раундов, оркестратор принимает, человек подтверждает слияние, итог записывается. Ниже — смена: начало, пакеты, точка сохранения, передача следующей сессии.</desc>
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 z" fill="#3b4252"/>
+    </marker>
+  </defs>
+  <rect x="0" y="0" width="1040" height="640" fill="#ffffff"/>
+
+  <!-- Человек -->
+  <rect x="20" y="16" width="1000" height="64" rx="10" fill="#fff4e0" stroke="#d98c1f" stroke-width="1.5"/>
+  <text x="36" y="42" font-size="16" font-weight="700" fill="#5a3a00">Человек — участник А</text>
+  <text x="36" y="65" font-size="13.5" fill="#5a3a00">Решает развилки. Подтверждает слияние, покупки, публикацию и отправку работы. Проверяет глазами и с телефона.</text>
+
+  <text x="20" y="112" font-size="15" font-weight="700" fill="#1f2937">Цикл пакета</text>
+
+  <!-- 1 Задание -->
+  <rect x="20" y="124" width="150" height="132" rx="10" fill="#e8f0fe" stroke="#1a4ca6" stroke-width="1.5"/>
+  <text x="95" y="148" font-size="14.5" font-weight="700" text-anchor="middle" fill="#12357a">1. Задание</text>
+  <text x="95" y="168" font-size="12" text-anchor="middle" fill="#1f2937">Оркестратор</text>
+  <text font-size="11.5" text-anchor="middle" fill="#374151">
+    <tspan x="95" y="190">цель, шаги,</tspan>
+    <tspan x="95" y="206">файлы «можно и нельзя»,</tspan>
+    <tspan x="95" y="222">ловушки,</tspan>
+    <tspan x="95" y="238">«готово, когда»</tspan>
+  </text>
+
+  <!-- 2 Исполнитель -->
+  <rect x="190" y="124" width="150" height="132" rx="10" fill="#e9f7ef" stroke="#1f8a4c" stroke-width="1.5"/>
+  <text x="265" y="148" font-size="14.5" font-weight="700" text-anchor="middle" fill="#14532d">2. Исполнитель</text>
+  <text x="265" y="168" font-size="12" text-anchor="middle" fill="#1f2937">Субагент с ролью</text>
+  <text font-size="11.5" text-anchor="middle" fill="#374151">
+    <tspan x="265" y="190">researcher, designer,</tspan>
+    <tspan x="265" y="206">builder</tspan>
+    <tspan x="265" y="222">не коммитит;</tspan>
+    <tspan x="265" y="238">называет свои ошибки</tspan>
+  </text>
+
+  <!-- 3 Ревью -->
+  <rect x="360" y="124" width="150" height="132" rx="10" fill="#fdecec" stroke="#b42318" stroke-width="1.5"/>
+  <text x="435" y="148" font-size="14.5" font-weight="700" text-anchor="middle" fill="#7a1710">3. Ревью</text>
+  <text x="435" y="168" font-size="12" text-anchor="middle" fill="#1f2937">Другой агент, без чата</text>
+  <text font-size="11.5" text-anchor="middle" fill="#374151">
+    <tspan x="435" y="190">reviewer,</tspan>
+    <tspan x="435" y="206">security-auditor</tspan>
+    <tspan x="435" y="222">пишет только отчёт,</tspan>
+    <tspan x="435" y="238">ничего не исправляет</tspan>
+  </text>
+
+  <!-- 4 Приёмка -->
+  <rect x="530" y="124" width="150" height="132" rx="10" fill="#e8f0fe" stroke="#1a4ca6" stroke-width="1.5"/>
+  <text x="605" y="148" font-size="14.5" font-weight="700" text-anchor="middle" fill="#12357a">4. Приёмка</text>
+  <text x="605" y="168" font-size="12" text-anchor="middle" fill="#1f2937">Оркестратор</text>
+  <text font-size="11.5" text-anchor="middle" fill="#374151">
+    <tspan x="605" y="190">критерий «готово, когда»,</tspan>
+    <tspan x="605" y="206">общая проверка,</tspan>
+    <tspan x="605" y="222">решение по каждому</tspan>
+    <tspan x="605" y="238">замечанию</tspan>
+  </text>
+
+  <!-- 5 Решение человека -->
+  <rect x="700" y="124" width="150" height="132" rx="10" fill="#fff4e0" stroke="#d98c1f" stroke-width="1.5"/>
+  <text x="775" y="148" font-size="14.5" font-weight="700" text-anchor="middle" fill="#5a3a00">5. Слово человека</text>
+  <text x="775" y="168" font-size="12" text-anchor="middle" fill="#1f2937">Участник А</text>
+  <text font-size="11.5" text-anchor="middle" fill="#374151">
+    <tspan x="775" y="190">вопрос с вариантами</tspan>
+    <tspan x="775" y="206">и рекомендацией;</tspan>
+    <tspan x="775" y="222">«да» — PR открыт</tspan>
+    <tspan x="775" y="238">и слит</tspan>
+  </text>
+
+  <!-- 6 Записи -->
+  <rect x="870" y="124" width="150" height="132" rx="10" fill="#f3f4f6" stroke="#4b5563" stroke-width="1.5"/>
+  <text x="945" y="148" font-size="14.5" font-weight="700" text-anchor="middle" fill="#1f2937">6. Записи</text>
+  <text x="945" y="168" font-size="12" text-anchor="middle" fill="#1f2937">Оркестратор</text>
+  <text font-size="11.5" text-anchor="middle" fill="#374151">
+    <tspan x="945" y="190">журнал, учёт,</tspan>
+    <tspan x="945" y="206">решения,</tspan>
+    <tspan x="945" y="222">материалы</tspan>
+    <tspan x="945" y="238">для описания</tspan>
+  </text>
+
+  <!-- стрелки цикла -->
+  <g stroke="#3b4252" stroke-width="1.8" fill="none" marker-end="url(#a)">
+    <line x1="170" y1="190" x2="188" y2="190"/>
+    <line x1="340" y1="190" x2="358" y2="190"/>
+    <line x1="510" y1="190" x2="528" y2="190"/>
+    <line x1="680" y1="190" x2="698" y2="190"/>
+    <line x1="850" y1="190" x2="868" y2="190"/>
+    <!-- петля правок -->
+    <path d="M435 256 L435 292 L265 292 L265 258"/>
+  </g>
+  <text x="350" y="312" font-size="12.5" text-anchor="middle" fill="#7a1710" font-weight="600">правки по замечаниям — не больше двух раундов ревью</text>
+
+  <!-- смена -->
+  <text x="20" y="356" font-size="15" font-weight="700" fill="#1f2937">Смена: от начала до передачи</text>
+
+  <g font-size="12" fill="#1f2937">
+    <rect x="20" y="368" width="184" height="96" rx="10" fill="#f3f4f6" stroke="#4b5563" stroke-width="1.2"/>
+    <text x="112" y="390" font-weight="700" text-anchor="middle" font-size="13.5">/start</text>
+    <text text-anchor="middle" font-size="11.5" fill="#374151">
+      <tspan x="112" y="410">кто работает, git,</tspan>
+      <tspan x="112" y="426">сроки, файл передачи,</tspan>
+      <tspan x="112" y="442">развилки, лимиты</tspan>
+    </text>
+
+    <rect x="224" y="368" width="184" height="96" rx="10" fill="#e8f0fe" stroke="#1a4ca6" stroke-width="1.2"/>
+    <text x="316" y="390" font-weight="700" text-anchor="middle" font-size="13.5">Пакеты смены</text>
+    <text text-anchor="middle" font-size="11.5" fill="#374151">
+      <tspan x="316" y="410">цикл выше;</tspan>
+      <tspan x="316" y="426">не больше двух</tspan>
+      <tspan x="316" y="442">субагентов сразу</tspan>
+    </text>
+
+    <rect x="428" y="368" width="184" height="96" rx="10" fill="#fdecec" stroke="#b42318" stroke-width="1.2"/>
+    <text x="520" y="390" font-weight="700" text-anchor="middle" font-size="13.5">Лимит 80 %</text>
+    <text text-anchor="middle" font-size="11.5" fill="#374151">
+      <tspan x="520" y="410">сразу точка сохранения;</tspan>
+      <tspan x="520" y="426">меньше 25 пунктов до 100 % —</tspan>
+      <tspan x="520" y="442">субагент не запускается</tspan>
+    </text>
+
+    <rect x="632" y="368" width="184" height="96" rx="10" fill="#f3f4f6" stroke="#4b5563" stroke-width="1.2"/>
+    <text x="724" y="390" font-weight="700" text-anchor="middle" font-size="13.5">/handoff</text>
+    <text text-anchor="middle" font-size="11.5" fill="#374151">
+      <tspan x="724" y="410">коммит, журнал, учёт,</tspan>
+      <tspan x="724" y="426">файл передачи</tspan>
+      <tspan x="724" y="442">переписан</tspan>
+    </text>
+
+    <rect x="836" y="368" width="184" height="96" rx="10" fill="#e9f7ef" stroke="#1f8a4c" stroke-width="1.2"/>
+    <text x="928" y="390" font-weight="700" text-anchor="middle" font-size="13.5">Промпт H-NNN</text>
+    <text text-anchor="middle" font-size="11.5" fill="#374151">
+      <tspan x="928" y="410">следующей сессии:</tspan>
+      <tspan x="928" y="426">чата у неё нет —</tspan>
+      <tspan x="928" y="442">только репозиторий</tspan>
+    </text>
+  </g>
+  <g stroke="#3b4252" stroke-width="1.8" fill="none" marker-end="url(#a)">
+    <line x1="204" y1="416" x2="222" y2="416"/>
+    <line x1="408" y1="416" x2="426" y2="416"/>
+    <line x1="612" y1="416" x2="630" y2="416"/>
+    <line x1="816" y1="416" x2="834" y2="416"/>
+  </g>
+
+  <!-- материалы -->
+  <rect x="20" y="496" width="1000" height="124" rx="10" fill="#f9fafb" stroke="#9ca3af" stroke-width="1.2" stroke-dasharray="6 4"/>
+  <text x="36" y="522" font-size="15" font-weight="700" fill="#1f2937">Что копится в репозитории в момент работы</text>
+  <text font-size="12.5" fill="#374151">
+    <tspan x="36" y="548">Промпты и задания — prompts/, docs/briefs/</tspan>
+    <tspan x="36" y="570">Отчёты ревью и аудита — docs/reviews/</tspan>
+    <tspan x="36" y="592">Ошибки ИИ — docs/evidence/ai-errors.md</tspan>
+    <tspan x="540" y="548">Решения человека — docs/DECISIONS.md</tspan>
+    <tspan x="540" y="570">Ручные шаги и инструменты — docs/evidence/</tspan>
+    <tspan x="540" y="592">Снимки экранов — docs/evidence/screenshots/</tspan>
+  </text>
+</svg>
