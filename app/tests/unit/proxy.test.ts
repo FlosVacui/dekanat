@@ -12,9 +12,17 @@ describe('proxy', () => {
   })
 
   it('R-3.10-9: POST с Origin, который не адрес http или https, — 403', () => {
+    // Пробел заголовок обрезает до пустой строки — это ещё один случай «заголовка нет».
     for (const origin of ['null', 'garbage', ' ', 'file://', 'javascript:alert(1)', 'data:text/html,x', 'http//localhost:3000']) {
       const res = proxy(new NextRequest(`${BASE}/login`, { method: 'POST', headers: { origin } }))
       expect(res.status, `Origin ${JSON.stringify(origin)}`).toBe(403)
+    }
+  })
+
+  it('R-3.10-9: законные Origin браузера пропускаются — порт, IPv6, punycode, заглавная схема, слэш на конце', () => {
+    for (const origin of ['https://moy-dekanat.example', 'http://localhost:3100', 'http://[::1]:3000', 'https://xn--80aswg.xn--p1ai', 'HTTPS://Example.COM', 'https://example.com/']) {
+      const res = proxy(new NextRequest(`${BASE}/login`, { method: 'POST', headers: { origin } }))
+      expect(res.headers.get('x-middleware-next'), `Origin ${origin}`).toBe('1')
     }
   })
 
