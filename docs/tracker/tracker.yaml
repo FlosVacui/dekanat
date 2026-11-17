@@ -1063,6 +1063,10 @@ history:
     commit: "8750739"
     tokens: 621909
     link: "docs/reviews/JURY-3.10.md"
+  - date: 2026-11-17
+    item: "4.5"
+    what: "Смена В-5: протокол пробы и бланк результатов — docs/research/trial/. Ветка docs/4.5-trial. Токены не сняты"
+    who: "Участник В"
 
 reviews:
   - id: "R-0.3-1"
