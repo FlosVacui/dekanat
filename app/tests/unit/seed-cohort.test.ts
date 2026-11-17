@@ -222,7 +222,7 @@ describe('прежний набор не оставляет следов (db:see
         })
       }
       const rejected = await client.query(`SELECT note FROM request_events WHERE status = 'rejected' AND request_id IN (SELECT id FROM requests WHERE ip = 'seed')`)
-      expect(rejected.rows).toEqual([{ note: 'Такую справку выдают по заявлению в деканате. Подайте заявление лично' }])
+      expect(rejected.rows).toEqual([{ note: 'Укажите, за какие учебные годы нужна справка, и подайте заявку снова' }])
     })
   })
 })
@@ -273,7 +273,11 @@ describe('режим «освежить» (db:refresh)', () => {
       expect((await client.query('SELECT due_date::text AS d FROM requests WHERE id = $1', [aid.id])).rows[0].d).toBe(aid.dueDate)
       expect(aid.dueDate).not.toBe(planNow.students[0]!.requests.find((r) => r.key === 'aid')!.dueDate)
       const exam = await client.query(`SELECT exam_date::text AS d FROM disciplines WHERE name = 'Микроэкономика'`)
-      expect(exam.rows[0].d).toBe(addDays(later, 36))
+      // Сессия — датой календаря: освежение её не двигает (docs/data/check-2026-11-17.md, Д-1). Пересдача — сдвигом, двигается.
+      expect(exam.rows[0].d).toBe('2026-12-29')
+      const resit = await client.query(`SELECT exam_date::text AS d FROM disciplines WHERE name = 'Эконометрика'`)
+      expect(resit.rows[0].d).toBe(planLater.disciplines.find((d) => d.name === 'Эконометрика')!.examDate)
+      expect(resit.rows[0].d).not.toBe(planNow.disciplines.find((d) => d.name === 'Эконометрика')!.examDate)
       const due = await client.query(`SELECT due_date::text AS d FROM assignments WHERE title = 'Расчётная работа №3'`)
       expect(due.rows[0].d).toBe(planLater.disciplines.flatMap((d) => d.assignments).find((w) => w.key === 'rz3')!.dueDate)
       const published = await client.query(`SELECT (published_at AT TIME ZONE 'Europe/Moscow')::date::text AS d FROM announcements WHERE title = 'Оценки за экзамены' LIMIT 1`)

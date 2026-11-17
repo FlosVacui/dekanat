@@ -95,33 +95,35 @@ const GROUP_1: GroupSpec = {
       note: 'Ведёт Яковлева А. С. вместо Мельник Д. О.',
     },
   ],
+  // Сессия — датами календаря, как в объявлении a2: зачёты 21–26.12, экзамены с 28.12 по 24.01, мимо праздников 31.12–08.01.
+  // Пересдача — сдвигом: она всегда впереди (docs/data/check-2026-11-17.md, Д-1).
   disciplines: [
     {
       name: 'Микроэкономика',
       controlKind: 'exam',
       semester: 5,
-      exam: { dayOffset: 36, time: '10:00', room: '1-412' },
+      exam: { date: '2026-12-29', time: '10:00', room: '1-412' },
       assignments: [{ key: 'rz3', title: 'Расчётная работа №3', dayOffset: 2, maxPoints: 20 }],
     },
     {
       name: 'Корпоративные финансы',
       controlKind: 'exam',
       semester: 5,
-      exam: { dayOffset: 51, time: '10:00', room: '2-210' },
+      exam: { date: '2027-01-13', time: '10:00', room: '2-210' },
       assignments: [{ key: 'case', title: 'Кейс по оценке проекта', dayOffset: 7, maxPoints: 15 }],
     },
     {
       name: 'Логистика цепей поставок',
       controlKind: 'credit',
       semester: 5,
-      exam: { dayOffset: 30, time: '12:00', room: '1-204' },
+      exam: { date: '2026-12-23', time: '12:00', room: '1-204' },
       assignments: [{ key: 'abstract', title: 'Реферат по складской логистике', dayOffset: 9, maxPoints: 25 }],
     },
     {
       name: 'Деловой английский',
       controlKind: 'credit',
       semester: 5,
-      exam: { dayOffset: 32, time: '08:30', room: '3-118' },
+      exam: { date: '2026-12-25', time: '08:30', room: '3-118' },
       assignments: [{ key: 'presentation', title: 'Презентация на английском', dayOffset: 8, maxPoints: 20 }],
     },
     // Прошлый семестр: сданное и долг (решение пользователя 13.11.2026).
@@ -149,24 +151,24 @@ const GROUP_2: GroupSpec = {
     },
   ],
   disciplines: [
-    { name: 'Математический анализ', controlKind: 'exam', semester: 3, exam: { dayOffset: 37, time: '10:00', room: '4-501' }, assignments: [] },
+    { name: 'Математический анализ', controlKind: 'exam', semester: 3, exam: { date: '2026-12-30', time: '10:00', room: '4-501' }, assignments: [] },
     {
       name: 'Физика',
       controlKind: 'exam',
       semester: 3,
-      exam: { dayOffset: 52, time: '10:00', room: '4-501' },
+      exam: { date: '2027-01-14', time: '10:00', room: '4-501' },
       assignments: [{ key: 'lab4', title: 'Отчёт по лабораторной №4', dayOffset: 3, maxPoints: 10 }],
     },
-    { name: 'Программирование на Python', controlKind: 'credit', semester: 3, exam: { dayOffset: 29, time: '08:30', room: '4-310' }, assignments: [] },
+    { name: 'Программирование на Python', controlKind: 'credit', semester: 3, exam: { date: '2026-12-22', time: '08:30', room: '4-310' }, assignments: [] },
     {
       name: 'Инженерная графика',
       controlKind: 'credit',
       semester: 3,
-      exam: { dayOffset: 31, time: '12:00', room: '4-118' },
+      exam: { date: '2026-12-24', time: '12:00', room: '4-118' },
       assignments: [{ key: 'drawing', title: 'Чертёж детали с разрезом', dayOffset: 4, maxPoints: 15 }],
     },
     // Дисциплина без баллов, пар в расписании нет: проект без аудиторных занятий (состояние «баллы бывают пустыми»).
-    { name: 'Основы проектной работы', controlKind: 'credit', semester: 3, exam: { dayOffset: 33, time: '10:15', room: '4-402' }, assignments: [] },
+    { name: 'Основы проектной работы', controlKind: 'credit', semester: 3, exam: { date: '2026-12-26', time: '10:15', room: '4-402' }, assignments: [] },
     { name: 'Линейная алгебра', controlKind: 'exam', semester: 2, assignments: [] },
     { name: 'Информатика', controlKind: 'exam', semester: 2, assignments: [] },
     { name: 'История России', controlKind: 'credit', semester: 2, assignments: [] },
@@ -326,9 +328,9 @@ export const MAIN_COHORT: CohortSpec = {
           note: null,
           steps: [
             { status: 'submitted', dayOffset: -6 },
-            { status: 'rejected', dayOffset: -5, note: 'Такую справку выдают по заявлению в деканате. Подайте заявление лично' },
+            { status: 'rejected', dayOffset: -5, note: 'Укажите, за какие учебные годы нужна справка, и подайте заявку снова' },
           ],
-          rejectReason: 'not_eligible',
+          rejectReason: 'incomplete_data',
         },
         {
           key: 'cert-residence',
@@ -343,7 +345,7 @@ export const MAIN_COHORT: CohortSpec = {
           key: 'cert-rejected',
           kind: 'reminder',
           title: 'Заявка отклонена: справка о периоде обучения',
-          body: 'Причина: Нет оснований для выдачи. Можно подать снова',
+          body: 'Причина: Не хватает данных. Можно подать снова',
           link: '/requests/{id.cert-study}',
           unread: true,
         },
