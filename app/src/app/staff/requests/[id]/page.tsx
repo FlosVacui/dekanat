@@ -67,6 +67,12 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
           </dl>
         </Card>
 
+        {/* Главное действие — сразу под данными заявки: «Сохранить» видна без прокрутки на 360, 390 и 1280 px (R-3.10-102). */}
+        <Card>
+          <CardTitle>Сменить статус</CardTitle>
+          <StatusForm requestId={request.id} options={options} reasons={reasons} />
+        </Card>
+
         <Card>
           <CardTitle>История статусов</CardTitle>
           <ol className="flex flex-col gap-[var(--sp-1)] text-[length:var(--fs-sm)]">
@@ -76,11 +82,6 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
               </li>
             ))}
           </ol>
-        </Card>
-
-        <Card>
-          <CardTitle>Сменить статус</CardTitle>
-          <StatusForm requestId={request.id} options={options} reasons={reasons} />
         </Card>
       </div>
     </StaffShell>

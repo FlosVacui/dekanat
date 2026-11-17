@@ -604,6 +604,11 @@ for (const vp of VIEWPORTS) {
         ready: sp.getByRole('heading', { level: 1 }),
         action: sp.getByRole('button', { name: 'Сохранить' }),
       })
+      // R-3.10-102: главная кнопка сотрудника — в первом окне, без прокрутки.
+      await sp.evaluate(() => window.scrollTo(0, 0))
+      const save = await sp.getByRole('button', { name: 'Сохранить' }).boundingBox()
+      expect(save, 'кнопка «Сохранить» есть на экране заявки').not.toBeNull()
+      expect(save!.y + save!.height, `${vp.width}×${vp.height}: «Сохранить» ниже первого окна`).toBeLessThanOrEqual(vp.height)
       const walk = await tabWalk(sp, 20)
       rec('focus', vp.width, 'staff-request', walk)
       expect(walk[0]!.label, 'первым в заявке сотрудника — «Выйти»').toContain('Выйти')
