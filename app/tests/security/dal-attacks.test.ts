@@ -12,7 +12,11 @@ import { ForbiddenError } from '@/server/dal/guards'
 import * as staffDal from '@/server/dal/staff'
 import * as studentDal from '@/server/dal/student'
 import { ALT_COHORT, ALT_STUDENT, STAFF_ALT, STAFF_MAIN, STUDENT_A, STUDENT_B } from '../unit/fixtures'
-import { actorFor, withOwner } from '../unit/helpers'
+import { actorFor, freshIp, withOwner } from '../unit/helpers'
+
+// SEC-3.10, IMP-018 пункт 4: у каждой подачи и каждого входа в этом файле свой адрес, а не общий 'test'. Лимит записи
+// (10 заявок в сутки на пару «аккаунт и адрес») файл больше не упирает; подмена адреса в tests/unit/helpers.ts ему не нужна.
+// Саму подмену убирает владелец tests/unit/ — аудитор этот файл не меняет.
 
 let a: Actor
 let b: Actor
@@ -30,7 +34,7 @@ beforeAll(async () => {
 afterAll(closeDb)
 
 async function newRequest(owner: Actor, kind: 'dean_certificate' | 'tuition_certificate' | 'financial_aid' = 'dean_certificate') {
-  const created = await studentDal.createMyRequest(owner, { kind }, 'test')
+  const created = await studentDal.createMyRequest(owner, { kind }, freshIp())
   if (!created) throw new Error('заявка не создана')
   return created.id
 }
@@ -96,7 +100,7 @@ describe('В-01: пароль в базе — хеш стойкого алгор
   })
 
   it('в таблице сессий нет ни пароля, ни токена в открытом виде', async () => {
-    const outcome = await authenticate(STUDENT_A.login, STUDENT_A.password, 'test')
+    const outcome = await authenticate(STUDENT_A.login, STUDENT_A.password, freshIp())
     if (!outcome.ok) throw new Error('вход не удался')
     const rows = await withOwner((c) => c.query('select * from sessions'))
     const dump = JSON.stringify(rows.rows)
@@ -109,7 +113,7 @@ describe('В-01: пароль в базе — хеш стойкого алгор
 
 describe('П-06: просроченная сессия не пускает', () => {
   it('сессия со сроком в прошлом — не действующее лицо', async () => {
-    const outcome = await authenticate(STUDENT_A.login, STUDENT_A.password, 'test')
+    const outcome = await authenticate(STUDENT_A.login, STUDENT_A.password, freshIp())
     if (!outcome.ok) throw new Error('вход не удался')
     expect(await resolveActor(outcome.token)).not.toBeNull()
     const tokenHash = createHash('sha256').update(outcome.token).digest('hex')
@@ -158,7 +162,7 @@ describe('R-2.3-25, R-2.3-28: функцию слоя нельзя вызват�
 describe('П-04, R-2.3-34: владелец и статус — от сервера', () => {
   it('лишние поля во входе слоя игнорируются: владелец — А, статус «Подана»', async () => {
     const input = { kind: 'dean_certificate', studentId: b.userId, userId: b.userId, status: 'ready', note: 'МЕТКА-П04-слой' }
-    const created = await studentDal.createMyRequest(a, input as unknown as { kind: 'dean_certificate' }, 'test')
+    const created = await studentDal.createMyRequest(a, input as unknown as { kind: 'dean_certificate' }, freshIp())
     expect(created).not.toBeNull()
     const mine = await studentDal.getMyRequest(a, created!.id)
     expect(mine?.status).toBe('submitted')
@@ -306,7 +310,7 @@ describe('R-2.3-26: выход и удаление сессий не стира�
     const countRequests = async () =>
       Number((await withOwner((c) => c.query('select count(*)::int as n from requests where student_id = $1', [a.userId]))).rows[0]?.n)
     const before = await countRequests()
-    const outcome = await authenticate(STUDENT_A.login, STUDENT_A.password, 'test')
+    const outcome = await authenticate(STUDENT_A.login, STUDENT_A.password, freshIp())
     if (!outcome.ok) throw new Error('вход не удался')
     await destroySession(outcome.token)
     await withOwner((c) => c.query('delete from sessions where user_id = $1', [a.userId]))
