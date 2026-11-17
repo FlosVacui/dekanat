@@ -374,6 +374,7 @@ items:
     owner: "Видеопродюсер (Sonnet 5.5 / medium); голос и съёмка — участники"
     review: "Пользователь"
     plan: {start: 2026-11-19, end: 2026-11-21}
+    fact: {2026-11-17: "В работе"}
   - id: "5.3"
     title: "README для жюри"
     person: "А"
@@ -1068,6 +1069,8 @@ history:
     what: "Смена В-5: протокол пробы и бланк результатов — docs/research/trial/. Ветка docs/4.5-trial. Токены не сняты"
     item: "5.3"
     what: "Смена В-5: черновик README к первой отправке — ветка docs/5.3-readme, ждёт участника А"
+    item: "5.2"
+    what: "Смена В-5: сценарий видео docs/submission/video-script.md. Ветка docs/5.2-video"
     who: "Участник В"
 
 reviews:
