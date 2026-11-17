@@ -148,6 +148,46 @@ describe('Д-03, Д-04: версия Next.js и файл блокировки', 
   })
 })
 
+// ---------- Аудит ворот 3, пакет 3.10 (SEC-3.10): Т-01, Ж-04 — раньше без теста (IMP-018, пункт 3) ----------
+
+describe('Т-01: тестовый аккаунт не может испортить доступ — действий над учётной записью нет', () => {
+  it('серверных действий ровно шесть: вход, выход, подача, смена статуса, две отметки ленты; обработчиков маршрутов нет', () => {
+    // Новое действие (смена пароля, почты, удаление аккаунта) делает этот тест красным: его надо разобрать в аудите.
+    const actions = src
+      .filter((f) => /^['"]use server['"]/m.test(f.text))
+      .flatMap((f) => [...f.text.matchAll(/^export\s+async\s+function\s+(\w+)/gm)].map((m) => `${f.rel}:${m[1]}`))
+      .sort()
+    expect(actions).toEqual(
+      [
+        'app/login/actions.ts:loginAction',
+        'app/login/actions.ts:logoutAction',
+        'app/notifications/actions.ts:markAllFeedReadAction',
+        'app/notifications/actions.ts:openFeedItemAction',
+        'app/requests/new/actions.ts:createRequestAction',
+        'app/staff/requests/[id]/actions.ts:changeStatusAction',
+      ].sort(),
+    )
+    // Обработчик маршрута — тоже вход для записи. Промежуточный слой (proxy.ts) не запрещён: им можно закрыть R-3.10-1.
+    expect(src.filter((f) => /(^|\/)route\.(ts|js|mjs)$/.test(f.rel)).map((f) => f.rel)).toEqual([])
+  })
+
+  it('слой доступа не пишет в таблицы users и students: пароль, логин, роль и ФИО приложение не меняет', () => {
+    const writers = src.filter((f) => /\.(update|insert|delete)\(\s*(users|students)\s*\)/.test(f.text) || /\b(update|insert\s+into|delete\s+from)\s+"?(users|students)\b/i.test(f.text))
+    expect(writers.map((f) => f.rel)).toEqual([])
+  })
+})
+
+describe('Ж-04: в коде нет вывода запросов целиком', () => {
+  it('console.* нет нигде в src; в стандартный вывод пишет только журнал событий безопасности', () => {
+    expect(src.filter((f) => /\bconsole\.\w+\(/.test(f.text)).map((f) => f.rel)).toEqual([])
+    expect(src.filter((f) => /process\.(stdout|stderr)\.write/.test(f.text)).map((f) => f.rel)).toEqual(['server/security-log.ts'])
+    // Запись журнала собирается из пяти полей; объекта запроса, формы, сессии в ней нет.
+    const log = src.find((f) => f.rel === 'server/security-log.ts')!.text
+    const body = log.slice(log.indexOf('JSON.stringify({'), log.indexOf('})', log.indexOf('JSON.stringify({')))
+    expect([...body.matchAll(/^\s*(\w+)\s*[:,]/gm)].map((m) => m[1]).sort()).toEqual(['event', 'ip', 'requestId', 'time', 'userId'])
+  })
+})
+
 describe('Н-02 и данные (попутно)', () => {
   it('нет вывода HTML без экранирования и исполнения строк', () => {
     const risky = src.filter((f) => /dangerouslySetInnerHTML|\.innerHTML\s*=|insertAdjacentHTML|\beval\(|new Function\(|sql\.raw\(/.test(f.text))
