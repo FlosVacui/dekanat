@@ -730,7 +730,6 @@ test.describe('В-10: подделка запроса к отметке «про
   })
 
   test('R-3.10-1: действие без заголовка Origin с действующей кукой не выполняется — отметка, подача, смена статуса, выход', async ({ browser }) => {
-    test.fail(true, 'R-3.10-1: Next.js пропускает запрос действия без Origin; защита держится только на SameSite=Lax и браузере')
     // Отметка «прочитано»: своё уведомление Б без Origin.
     const actionId = await openFeedActionId(b.token)
     await postFeedForm(b.token, actionId, { source: 'notification', id: bUnreadNotification.id, filter: '' }, null)
@@ -818,10 +817,9 @@ test.describe('известные замечания — живы ли', () => {
   })
 
   test('R-3.3-3: адрес с битой процентной кодировкой — «не найдено», а не 500', async () => {
-    test.fail(true, 'R-3.3-3, IMP-033 пункт 6: ответ 500')
     for (const [path, token] of [['/grades/%E0%A4%A', a.token], ['/requests/%E0%A4%A', a.token], ['/staff/requests/%E0%A4%A', staff.token], ['/grades/%', undefined]] as const) {
       const res = await raw(path, { token })
-      expect(res.status, path).not.toBe(500)
+      expect(res.status, path).toBe(404)
     }
   })
 
