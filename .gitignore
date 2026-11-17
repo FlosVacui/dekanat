@@ -42,3 +42,4 @@ Thumbs.db
 
 # Сборка Next.js и TypeScript
 *.tsbuildinfo
+/build/
