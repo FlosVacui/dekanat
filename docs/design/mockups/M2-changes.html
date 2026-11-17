@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>М2 Изменения расписания — макеты, два варианта</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-room" viewBox="0 0 24 24"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
+<symbol id="i-teacher" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-move" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21.5h4"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+<symbol id="t-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></symbol>
+<symbol id="t-sched" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="t-grades" viewBox="0 0 24 24"><path d="M5 20v-9M12 20V5M19 20v-6"/></symbol>
+<symbol id="t-req" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
+</defs></svg>
+
+<div class="sheet">
+<h1>М2 Изменения расписания</h1>
+<p class="lead">Экран «Расписание», вид «День», среда 18 ноября: все четыре вида изменения на одном экране. Каждый вид — своя плашка со значком, словом и цветом; тот же вид у строки изменения на «Сегодня» (см. М1). Цвета плашек — из системы: «Другая аудитория» — жёлтая, «Замена преподавателя» — синяя, «Перенос» — тёмная (цвет текста и фон страницы наоборот), «Отмена» — красная. <a href="index.html">К оглавлению</a></p>
+
+<!-- ============================ М2-А ============================ -->
+<section class="variant" aria-labelledby="va">
+<h2 id="va">М2-А — плашка над названием, цветная полоса слева</h2>
+<p class="about">Карточка почти как сейчас: время слева, справа плашка, название, строки. У изменённой пары слева толстая полоса цвета вида. Изменённая строка набрана жирным и стоит над неизменными. Новая аудитория — жирная, на жёлтой подложке, старая — приглушённая.</p>
+
+<div class="stage">
+<p class="cap">Телефон 390 px — вид «День», 18 ноября</p>
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Расписание на 18 ноября</h1>
+<p class="sub">Среда, 18 ноября</p>
+<div class="stack">
+<p class="week-chip">Неделя этого дня: нижняя · 12-я</p>
+<div class="sw" role="group" aria-label="Вид"><a href="#" aria-current="true">День</a><a href="#">Неделя</a></div>
+<nav aria-label="Дни недели"><ul class="ds">
+<li><a href="#"><small>вт</small><b>17</b><i class="none"></i></a></li>
+<li><a href="#" aria-current="date"><small>ср</small><b>18</b><i></i></a></li>
+<li><a href="#"><small>чт</small><b>19</b><i class="none"></i></a></li>
+<li><a href="#"><small>пт</small><b>20</b><i></i></a></li>
+<li><a href="#"><small>сб</small><b>21</b><i class="none"></i></a></li>
+<li><a href="#"><small>вс</small><b>22</b><i class="none"></i></a></li>
+<li><a href="#"><small>пн</small><b>23</b><i class="none"></i></a></li>
+</ul></nav>
+<ul class="lessons">
+<li><article class="lc k-teacher"><div class="lc-time"><b>08:30</b><span>10:00</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-teacher"/></svg>Замена преподавателя</span><h2>Иностранный язык</h2><p class="kind">Семинар</p><p class="ln hot"><span class="k">Преподаватель:</span> Яковлева А. С. вместо Мельник Д. О.</p><p class="ln dim">Аудитория: 314</p></div></article></li>
+<li><article class="lc k-room"><div class="lc-time"><b>10:10</b><span>11:40</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-room"/></svg>Другая аудитория</span><h2>Математический анализ</h2><p class="kind">Лекция</p><p class="ln hot"><span class="k">Аудитория:</span> <span class="old">118</span> <span aria-hidden="true">→</span> <span class="new">124</span></p><p class="ln dim">Преподаватель: Примерова Л. А.</p></div></article></li>
+<li><article class="lc k-move"><div class="lc-time"><b>11:50</b><span>13:20</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-move"/></svg>Перенос</span><h2>Физика</h2><p class="kind">Лекция</p><p class="ln hot"><span class="k">Было:</span> <s>пн 16 ноября, 10:10–11:40</s></p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Тестов С. В.</p></div></article></li>
+<li><article class="lc k-cancel cancel"><div class="lc-time"><b>13:50</b><span>15:20</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-x"/></svg>Отмена</span><h2>Базы данных<span class="sr-only">, отменено</span></h2><p class="kind">Лабораторная</p><p class="cancel-t">Занятие не состоится</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Мельник Д. О.</p></div></article></li>
+</ul>
+</div>
+</main>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<p class="cap">Компьютер 1280 px — вид «День», карточки в две колонки (слева место под колонку разделов — это следующий макет)</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Расписание на 18 ноября</h1>
+<p class="sub">Среда, 18 ноября</p>
+<div class="stack">
+<p class="week-chip">Неделя этого дня: нижняя · 12-я</p>
+<div class="sw narrow" role="group" aria-label="Вид"><a href="#" aria-current="true">День</a><a href="#">Неделя</a></div>
+<nav class="mid" aria-label="Дни недели"><ul class="ds">
+<li><a href="#"><small>вт</small><b>17</b><i class="none"></i></a></li>
+<li><a href="#" aria-current="date"><small>ср</small><b>18</b><i></i></a></li>
+<li><a href="#"><small>чт</small><b>19</b><i class="none"></i></a></li>
+<li><a href="#"><small>пт</small><b>20</b><i></i></a></li>
+<li><a href="#"><small>сб</small><b>21</b><i class="none"></i></a></li>
+<li><a href="#"><small>вс</small><b>22</b><i class="none"></i></a></li>
+<li><a href="#"><small>пн</small><b>23</b><i class="none"></i></a></li>
+</ul></nav>
+<ul class="lessons two">
+<li><article class="lc k-teacher"><div class="lc-time"><b>08:30</b><span>10:00</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-teacher"/></svg>Замена преподавателя</span><h2>Иностранный язык</h2><p class="kind">Семинар</p><p class="ln hot"><span class="k">Преподаватель:</span> Яковлева А. С. вместо Мельник Д. О.</p><p class="ln dim">Аудитория: 314</p></div></article></li>
+<li><article class="lc k-room"><div class="lc-time"><b>10:10</b><span>11:40</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-room"/></svg>Другая аудитория</span><h2>Математический анализ</h2><p class="kind">Лекция</p><p class="ln hot"><span class="k">Аудитория:</span> <span class="old">118</span> <span aria-hidden="true">→</span> <span class="new">124</span></p><p class="ln dim">Преподаватель: Примерова Л. А.</p></div></article></li>
+<li><article class="lc k-move"><div class="lc-time"><b>11:50</b><span>13:20</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-move"/></svg>Перенос</span><h2>Физика</h2><p class="kind">Лекция</p><p class="ln hot"><span class="k">Было:</span> <s>пн 16 ноября, 10:10–11:40</s></p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Тестов С. В.</p></div></article></li>
+<li><article class="lc k-cancel cancel"><div class="lc-time"><b>13:50</b><span>15:20</span></div><div class="lc-body"><span class="chip chip-lg chip-k"><svg class="ic"><use href="#i-x"/></svg>Отмена</span><h2>Базы данных<span class="sr-only">, отменено</span></h2><p class="kind">Лабораторная</p><p class="cancel-t">Занятие не состоится</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Мельник Д. О.</p></div></article></li>
+</ul>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+
+<!-- ============================ М2-Б ============================ -->
+<section class="variant" aria-labelledby="vb">
+<h2 id="vb">М2-Б — панель изменения внизу карточки</h2>
+<p class="about">Карточка делится на две части. Сверху — время в одну строку, название, вид и то, что не менялось. Снизу — цветная панель с плашкой и самим изменением. У аудитории новый номер набран крупно (26 px), старый — обычным шрифтом рядом. Если пара не менялась, панели нет.</p>
+
+<div class="stage">
+<p class="cap">Телефон 390 px — вид «День», 18 ноября</p>
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Расписание на 18 ноября</h1>
+<p class="sub">Среда, 18 ноября</p>
+<div class="stack">
+<p class="week-chip">Неделя этого дня: нижняя · 12-я</p>
+<div class="sw" role="group" aria-label="Вид"><a href="#" aria-current="true">День</a><a href="#">Неделя</a></div>
+<nav aria-label="Дни недели"><ul class="ds">
+<li><a href="#"><small>вт</small><b>17</b><i class="none"></i></a></li>
+<li><a href="#" aria-current="date"><small>ср</small><b>18</b><i></i></a></li>
+<li><a href="#"><small>чт</small><b>19</b><i class="none"></i></a></li>
+<li><a href="#"><small>пт</small><b>20</b><i></i></a></li>
+<li><a href="#"><small>сб</small><b>21</b><i class="none"></i></a></li>
+<li><a href="#"><small>вс</small><b>22</b><i class="none"></i></a></li>
+<li><a href="#"><small>пн</small><b>23</b><i class="none"></i></a></li>
+</ul></nav>
+<ul class="lessons">
+<li><article class="lp k-teacher"><div class="lp-main"><p class="lp-time">08:30–10:00</p><h2>Иностранный язык</h2><p class="kind">Семинар</p><p class="ln dim">Аудитория: 314</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-teacher"/></svg>Замена преподавателя</span><p class="ln">Преподаватель: Яковлева А. С. вместо Мельник Д. О.</p></div></article></li>
+<li><article class="lp k-room"><div class="lp-main"><p class="lp-time">10:10–11:40</p><h2>Математический анализ</h2><p class="kind">Лекция</p><p class="ln dim">Преподаватель: Примерова Л. А.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-room"/></svg>Другая аудитория</span><p class="rooms"><span class="k">Аудитория:</span> <span class="was">118</span> <span aria-hidden="true">→</span> <span class="now">124</span></p></div></article></li>
+<li><article class="lp k-move"><div class="lp-main"><p class="lp-time">11:50–13:20</p><h2>Физика</h2><p class="kind">Лекция</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Тестов С. В.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-move"/></svg>Перенос</span><p class="ln">Было: пн 16 ноября, 10:10–11:40</p></div></article></li>
+<li><article class="lp k-cancel cancel"><div class="lp-main"><p class="lp-time">13:50–15:20</p><h2>Базы данных<span class="sr-only">, отменено</span></h2><p class="kind">Лабораторная</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Мельник Д. О.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-x"/></svg>Отмена</span><p class="ln">Занятие не состоится</p></div></article></li>
+</ul>
+</div>
+</main>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<p class="cap">Компьютер 1280 px — вид «День», карточки в две колонки (слева место под колонку разделов — это следующий макет)</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Расписание на 18 ноября</h1>
+<p class="sub">Среда, 18 ноября</p>
+<div class="stack">
+<p class="week-chip">Неделя этого дня: нижняя · 12-я</p>
+<div class="sw narrow" role="group" aria-label="Вид"><a href="#" aria-current="true">День</a><a href="#">Неделя</a></div>
+<nav class="mid" aria-label="Дни недели"><ul class="ds">
+<li><a href="#"><small>вт</small><b>17</b><i class="none"></i></a></li>
+<li><a href="#" aria-current="date"><small>ср</small><b>18</b><i></i></a></li>
+<li><a href="#"><small>чт</small><b>19</b><i class="none"></i></a></li>
+<li><a href="#"><small>пт</small><b>20</b><i></i></a></li>
+<li><a href="#"><small>сб</small><b>21</b><i class="none"></i></a></li>
+<li><a href="#"><small>вс</small><b>22</b><i class="none"></i></a></li>
+<li><a href="#"><small>пн</small><b>23</b><i class="none"></i></a></li>
+</ul></nav>
+<ul class="lessons two">
+<li><article class="lp k-teacher"><div class="lp-main"><p class="lp-time">08:30–10:00</p><h2>Иностранный язык</h2><p class="kind">Семинар</p><p class="ln dim">Аудитория: 314</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-teacher"/></svg>Замена преподавателя</span><p class="ln">Преподаватель: Яковлева А. С. вместо Мельник Д. О.</p></div></article></li>
+<li><article class="lp k-room"><div class="lp-main"><p class="lp-time">10:10–11:40</p><h2>Математический анализ</h2><p class="kind">Лекция</p><p class="ln dim">Преподаватель: Примерова Л. А.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-room"/></svg>Другая аудитория</span><p class="rooms"><span class="k">Аудитория:</span> <span class="was">118</span> <span aria-hidden="true">→</span> <span class="now">124</span></p></div></article></li>
+<li><article class="lp k-move"><div class="lp-main"><p class="lp-time">11:50–13:20</p><h2>Физика</h2><p class="kind">Лекция</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Тестов С. В.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-move"/></svg>Перенос</span><p class="ln">Было: пн 16 ноября, 10:10–11:40</p></div></article></li>
+<li><article class="lp k-cancel cancel"><div class="lp-main"><p class="lp-time">13:50–15:20</p><h2>Базы данных<span class="sr-only">, отменено</span></h2><p class="kind">Лабораторная</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Мельник Д. О.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-x"/></svg>Отмена</span><p class="ln">Занятие не состоится</p></div></article></li>
+</ul>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+</div>
+</body>
+</html>

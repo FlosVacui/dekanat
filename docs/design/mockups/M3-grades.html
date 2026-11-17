@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>М3 «Успеваемость» — макеты, два варианта</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21.5h4"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+<symbol id="t-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></symbol>
+<symbol id="t-sched" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="t-grades" viewBox="0 0 24 24"><path d="M5 20v-9M12 20V5M19 20v-6"/></symbol>
+<symbol id="t-req" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
+</defs></svg>
+
+<div class="sheet">
+<h1>М3 «Успеваемость»</h1>
+<p class="lead">Карточка предмета «Базы данных» раскрыта кнопкой «Все работы (6)»; рядом — карточка с закрытым списком. Баллы за работу — вымышленные, максимум 15. Переключатель «Семестр / Сессия» стоит над карточками. <a href="index.html">К оглавлению</a></p>
+<p class="note"><b>Переключатель «Семестр / Сессия».</b> При переключении страница остаётся на месте: она не прокручивается наверх, а вид переключателя может измениться (в варианте А — две кнопки-таблетки, в варианте Б — вкладки с чертой).</p>
+
+<!-- ============================ М3-А ============================ -->
+<section class="variant" aria-labelledby="va">
+<h2 id="va">М3-А — список работ с плашкой статуса и полосой баллов</h2>
+<p class="about">Над списком — сводка в одну строку со значками. Каждая работа — строка: название, срок, плашка статуса со значком и словом, полоса баллов. Переключатель остаётся таблеткой, как сейчас. На компьютере — обычная таблица с четырьмя столбцами и полосой в столбце «Баллы».</p>
+
+<div class="stage">
+<p class="cap">Телефон 390 px</p>
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Успеваемость</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<div class="sw" role="group" aria-label="Вид"><a href="#" aria-current="true">Семестр</a><a href="#">Сессия</a></div>
+<article class="dcard">
+<h3>Базы данных</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn" type="button" aria-expanded="true" aria-controls="a-works"><span>Все работы (6)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+<div id="a-works">
+<p class="sum"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 3</span><span class="dot">·</span><span class="s-err"><svg class="ic"><use href="#i-x"/></svg>Долг 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<ul class="works">
+<li class="wk"><h4>Лабораторная работа №1</h4><p class="ln">Срок: 6 октября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 12 из 15</span><div class="bar" aria-hidden="true"><i style="width:80%"></i></div></li>
+<li class="wk"><h4>Лабораторная работа №2</h4><p class="ln">Срок: 20 октября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 15 из 15</span><div class="bar" aria-hidden="true"><i style="width:100%"></i></div></li>
+<li class="wk"><h4>Лабораторная работа №3</h4><p class="ln">Срок: 3 ноября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 9 из 15</span><div class="bar" aria-hidden="true"><i style="width:60%"></i></div></li>
+<li class="wk"><h4>Лабораторная работа №4</h4><span class="chip chip-lg chip-err"><svg class="ic"><use href="#i-x"/></svg>Долг — срок был 10 ноября</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 15 баллов</p></li>
+<li class="wk"><h4>Лабораторная работа №5</h4><span class="chip chip-lg chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 25 ноября</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 15 баллов</p></li>
+<li class="wk"><h4>Лабораторная работа №6</h4><span class="chip chip-lg chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 9 декабря</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 15 баллов</p></li>
+</ul>
+</div>
+</article>
+<article class="dcard">
+<h3>Математический анализ</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn" type="button" aria-expanded="false"><span>Все работы (4)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+</article>
+</div>
+</main>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<p class="cap">Компьютер 1280 px — список работ таблицей (слева место под колонку разделов — это следующий макет)</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Успеваемость</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<div class="sw narrow" role="group" aria-label="Вид"><a href="#" aria-current="true">Семестр</a><a href="#">Сессия</a></div>
+<article class="dcard">
+<h3>Базы данных</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn narrow" type="button" aria-expanded="true"><span>Все работы (6)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+<p class="sum"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 3</span><span class="dot">·</span><span class="s-err"><svg class="ic"><use href="#i-x"/></svg>Долг 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<div class="tbl-wrap"><table class="tbl">
+<caption class="sr-only">Работы по дисциплине «Базы данных»</caption>
+<thead><tr><th scope="col">Работа</th><th scope="col">Срок</th><th scope="col">Статус</th><th scope="col">Баллы</th></tr></thead>
+<tbody>
+<tr><td>Лабораторная работа №1</td><td>6 октября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell">12 из 15 <span class="bar" aria-hidden="true"><i style="width:80%"></i></span></span></td></tr>
+<tr><td>Лабораторная работа №2</td><td>20 октября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell">15 из 15 <span class="bar" aria-hidden="true"><i style="width:100%"></i></span></span></td></tr>
+<tr><td>Лабораторная работа №3</td><td>3 ноября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell">9 из 15 <span class="bar" aria-hidden="true"><i style="width:60%"></i></span></span></td></tr>
+<tr><td>Лабораторная работа №4</td><td>10 ноября, вт</td><td><span class="chip chip-err"><svg class="ic"><use href="#i-x"/></svg>Долг</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+<tr><td>Лабораторная работа №5</td><td>25 ноября, ср</td><td><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+<tr><td>Лабораторная работа №6</td><td>9 декабря, ср</td><td><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+</tbody></table></div>
+</article>
+<article class="dcard">
+<h3>Математический анализ</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn narrow" type="button" aria-expanded="false"><span>Все работы (4)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+</article>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+
+<!-- ============================ М3-Б ============================ -->
+<section class="variant" aria-labelledby="vb">
+<h2 id="vb">М3-Б — крупные баллы справа, сводка полосой из трёх частей</h2>
+<p class="about">Переключатель — вкладки с чертой снизу. Над списком — полоса из трёх цветных частей (сдано, долг, впереди) и та же строка «Сдано 3 · Долг 1 · Впереди 2». Каждая работа — плитка с цветной полосой слева; справа баллы крупно, под ними полоса. На компьютере над таблицей — три плитки с крупными числами, ниже таблица со строками-плитками.</p>
+
+<div class="stage">
+<p class="cap">Телефон 390 px</p>
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Успеваемость</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<div class="tabs-u" role="group" aria-label="Вид"><a href="#" aria-current="true">Семестр</a><a href="#">Сессия</a></div>
+<article class="dcard">
+<h3>Базы данных</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn" type="button" aria-expanded="true" aria-controls="b-works"><span>Все работы (6)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+<div id="b-works">
+<div class="seg" aria-hidden="true"><i class="g-ok" style="flex:3"></i><i class="g-err" style="flex:1"></i><i class="g-info" style="flex:2"></i></div>
+<p class="sum" style="margin-top:var(--sp-2)"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 3</span><span class="dot">·</span><span class="s-err"><svg class="ic"><use href="#i-x"/></svg>Долг 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<ul class="works" style="margin-top:var(--sp-1)">
+<li class="wk-b s-done"><div class="wk-l"><h4>Лабораторная работа №1</h4><p class="ln" style="margin:0;color:var(--muted);font-size:var(--fs-sm)">Срок: 6 октября, вт</p><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 12 из 15</span></div><p class="pts" style="margin:0"><b>12</b><span>из 15</span></p><div class="bar" aria-hidden="true"><i style="width:80%"></i></div></li>
+<li class="wk-b s-done"><div class="wk-l"><h4>Лабораторная работа №2</h4><p class="ln" style="margin:0;color:var(--muted);font-size:var(--fs-sm)">Срок: 20 октября, вт</p><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 15 из 15</span></div><p class="pts" style="margin:0"><b>15</b><span>из 15</span></p><div class="bar" aria-hidden="true"><i style="width:100%"></i></div></li>
+<li class="wk-b s-done"><div class="wk-l"><h4>Лабораторная работа №3</h4><p class="ln" style="margin:0;color:var(--muted);font-size:var(--fs-sm)">Срок: 3 ноября, вт</p><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 9 из 15</span></div><p class="pts" style="margin:0"><b>9</b><span>из 15</span></p><div class="bar" aria-hidden="true"><i style="width:60%"></i></div></li>
+<li class="wk-b s-debt"><div class="wk-l"><h4>Лабораторная работа №4</h4><span class="chip chip-err"><svg class="ic"><use href="#i-x"/></svg>Долг — срок был 10 ноября</span></div><p class="pts" style="margin:0"><b>—</b><span>из 15</span></p><div class="bar" aria-hidden="true"></div></li>
+<li class="wk-b s-next"><div class="wk-l"><h4>Лабораторная работа №5</h4><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 25 ноября</span></div><p class="pts" style="margin:0"><b>—</b><span>из 15</span></p><div class="bar" aria-hidden="true"></div></li>
+<li class="wk-b s-next"><div class="wk-l"><h4>Лабораторная работа №6</h4><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 9 декабря</span></div><p class="pts" style="margin:0"><b>—</b><span>из 15</span></p><div class="bar" aria-hidden="true"></div></li>
+</ul>
+</div>
+</article>
+<article class="dcard">
+<h3>Математический анализ</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn" type="button" aria-expanded="false"><span>Все работы (4)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+</article>
+</div>
+</main>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<p class="cap">Компьютер 1280 px — список работ таблицей (слева место под колонку разделов — это следующий макет)</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 12-я неделя, нижняя</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Успеваемость</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<div class="tabs-u narrow" role="group" aria-label="Вид"><a href="#" aria-current="true">Семестр</a><a href="#">Сессия</a></div>
+<article class="dcard">
+<h3>Базы данных</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn narrow" type="button" aria-expanded="true"><span>Все работы (6)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+<div class="d2">
+<div class="stack">
+<div class="seg" aria-hidden="true"><i class="g-ok" style="flex:3"></i><i class="g-err" style="flex:1"></i><i class="g-info" style="flex:2"></i></div>
+<p class="sum"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 3</span><span class="dot">·</span><span class="s-err"><svg class="ic"><use href="#i-x"/></svg>Долг 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<div class="stats">
+<div class="stat s-done">Сдано <b>3</b></div>
+<div class="stat s-debt">Долг <b>1</b></div>
+<div class="stat s-next">Впереди <b>2</b></div>
+</div>
+</div>
+<div class="tbl-wrap"><table class="tbl tbl-b">
+<caption class="sr-only">Работы по дисциплине «Базы данных»</caption>
+<thead><tr><th scope="col">Работа</th><th scope="col">Срок</th><th scope="col">Статус</th><th scope="col">Баллы</th></tr></thead>
+<tbody>
+<tr class="s-done"><td>Лабораторная работа №1</td><td>6 октября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell"><b>12</b> из 15 <span class="bar" aria-hidden="true"><i style="width:80%"></i></span></span></td></tr>
+<tr class="s-done"><td>Лабораторная работа №2</td><td>20 октября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell"><b>15</b> из 15 <span class="bar" aria-hidden="true"><i style="width:100%"></i></span></span></td></tr>
+<tr class="s-done"><td>Лабораторная работа №3</td><td>3 ноября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell"><b>9</b> из 15 <span class="bar" aria-hidden="true"><i style="width:60%"></i></span></span></td></tr>
+<tr class="s-debt"><td>Лабораторная работа №4</td><td>10 ноября, вт</td><td><span class="chip chip-err"><svg class="ic"><use href="#i-x"/></svg>Долг</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+<tr class="s-next"><td>Лабораторная работа №5</td><td>25 ноября, ср</td><td><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+<tr class="s-next"><td>Лабораторная работа №6</td><td>9 декабря, ср</td><td><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+</tbody></table></div>
+</div>
+</article>
+<article class="dcard">
+<h3>Математический анализ</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn narrow" type="button" aria-expanded="false"><span>Все работы (4)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+</article>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+</div>
+</body>
+</html>
