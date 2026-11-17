@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>М4 «Страница предмета» — макет</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21.5h4"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+<symbol id="i-teacher" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="t-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></symbol>
+<symbol id="t-sched" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="t-grades" viewBox="0 0 24 24"><path d="M5 20v-9M12 20V5M19 20v-6"/></symbol>
+<symbol id="t-req" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
+<symbol id="t-idea" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+</defs></svg>
+
+<div class="sheet">
+<h1>М4 «Страница предмета»</h1>
+<p class="lead">Новый экран: вход — ссылка «Страница предмета» в карточке предмета на «Успеваемости». Блоки по порядку: преподаватели, форма контроля, правила рейтинга (раскрытие), работы, материалы курса. Кнопки сдачи и загрузки файлов нет. Показаны предмет с экзаменом и предмет с зачётом. Данные вымышленные. <a href="index.html">К оглавлению</a></p>
+<p class="note"><b>Что в концепте условно.</b> Материалы курса — только названия, без файлов и ссылок. Правила рейтинга — условные числа. Преподаватели — из пар предмета: у самого предмета преподавателя в базе нет.</p>
+
+<section class="variant" aria-labelledby="v4">
+<h2 id="v4">М4 — страница предмета: экзамен, зачёт и вход из «Успеваемости»</h2>
+<p class="about">Работы — в разметке М3-А: название, срок, плашка статуса со значком и словом, полоса баллов. «Правила рейтинга» раскрываются стрелкой; у экзамена пять строк, у зачёта две. На компьютере работы идут таблицей на всю ширину под блоками «Преподаватели», «Форма контроля» и «Правила рейтинга».</p>
+
+<div class="stage">
+<p class="cap">Телефон 390 px — слева предмет с экзаменом, в центре предмет с зачётом, справа вход из карточки предмета на «Успеваемости»</p>
+<div class="states">
+
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<a class="back" href="#"><svg class="ic ic-20"><use href="#i-chev"/></svg>Успеваемость</a>
+<h1 class="h1">Базы данных</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<section class="dcard" aria-labelledby="p1-t">
+<h2 class="h2" id="p1-t">Преподаватели</h2>
+<ul class="people"><li><span class="av"><svg class="ic ic-20"><use href="#i-teacher"/></svg></span>Мельник Д. О.</li><li><span class="av"><svg class="ic ic-20"><use href="#i-teacher"/></svg></span>Примерова Л. А.</li></ul>
+</section>
+<section class="dcard" aria-label="Форма контроля">
+<p class="ctl"><span class="k">Форма контроля:</span> <b>экзамен — чт 24 декабря, 10:00, ауд. 314</b></p>
+</section>
+<section class="dcard">
+<details open>
+<summary class="xsum"><span>Правила рейтинга</span><svg class="ic ic-20"><use href="#i-chev"/></svg></summary>
+<ul class="rules">
+<li>За семестр — до 60 баллов, на экзамене — до 40</li>
+<li>Допуск к экзамену — от 30 баллов за семестр</li>
+<li>На экзамене нужно набрать не меньше 20</li>
+<li>Итог: от 85 — «5», от 70 — «4», от 50 — «3»</li>
+<li class="rule-note"><svg class="ic ic-16"><use href="#i-info"/></svg>Правила условные: концепт для конкурса</li>
+</ul>
+</details>
+</section>
+<section class="dcard" aria-labelledby="p1-w">
+<h2 class="h2" id="p1-w">Работы</h2>
+<p class="sum"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 3</span><span class="dot">·</span><span class="s-err"><svg class="ic"><use href="#i-x"/></svg>Долг 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<ul class="works">
+<li class="wk"><h3 class="wk-t">Лабораторная работа №1</h3><p class="ln">Срок: 6 октября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 12 из 15</span><div class="bar" aria-hidden="true"><i style="width:80%"></i></div></li>
+<li class="wk"><h3 class="wk-t">Лабораторная работа №2</h3><p class="ln">Срок: 20 октября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 15 из 15</span><div class="bar" aria-hidden="true"><i style="width:100%"></i></div></li>
+<li class="wk"><h3 class="wk-t">Лабораторная работа №3</h3><p class="ln">Срок: 3 ноября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 9 из 15</span><div class="bar" aria-hidden="true"><i style="width:60%"></i></div></li>
+<li class="wk"><h3 class="wk-t">Лабораторная работа №4</h3><span class="chip chip-lg chip-err"><svg class="ic"><use href="#i-x"/></svg>Долг — срок был 10 ноября</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 15 баллов</p></li>
+<li class="wk"><h3 class="wk-t">Лабораторная работа №5</h3><span class="chip chip-lg chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 25 ноября</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 15 баллов</p></li>
+<li class="wk"><h3 class="wk-t">Лабораторная работа №6</h3><span class="chip chip-lg chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 9 декабря</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 15 баллов</p></li>
+</ul>
+</section>
+<section class="dcard" aria-labelledby="p1-m">
+<h2 class="h2" id="p1-m">Материалы курса</h2>
+<p class="ln" style="color:var(--muted)">В концепте — только названия, файлы не загружаются</p>
+<ul class="mats">
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Программа курса</li>
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Вопросы к экзамену</li>
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Лекция 1 — слайды</li>
+</ul>
+</section>
+</div>
+</main>
+<footer class="foot has-link"><span class="foot-row"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></span><a class="foot-link" href="M6-ideas.html">Идеи и планы</a></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<a class="back" href="#"><svg class="ic ic-20"><use href="#i-chev"/></svg>Успеваемость</a>
+<h1 class="h1">Иностранный язык</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<section class="dcard" aria-labelledby="p2-t">
+<h2 class="h2" id="p2-t">Преподаватели</h2>
+<ul class="people"><li><span class="av"><svg class="ic ic-20"><use href="#i-teacher"/></svg></span>Яковлева А. С.</li><li><span class="av"><svg class="ic ic-20"><use href="#i-teacher"/></svg></span>Мельник Д. О.</li></ul>
+</section>
+<section class="dcard" aria-label="Форма контроля">
+<p class="ctl"><span class="k">Форма контроля:</span> <b>зачёт — пт 18 декабря, 10:00, ауд. 207</b></p>
+</section>
+<section class="dcard">
+<details open>
+<summary class="xsum"><span>Правила рейтинга</span><svg class="ic ic-20"><use href="#i-chev"/></svg></summary>
+<ul class="rules">
+<li>За семестр — до 100 баллов; порога для зачёта нет</li>
+<li class="rule-note"><svg class="ic ic-16"><use href="#i-info"/></svg>Правила условные: концепт для конкурса</li>
+</ul>
+</details>
+</section>
+<section class="dcard" aria-labelledby="p2-w">
+<h2 class="h2" id="p2-w">Работы</h2>
+<p class="sum"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<ul class="works">
+<li class="wk"><h3 class="wk-t">Контрольная работа №1</h3><p class="ln">Срок: 13 октября, вт</p><span class="chip chip-lg chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано — 8 из 10</span><div class="bar" aria-hidden="true"><i style="width:80%"></i></div></li>
+<li class="wk"><h3 class="wk-t">Контрольная работа №2</h3><span class="chip chip-lg chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 1 декабря</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 10 баллов</p></li>
+<li class="wk"><h3 class="wk-t">Контрольная работа №3</h3><span class="chip chip-lg chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди — срок 15 декабря</span><div class="bar" aria-hidden="true"></div><p class="bar-note">максимум 10 баллов</p></li>
+</ul>
+</section>
+<section class="dcard" aria-labelledby="p2-m">
+<h2 class="h2" id="p2-m">Материалы курса</h2>
+<p class="ln" style="color:var(--muted)">В концепте — только названия, файлы не загружаются</p>
+<ul class="mats">
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Программа курса</li>
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Вопросы к зачёту</li>
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Лекция 1 — слайды</li>
+</ul>
+</section>
+</div>
+</main>
+<footer class="foot has-link"><span class="foot-row"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></span><a class="foot-link" href="M6-ideas.html">Идеи и планы</a></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#" aria-current="page"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<div class="frame f390" style="align-self:flex-start">
+<main class="main">
+<h1 class="h1">Успеваемость</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<article class="dcard">
+<h3>Базы данных</h3>
+<p class="kind">Экзамен</p>
+<p class="ln">Итог: <span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></p>
+<button class="xbtn" type="button" aria-expanded="false"><span>Все работы (6)</span><svg class="ic ic-20"><use href="#i-chev"/></svg></button>
+<a class="xbtn" href="#"><span>Страница предмета</span><svg class="ic ic-20"><use href="#i-chev"/></svg></a>
+</article>
+</div>
+</main>
+</div>
+
+</div>
+
+<p class="cap">Компьютер 1280 px — колонка разделов слева, как в М5</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid has-side">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<nav class="side" aria-label="Разделы">
+<div class="side-g"><p class="side-cap">Учёба</p><ul>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-today"/></svg>Сегодня</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-sched"/></svg>Расписание</a></li>
+<li><a href="#" aria-current="page"><svg class="ic ic-24"><use href="#t-grades"/></svg>Успеваемость</a></li>
+</ul></div>
+<div class="side-g"><p class="side-cap">Деканат</p><ul>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-req"/></svg>Заявки</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#i-bell"/></svg>Уведомления<span class="cnt"><span class="sr-only">Новых: </span>3</span></a></li>
+</ul></div>
+<div class="side-foot"><ul><li><a href="M6-ideas.html"><svg class="ic ic-24"><use href="#t-idea"/></svg>Идеи и планы</a></li></ul></div>
+</nav>
+<main class="main">
+<a class="back" href="#"><svg class="ic ic-20"><use href="#i-chev"/></svg>Успеваемость</a>
+<h1 class="h1">Базы данных</h1>
+<div class="stack" style="margin-top:var(--gap)">
+<div class="top2">
+<div class="cards-in">
+<section class="dcard" aria-labelledby="d-t">
+<h2 class="h2" id="d-t">Преподаватели</h2>
+<ul class="people"><li><span class="av"><svg class="ic ic-20"><use href="#i-teacher"/></svg></span>Мельник Д. О.</li><li><span class="av"><svg class="ic ic-20"><use href="#i-teacher"/></svg></span>Примерова Л. А.</li></ul>
+</section>
+<section class="dcard" aria-label="Форма контроля">
+<p class="ctl"><span class="k">Форма контроля:</span> <b>экзамен — чт 24 декабря, 10:00, ауд. 314</b></p>
+</section>
+</div>
+<section class="dcard">
+<details open>
+<summary class="xsum"><span>Правила рейтинга</span><svg class="ic ic-20"><use href="#i-chev"/></svg></summary>
+<ul class="rules">
+<li>За семестр — до 60 баллов, на экзамене — до 40</li>
+<li>Допуск к экзамену — от 30 баллов за семестр</li>
+<li>На экзамене нужно набрать не меньше 20</li>
+<li>Итог: от 85 — «5», от 70 — «4», от 50 — «3»</li>
+<li class="rule-note"><svg class="ic ic-16"><use href="#i-info"/></svg>Правила условные: концепт для конкурса</li>
+</ul>
+</details>
+</section>
+</div>
+<section class="dcard" aria-labelledby="d-w">
+<h2 class="h2" id="d-w">Работы</h2>
+<p class="sum"><span class="s-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано 3</span><span class="dot">·</span><span class="s-err"><svg class="ic"><use href="#i-x"/></svg>Долг 1</span><span class="dot">·</span><span class="s-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди 2</span></p>
+<div class="tbl-wrap"><table class="tbl">
+<caption class="sr-only">Работы по дисциплине «Базы данных»</caption>
+<thead><tr><th scope="col">Работа</th><th scope="col">Срок</th><th scope="col">Статус</th><th scope="col">Баллы</th></tr></thead>
+<tbody>
+<tr><td>Лабораторная работа №1</td><td>6 октября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell">12 из 15 <span class="bar" aria-hidden="true"><i style="width:80%"></i></span></span></td></tr>
+<tr><td>Лабораторная работа №2</td><td>20 октября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell">15 из 15 <span class="bar" aria-hidden="true"><i style="width:100%"></i></span></span></td></tr>
+<tr><td>Лабораторная работа №3</td><td>3 ноября, вт</td><td><span class="chip chip-ok"><svg class="ic"><use href="#i-check"/></svg>Сдано</span></td><td><span class="pts-cell">9 из 15 <span class="bar" aria-hidden="true"><i style="width:60%"></i></span></span></td></tr>
+<tr><td>Лабораторная работа №4</td><td>10 ноября, вт</td><td><span class="chip chip-err"><svg class="ic"><use href="#i-x"/></svg>Долг</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+<tr><td>Лабораторная работа №5</td><td>25 ноября, ср</td><td><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+<tr><td>Лабораторная работа №6</td><td>9 декабря, ср</td><td><span class="chip chip-info"><svg class="ic"><use href="#i-clock"/></svg>Впереди</span></td><td><span class="pts-cell">максимум 15 баллов <span class="bar" aria-hidden="true"></span></span></td></tr>
+</tbody></table></div>
+</section>
+<section class="dcard" aria-labelledby="d-m">
+<h2 class="h2" id="d-m">Материалы курса</h2>
+<p class="ln" style="color:var(--muted)">В концепте — только названия, файлы не загружаются</p>
+<ul class="mats">
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Программа курса</li>
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Вопросы к экзамену</li>
+<li><svg class="ic ic-24"><use href="#t-req"/></svg>Лекция 1 — слайды</li>
+</ul>
+</section>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+</div>
+</body>
+</html>

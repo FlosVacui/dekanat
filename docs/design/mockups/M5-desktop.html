@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>М5 «Каркас на компьютере» — макет</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-room" viewBox="0 0 24 24"><path d="M12 21s-6-5.2-6-10a6 6 0 0 1 12 0c0 4.8-6 10-6 10z"/><circle cx="12" cy="11" r="2"/></symbol>
+<symbol id="i-teacher" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+<symbol id="i-move" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
+<symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21.5h4"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+<symbol id="t-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></symbol>
+<symbol id="t-sched" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="t-grades" viewBox="0 0 24 24"><path d="M5 20v-9M12 20V5M19 20v-6"/></symbol>
+<symbol id="t-req" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
+<symbol id="t-idea" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+</defs></svg>
+
+<div class="sheet">
+<h1>М5 «Каркас на компьютере»</h1>
+<p class="lead">От 1024 px слева появляется колонка разделов со значками, сгруппированная: «Учёба», «Деканат», внизу отдельно «Идеи и планы». В шапке — группа, неделя и семестр. На «Сегодня» — четыре крупные плитки с главными числами, под ними блок пары (М1-Б) и изменения расписания (М2-Б). Данные вымышленные. <a href="index.html">К оглавлению</a></p>
+<p class="note"><b>Телефон не меняется.</b> Ниже 1024 px колонки разделов нет: остаются нижняя панель из четырёх вкладок и шапка, как в М1–М3. Плиток с числами на телефоне тоже нет. «Уведомления» на телефоне открываются колокольчиком в шапке.</p>
+
+<section class="variant" aria-labelledby="v5">
+<h2 id="v5">М5 — колонка разделов и плитки на «Сегодня»</h2>
+<p class="about">Колонка в 240 px (на 1024 px — 220 px). Активный раздел — плашка и жирный текст, как активная вкладка на телефоне. «Уведомления» — со счётчиком. Плитки — ссылки в свои разделы: число крупно, подпись под ним.</p>
+
+<div class="stage">
+<p class="cap">Компьютер 1280 px</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid has-side">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<nav class="side" aria-label="Разделы">
+<div class="side-g"><p class="side-cap">Учёба</p><ul>
+<li><a href="#" aria-current="page"><svg class="ic ic-24"><use href="#t-today"/></svg>Сегодня</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-sched"/></svg>Расписание</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-grades"/></svg>Успеваемость</a></li>
+</ul></div>
+<div class="side-g"><p class="side-cap">Деканат</p><ul>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-req"/></svg>Заявки</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#i-bell"/></svg>Уведомления<span class="cnt"><span class="sr-only">Новых: </span>3</span></a></li>
+</ul></div>
+<div class="side-foot"><ul><li><a href="M6-ideas.html"><svg class="ic ic-24"><use href="#t-idea"/></svg>Идеи и планы</a></li></ul></div>
+</nav>
+<main class="main">
+<h1 class="h1">Сегодня</h1>
+<p class="sub">Вторник, 17 ноября · 3 пары</p>
+<div class="stack">
+<ul class="kpis">
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#t-sched"/></svg></span><b>3</b><span class="l">Пар сегодня</span></a></li>
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#t-grades"/></svg></span><b>2</b><span class="l">Сдать на этой неделе</span></a></li>
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#t-req"/></svg></span><b>1</b><span class="l">Заявки в работе</span></a></li>
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#i-bell"/></svg></span><b>3</b><span class="l">Новые уведомления</span></a></li>
+</ul>
+<p class="statusbar"><span class="st-ic"><svg class="ic ic-20"><use href="#i-check"/></svg></span>На сегодня всё: пары закончились</p>
+<section class="tk wide" aria-label="Следующая пара">
+<div class="tk-top"><p class="tk-cap">Следующая пара</p><h2 class="tk-date">Завтра, ср 18 ноября</h2></div>
+<div class="tk-body">
+<p class="tk-time">08:30<span>– 10:00</span></p>
+<div class="tk-info"><p class="tk-disc">Иностранный язык</p><p class="tk-meta">Семинар · ауд. 314 · Яковлева А. С.</p></div>
+<a class="btn" href="#">Расписание на 18 ноября <svg class="ic ic-16"><use href="#i-chev"/></svg></a>
+</div>
+</section>
+<section aria-labelledby="c-1280">
+<h2 class="h2" id="c-1280">Изменения в расписании</h2>
+<ul class="lessons two">
+<li><article class="lp k-teacher"><div class="lp-main"><p class="lp-time">Завтра, 08:30–10:00</p><h3 class="lp-h">Иностранный язык</h3><p class="kind">Семинар</p><p class="ln dim">Аудитория: 314</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-teacher"/></svg>Замена преподавателя</span><p class="ln">Преподаватель: Яковлева&nbsp;А.&nbsp;С. вместо Мельник&nbsp;Д.&nbsp;О.</p></div></article></li>
+<li><article class="lp k-room"><div class="lp-main"><p class="lp-time">Завтра, 10:10–11:40</p><h3 class="lp-h">Математический анализ</h3><p class="kind">Лекция</p><p class="ln dim">Преподаватель: Примерова Л. А.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-room"/></svg>Другая аудитория</span><p class="rooms"><span class="k">Аудитория:</span> <span class="was">118</span> <span aria-hidden="true">→</span> <span class="now">124</span></p></div></article></li>
+<li><article class="lp k-move"><div class="lp-main"><p class="lp-time">Завтра, 11:50–13:20</p><h3 class="lp-h">Физика</h3><p class="kind">Лекция</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Тестов С. В.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-move"/></svg>Перенос</span><p class="ln">Было: пн 16 ноября, 10:10–11:40</p></div></article></li>
+<li><article class="lp k-cancel cancel"><div class="lp-main"><p class="lp-time">Завтра, 13:50–15:20</p><h3 class="lp-h">Базы данных<span class="sr-only">, отменено</span></h3><p class="kind">Лабораторная</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Мельник Д. О.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-x"/></svg>Отмена</span><p class="ln">Занятие не состоится</p></div></article></li>
+</ul>
+</section>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+
+<p class="cap">Компьютер 1024 px — колонка уже (220 px), плитки и пары остаются в ряд</p>
+<div class="desk-wrap"><div class="frame f1024">
+<div class="dgrid has-side">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<nav class="side" aria-label="Разделы">
+<div class="side-g"><p class="side-cap">Учёба</p><ul>
+<li><a href="#" aria-current="page"><svg class="ic ic-24"><use href="#t-today"/></svg>Сегодня</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-sched"/></svg>Расписание</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-grades"/></svg>Успеваемость</a></li>
+</ul></div>
+<div class="side-g"><p class="side-cap">Деканат</p><ul>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-req"/></svg>Заявки</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#i-bell"/></svg>Уведомления<span class="cnt"><span class="sr-only">Новых: </span>3</span></a></li>
+</ul></div>
+<div class="side-foot"><ul><li><a href="M6-ideas.html"><svg class="ic ic-24"><use href="#t-idea"/></svg>Идеи и планы</a></li></ul></div>
+</nav>
+<main class="main">
+<h1 class="h1">Сегодня</h1>
+<p class="sub">Вторник, 17 ноября · 3 пары</p>
+<div class="stack">
+<ul class="kpis">
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#t-sched"/></svg></span><b>3</b><span class="l">Пар сегодня</span></a></li>
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#t-grades"/></svg></span><b>2</b><span class="l">Сдать на этой неделе</span></a></li>
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#t-req"/></svg></span><b>1</b><span class="l">Заявки в работе</span></a></li>
+<li><a class="kpi" href="#"><span class="kpi-ic"><svg class="ic ic-20"><use href="#i-bell"/></svg></span><b>3</b><span class="l">Новые уведомления</span></a></li>
+</ul>
+<p class="statusbar"><span class="st-ic"><svg class="ic ic-20"><use href="#i-check"/></svg></span>На сегодня всё: пары закончились</p>
+<section class="tk wide" aria-label="Следующая пара">
+<div class="tk-top"><p class="tk-cap">Следующая пара</p><h2 class="tk-date">Завтра, ср 18 ноября</h2></div>
+<div class="tk-body">
+<p class="tk-time">08:30<span>– 10:00</span></p>
+<div class="tk-info"><p class="tk-disc">Иностранный язык</p><p class="tk-meta">Семинар · ауд. 314 · Яковлева А. С.</p></div>
+<a class="btn" href="#">Расписание на 18 ноября <svg class="ic ic-16"><use href="#i-chev"/></svg></a>
+</div>
+</section>
+<section aria-labelledby="c-1024">
+<h2 class="h2" id="c-1024">Изменения в расписании</h2>
+<ul class="lessons two">
+<li><article class="lp k-teacher"><div class="lp-main"><p class="lp-time">Завтра, 08:30–10:00</p><h3 class="lp-h">Иностранный язык</h3><p class="kind">Семинар</p><p class="ln dim">Аудитория: 314</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-teacher"/></svg>Замена преподавателя</span><p class="ln">Преподаватель: Яковлева&nbsp;А.&nbsp;С. вместо Мельник&nbsp;Д.&nbsp;О.</p></div></article></li>
+<li><article class="lp k-room"><div class="lp-main"><p class="lp-time">Завтра, 10:10–11:40</p><h3 class="lp-h">Математический анализ</h3><p class="kind">Лекция</p><p class="ln dim">Преподаватель: Примерова Л. А.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-room"/></svg>Другая аудитория</span><p class="rooms"><span class="k">Аудитория:</span> <span class="was">118</span> <span aria-hidden="true">→</span> <span class="now">124</span></p></div></article></li>
+<li><article class="lp k-move"><div class="lp-main"><p class="lp-time">Завтра, 11:50–13:20</p><h3 class="lp-h">Физика</h3><p class="kind">Лекция</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Тестов С. В.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-move"/></svg>Перенос</span><p class="ln">Было: пн 16 ноября, 10:10–11:40</p></div></article></li>
+<li><article class="lp k-cancel cancel"><div class="lp-main"><p class="lp-time">Завтра, 13:50–15:20</p><h3 class="lp-h">Базы данных<span class="sr-only">, отменено</span></h3><p class="kind">Лабораторная</p><p class="ln dim">Аудитория: 207</p><p class="ln dim">Преподаватель: Мельник Д. О.</p></div><div class="lp-panel"><span class="chip chip-lg"><svg class="ic"><use href="#i-x"/></svg>Отмена</span><p class="ln">Занятие не состоится</p></div></article></li>
+</ul>
+</section>
+</div>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+</div>
+</body>
+</html>

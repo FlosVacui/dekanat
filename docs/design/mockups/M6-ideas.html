@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>М6 «Идеи и планы» — макет</title>
+<link rel="stylesheet" href="../tokens.css">
+<link rel="stylesheet" href="mockups.css">
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false"><defs>
+<symbol id="i-chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></symbol>
+<symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z"/><path d="M10 21.5h4"/></symbol>
+<symbol id="i-info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 7.8v.1"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M4 5h16v11H10l-4 4v-4H4z"/><path d="M8 10h8"/></symbol>
+<symbol id="i-upload" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M12.5 17v-5M10 14l2.5-2.5L15 14"/></symbol>
+<symbol id="i-help" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17v.01"/></symbol>
+<symbol id="t-today" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="15" rx="3"/><path d="M8 3v4M16 3v4M4 10h16"/><circle cx="12" cy="15" r="1.6" fill="currentColor"/></symbol>
+<symbol id="t-sched" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></symbol>
+<symbol id="t-grades" viewBox="0 0 24 24"><path d="M5 20v-9M12 20V5M19 20v-6"/></symbol>
+<symbol id="t-req" viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 12h5M10 16h5"/></symbol>
+<symbol id="t-idea" viewBox="0 0 24 24"><path d="M9 18h6M10 21h4"/><path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z"/></symbol>
+</defs></svg>
+
+<div class="sheet">
+<h1>М6 «Идеи и планы»</h1>
+<p class="lead">Страница о том, что команда добавила бы при большем сроке. Четыре идеи: заголовок и одна фраза. Карточки с пунктирной рамкой, без ссылок и кнопок: это планы, а не работающие функции. Данные вымышленные. <a href="index.html">К оглавлению</a></p>
+<p class="note"><b>Вход.</b> На компьютере — «Идеи и планы» внизу левой колонки, отдельно от групп. На телефоне — ссылка в подвале рядом с пометкой «Концепт для конкурса».</p>
+
+<section class="variant" aria-labelledby="v6">
+<h2 id="v6">М6 — четыре идеи</h2>
+
+<div class="stage">
+<p class="cap">Телефон 390 px</p>
+<div class="frame f390">
+<header class="hdr"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<main class="main">
+<h1 class="h1">Идеи и планы</h1>
+<p class="intro">Что мы добавили бы в кабинет, будь у нас больше времени. Это планы, а не работающие функции</p>
+<ul class="ideas">
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-chat"/></svg></span><h2>Помощник по правилам деканата</h2><p>Отвечает на частые вопросы по положениям вуза и подсказывает, куда обратиться</p></article></li>
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-upload"/></svg></span><h2>Сдача работ в кабинете</h2><p>Файл отчёта прямо на странице предмета, статус проверки и баллы от преподавателя</p></article></li>
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-bell"/></svg></span><h2>Напоминания по времени</h2><p>За день до срока работы и утром в день экзамена — в ленте и на телефоне</p></article></li>
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-help"/></svg></span><h2>Спросить деканат</h2><p>Вопрос сотруднику по теме и ответ в том же кабинете</p></article></li>
+</ul>
+</main>
+<footer class="foot has-link"><span class="foot-row"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></span><a class="foot-link" href="M6-ideas.html" aria-current="page">Идеи и планы</a></footer>
+<nav class="tabbar" aria-label="Разделы"><ul>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-today"/></svg></span><span class="l">Сегодня</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-sched"/></svg></span><span class="l">Расписание</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-grades"/></svg></span><span class="l">Успеваемость</span></a></li>
+<li><a class="tab" href="#"><span class="pill"><svg class="ic ic-24"><use href="#t-req"/></svg></span><span class="l">Заявки</span></a></li>
+</ul></nav>
+</div>
+
+<p class="cap">Компьютер 1280 px — четыре идеи два на два</p>
+<div class="desk-wrap"><div class="frame f1280">
+<div class="dgrid has-side">
+<header class="hdr" style="grid-column:1/-1"><span class="logo"><img src="../logo/owl/owl-128.png" alt="" width="40" height="40"></span><div class="hdr-t"><div class="hdr-name">Деканат в кармане</div><div class="hdr-sub">ИТ-23-04 · 11 неделя, верхняя · 3 семестр</div></div><a class="hdr-btn" href="#" aria-label="Уведомления, непрочитанных: 3"><svg class="ic ic-24"><use href="#i-bell"/></svg><span class="badge">3</span></a><a class="hdr-btn" href="#" aria-label="Профиль"><span class="avatar">ТО</span></a></header>
+<nav class="side" aria-label="Разделы">
+<div class="side-g"><p class="side-cap">Учёба</p><ul>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-today"/></svg>Сегодня</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-sched"/></svg>Расписание</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-grades"/></svg>Успеваемость</a></li>
+</ul></div>
+<div class="side-g"><p class="side-cap">Деканат</p><ul>
+<li><a href="#"><svg class="ic ic-24"><use href="#t-req"/></svg>Заявки</a></li>
+<li><a href="#"><svg class="ic ic-24"><use href="#i-bell"/></svg>Уведомления<span class="cnt"><span class="sr-only">Новых: </span>3</span></a></li>
+</ul></div>
+<div class="side-foot"><ul><li><a href="M6-ideas.html" aria-current="page"><svg class="ic ic-24"><use href="#t-idea"/></svg>Идеи и планы</a></li></ul></div>
+</nav>
+<main class="main">
+<h1 class="h1">Идеи и планы</h1>
+<p class="intro">Что мы добавили бы в кабинет, будь у нас больше времени. Это планы, а не работающие функции</p>
+<ul class="ideas two">
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-chat"/></svg></span><h2>Помощник по правилам деканата</h2><p>Отвечает на частые вопросы по положениям вуза и подсказывает, куда обратиться</p></article></li>
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-upload"/></svg></span><h2>Сдача работ в кабинете</h2><p>Файл отчёта прямо на странице предмета, статус проверки и баллы от преподавателя</p></article></li>
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-bell"/></svg></span><h2>Напоминания по времени</h2><p>За день до срока работы и утром в день экзамена — в ленте и на телефоне</p></article></li>
+<li><article class="idea"><span class="idea-ic"><svg class="ic ic-24"><use href="#i-help"/></svg></span><h2>Спросить деканат</h2><p>Вопрос сотруднику по теме и ответ в том же кабинете</p></article></li>
+</ul>
+</main>
+</div>
+<footer class="foot"><svg class="ic"><use href="#i-info"/></svg><span>Концепт для конкурса, не официальный сервис вуза</span></footer>
+</div></div>
+</div>
+</section>
+</div>
+</body>
+</html>
