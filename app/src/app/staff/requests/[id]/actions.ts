@@ -44,6 +44,8 @@ export async function changeStatusAction(_prev: ChangeStatusState, formData: For
   )
   if (!result.ok) {
     if (result.reason === 'rate_limited') logSecurityEvent('status_limit', { userId: actor.userId, ip })
+    // Заявка другого набора или несуществующая — подделанная форма: событие, как у страницы чужой заявки (R-3.10-2).
+    if (result.reason === 'not_found') logSecurityEvent('access_denied_record', { userId: actor.userId, ip })
     return { ok: false, message: REASON_TEXT[result.reason] }
   }
   revalidatePath(`/staff/requests/${requestId}`)

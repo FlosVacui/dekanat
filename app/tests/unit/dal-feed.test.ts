@@ -117,13 +117,13 @@ describe('отметка уведомления', () => {
     const target = feed.find((i) => i.source === 'notification' && !i.read && i.link !== null)!
     expect(target).toBeDefined()
     const before = await studentDal.countMyUnreadNotifications(a)
-    expect(await studentDal.markMyFeedItemRead(a, 'notification', target.id)).toBe(target.link)
+    expect(await studentDal.markMyFeedItemRead(a, 'notification', target.id)).toEqual({ found: true, link: target.link })
     expect(await studentDal.countMyUnreadNotifications(a)).toBe(before - 1)
     const firstReadAt = await readAtOf(target.id)
     expect(firstReadAt).not.toBeNull()
     expect((await studentDal.listMyFeed(a)).find((i) => i.source === 'notification' && i.id === target.id)?.read).toBe(true)
 
-    expect(await studentDal.markMyFeedItemRead(a, 'notification', target.id)).toBe(target.link)
+    expect(await studentDal.markMyFeedItemRead(a, 'notification', target.id)).toEqual({ found: true, link: target.link })
     expect(await studentDal.countMyUnreadNotifications(a)).toBe(before - 1)
     expect(await readAtOf(target.id), 'время первой отметки не сдвигается').toEqual(firstReadAt)
   })
@@ -142,7 +142,7 @@ describe('отметка уведомления', () => {
       await studentDal.markMyFeedItemRead(a, 'notification', undefined),
       await studentDal.markMyFeedItemRead(a, 'notification', { id: foreign.id }),
     ]
-    expect(answers).toEqual([null, null, null, null, null])
+    expect(answers).toEqual(Array(5).fill({ found: false, link: null }))
     expect(await studentDal.countMyUnreadNotifications(a)).toBe(aBefore)
     expect(await studentDal.countMyUnreadNotifications(b)).toBe(bBefore)
     expect(await snapshot(), 'ни одна строка не изменилась').toEqual(before)
@@ -152,8 +152,8 @@ describe('отметка уведомления', () => {
   it('источник не из списка — тот же ответ и никаких изменений', async () => {
     const own = (await studentDal.listMyFeed(a)).find((i) => i.source === 'notification' && !i.read)!
     const before = await snapshot()
-    expect(await studentDal.markMyFeedItemRead(a, 'something', own.id)).toBeNull()
-    expect(await studentDal.markMyFeedItemRead(a, undefined, own.id)).toBeNull()
+    expect(await studentDal.markMyFeedItemRead(a, 'something', own.id)).toEqual({ found: false, link: null })
+    expect(await studentDal.markMyFeedItemRead(a, undefined, own.id)).toEqual({ found: false, link: null })
     expect(await snapshot()).toEqual(before)
   })
 })
@@ -163,13 +163,13 @@ describe('отметка объявления', () => {
     const target = (await studentDal.listMyFeed(a)).find((i) => i.source === 'announcement' && !i.read)!
     expect(target).toBeDefined()
     const before = await studentDal.countMyUnreadNotifications(a)
-    expect(await studentDal.markMyFeedItemRead(a, 'announcement', target.id)).toBeNull()
+    expect(await studentDal.markMyFeedItemRead(a, 'announcement', target.id)).toEqual({ found: true, link: null })
     expect(await studentDal.countMyUnreadNotifications(a)).toBe(before - 1)
     expect(await readsOf(target.id, STUDENT_A.login)).toBe(1)
     expect((await studentDal.listMyFeed(a)).find((i) => i.source === 'announcement' && i.id === target.id)?.read).toBe(true)
 
     const afterFirst = await snapshot()
-    await expect(studentDal.markMyFeedItemRead(a, 'announcement', target.id)).resolves.toBeNull()
+    await expect(studentDal.markMyFeedItemRead(a, 'announcement', target.id)).resolves.toEqual({ found: true, link: null })
     expect(await studentDal.countMyUnreadNotifications(a)).toBe(before - 1)
     expect(await readsOf(target.id, STUDENT_A.login)).toBe(1)
     expect(await snapshot()).toEqual(afterFirst)
@@ -184,7 +184,7 @@ describe('отметка объявления', () => {
       await studentDal.markMyFeedItemRead(a, 'announcement', NOT_A_RECORD),
       await studentDal.markMyFeedItemRead(a, 'announcement', 'не-номер'),
     ]
-    expect(answers).toEqual([null, null, null])
+    expect(answers).toEqual(Array(3).fill({ found: false, link: null }))
     expect(await readsOf(engineeringOnly, STUDENT_A.login)).toBe(0)
     expect(await readsOf(engineeringOnly, STUDENT_B.login)).toBe(0)
     expect(await studentDal.countMyUnreadNotifications(a)).toBe(aBefore)
@@ -194,7 +194,7 @@ describe('отметка объявления', () => {
   it('номер объявления, поданный как уведомление, ничего не отмечает', async () => {
     const target = (await studentDal.listMyFeed(a)).find((i) => i.source === 'announcement' && !i.read)!
     const before = await snapshot()
-    expect(await studentDal.markMyFeedItemRead(a, 'notification', target.id)).toBeNull()
+    expect(await studentDal.markMyFeedItemRead(a, 'notification', target.id)).toEqual({ found: false, link: null })
     expect(await snapshot()).toEqual(before)
   })
 })

@@ -118,6 +118,9 @@ describe('фильтр и адрес перехода', () => {
       '/\n/evil.example',
       '/gra des',
       '/a\\b',
+      '/requests/\u2028x',
+      '/requests/\u00a0x',
+      '/расписание',
     ]
     for (const link of bad) expect(safeInternalPath(link), JSON.stringify(link)).toBeNull()
     expect(safeInternalPath(null)).toBeNull()

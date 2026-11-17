@@ -826,7 +826,6 @@ test.describe('известные замечания — живы ли', () => {
   })
 
   test('R-3.5-4: ссылка уведомления со знаком U+2028 — переход на ленту, а не 500', async () => {
-    test.fail(true, 'R-3.5-4, IMP-035 пункт 4: ответ 500')
     const [row] = await sql<{ id: string }>(
       `insert into notifications (student_id, kind, title, body, link) values ($1, 'reminder', 'SEC310 U+2028', 'проверка', $2) returning id`,
       [userIdA, '/requests/\u2028x'],
@@ -840,7 +839,6 @@ test.describe('известные замечания — живы ли', () => {
   })
 
   test('R-3.5-5: отметка с номером чужой записи пишет access_denied_record', async () => {
-    test.fail(true, 'R-3.5-5, IMP-035 пункт 5: события нет')
     const count = () => server!.output().split('\n').filter((l) => l.includes('access_denied_record') && l.includes(userIdA)).length
     const before = count()
     await postFeedForm(a.token, await openFeedActionId(a.token), { source: 'notification', id: bUnreadNotification.id, filter: '' })
@@ -849,7 +847,6 @@ test.describe('известные замечания — живы ли', () => {
   })
 
   test('R-3.10-2: смена статуса с номером заявки другого набора пишет access_denied_record', async () => {
-    test.fail(true, 'R-3.10-2: действие отвечает «Нет такой заявки» без события')
     const [row] = await sql<{ id: string }>('select id from users where login = $1', [ALT_STAFF.login])
     const count = () => server!.output().split('\n').filter((l) => l.includes('access_denied_record') && l.includes(row!.id)).length
     const before = count()
