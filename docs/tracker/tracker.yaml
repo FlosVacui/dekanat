@@ -1086,6 +1086,11 @@ history:
     what: "Смена В-5, часть 11: полная сверка FC-5.1-3, правки; сборка PDF tools/build_pdf.py"
     who: "Участник В; оркестратор Opus 5.5; fact-checker Sonnet 5.5 / high"
     tokens: 281238
+  - date: 2026-11-17
+    item: "3.10"
+    what: "Смена В-5, часть 12: proxy.ts — R-3.10-1 и R-3.3-3 исправлены, ревью SEC-В5-1"
+    who: "Участник В; оркестратор Opus 5.5; security-auditor Opus 5.5 / high"
+    tokens: 107868
 
 reviews:
   - id: "R-0.3-1"
@@ -2932,8 +2937,8 @@ reviews:
     text: "Адрес /grades/ с битой процентной кодировкой даёт 500 вместо «не найдено», в том числе без входа; то же у прежнего /requests/ — свойство маршрута с параметром; данных не раскрывает"
     repro: "На собранном сервере: /grades/%ZZ — 500. RV-3.3-1"
     by: "reviewer, Sonnet 5.5 / high"
-    status: "отложено"
-    comment: "IMP-033 в ISSUES; смена 23"
+    status: "исправлено"
+    comment: "proxy.ts: битая кодировка — 404; ea02969; ревью SEC-В5-1"
   - id: "R-3.3-4"
     item: "3.3"
     round: 1
@@ -3400,8 +3405,8 @@ reviews:
     text: "Серверные действия (отметка «прочитано», подача заявки, смена статуса, выход) выполняются без заголовка Origin при действующей куке; с чужим Origin отклоняются; из браузера атаку не воспроизвести — кука SameSite=Lax; R-1.5, В-10, считает это провалом"
     repro: "Отчёт SEC-3.10, таблица замечаний"
     by: "Opus 5.5 / high"
-    status: "отложено"
-    comment: "Ответ пользователя 17.11, смена 32: до аудита 4.4, строка IMP-040"
+    status: "исправлено"
+    comment: "proxy.ts: POST без Origin — 403; ea02969; ревью SEC-В5-1"
   - id: "R-3.10-2"
     item: "3.10"
     round: 1
@@ -3505,6 +3510,43 @@ reviews:
     severity: "предложение"
     text: "RV-В5-1, R-В5-8: события отказа пишутся без предела"
     by: "reviewer, Sonnet 5.5 / high"
+    status: "открыто"
+  - id: "R-3.10-7"
+    item: "3.10"
+    round: 1
+    severity: "незначительное"
+    text: "SEC-В5-1, R-В5-1-1: мало тестов посредника; R-3.3-3 проверял только «не 500»"
+    by: "security-auditor, Opus 5.5 / high"
+    status: "исправлено"
+    comment: "R-3.3-3 требует 404; ea02969. Остальные пробы — на потом"
+  - id: "R-3.10-8"
+    item: "3.10"
+    round: 1
+    severity: "незначительное"
+    text: "SEC-В5-1, R-В5-1-2: matcher исключал любой путь с началом /icon, /apple-icon, /favicon.ico"
+    by: "security-auditor, Opus 5.5 / high"
+    status: "исправлено"
+    comment: "matcher исключает только _next/static и _next/image; ea02969"
+  - id: "R-3.10-9"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "SEC-В5-1, R-В5-1-3: Origin null и мусор — посредник пропускает, Next.js отвечает 500 со стеком в журнале"
+    by: "security-auditor, Opus 5.5 / high"
+    status: "открыто"
+  - id: "R-3.10-10"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "SEC-В5-1, R-В5-1-4: тест R-2.3-35 не видит request.headers.get в proxy.ts"
+    by: "security-auditor, Opus 5.5 / high"
+    status: "открыто"
+  - id: "R-3.10-11"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "SEC-В5-1, R-В5-1-5: ответ 403 — голая строка без подсказки"
+    by: "security-auditor, Opus 5.5 / high"
     status: "открыто"
 
 decisions:
