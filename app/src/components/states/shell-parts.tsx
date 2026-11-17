@@ -106,7 +106,7 @@ export function StudentTabBar({ active }: { active: StudentTab | null }) {
     <nav
       data-tabbar
       aria-label="Разделы"
-      className="fixed inset-x-0 bottom-0 z-10 rounded-t-nav-bar border-t border-border bg-nav-bg shadow-nav"
+      className="fixed inset-x-0 bottom-0 z-10 rounded-t-nav-bar border-t border-border bg-nav-bg shadow-nav lg:hidden"
     >
       <ul className="mx-auto grid max-w-3xl grid-cols-4">
         {TABS.map((tab) => {
@@ -143,14 +143,52 @@ export function StudentTabBar({ active }: { active: StudentTab | null }) {
 }
 
 /**
- * Рамка экрана студента: шапка, середина, нижняя панель. `data` — то, что шапка знает о студенте; `null` — каркас без данных
+ * Боковое меню на компьютере, от 1024 px: те же четыре раздела, что у нижней панели, столбиком слева от содержимого.
+ * Нижняя панель на этой ширине скрыта, так что в дереве доступности одна навигация «Разделы» (решение 17.11.2026,
+ * DECISIONS «Смена ролей 17.11.2026»; шаг 2 JURY-3.10).
+ */
+export function StudentSideNav({ active }: { active: StudentTab | null }) {
+  return (
+    <nav data-sidenav aria-label="Разделы" className="hidden lg:block">
+      <ul className="sticky top-[var(--sp-4)] flex flex-col gap-[var(--sp-1)] px-[var(--sp-3)] py-[var(--sp-4)]">
+        {TABS.map((tab) => {
+          const isActive = tab.id === active
+          return (
+            <li key={tab.id}>
+              <Link
+                href={tab.href}
+                aria-current={isActive ? 'page' : undefined}
+                data-tab={tab.id}
+                className={cn(
+                  'flex min-h-[var(--tap)] items-center gap-[var(--sp-3)] rounded-control px-[var(--sp-3)] text-[length:var(--fs-md)] leading-[1.2] focus-visible:outline-[3px] focus-visible:outline-offset-0 focus-visible:outline-nav-active',
+                  isActive ? 'bg-nav-active-bg font-bold text-nav-active' : 'font-semibold text-nav-icon hover:bg-nav-active-bg/60',
+                )}
+              >
+                <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+                  {TAB_ICONS[tab.id]}
+                </svg>
+                <span>{tab.label}</span>
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </nav>
+  )
+}
+
+/**
+ * Рамка экрана студента: шапка, середина, нижняя панель; на компьютере от 1024 px — шапка, боковое меню и середина. `data` — то, что шапка знает о студенте; `null` — каркас без данных
  * (состояния «загрузка» и «ошибка»).
  */
 export function StudentFrame({ data, active, children }: { data: HeaderData | null; active: StudentTab | null; children: ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
-      <StudentHeader data={data} />
-      <main className="px-[var(--pad-x)] py-[var(--sp-4)]">{children}</main>
+    <div className="mx-auto w-full max-w-3xl lg:grid lg:max-w-[1200px] lg:grid-cols-[240px_minmax(0,1fr)]">
+      <div className="lg:col-span-2">
+        <StudentHeader data={data} />
+      </div>
+      <StudentSideNav active={active} />
+      <main className="min-w-0 px-[var(--pad-x)] py-[var(--sp-4)]">{children}</main>
       <StudentTabBar active={active} />
     </div>
   )

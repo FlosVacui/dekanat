@@ -53,7 +53,8 @@ export default async function TodayPage() {
         <PageTitle>Сегодня</PageTitle>
         <p className="mt-[var(--sp-1)] text-[length:var(--fs-sm)] text-muted">{view.subtitle}</p>
       </div>
-      <div className="flex flex-col gap-[var(--gap)]">
+      {/* На компьютере от 1024 px — две колонки блоков; на телефоне — одна лента, порядок тот же. */}
+      <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2 lg:items-start">
         <NextLessonBlock next={view.next} finished={view.todayFinished} />
 
         <TodayBlock id="today-changes" title="Изменения в расписании">

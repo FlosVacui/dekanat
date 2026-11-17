@@ -23,7 +23,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="ru">
       <body>
         {/* Нижняя панель вкладок не перекрывает подвал: у страницы с панелью внизу оставлен отступ высотой с панель. */}
-        <div className="flex min-h-dvh flex-col has-[[data-tabbar]]:pb-[var(--nav-h)]">
+        <div className="flex min-h-dvh flex-col has-[[data-tabbar]]:pb-[var(--nav-h)] lg:has-[[data-tabbar]]:pb-0">
           <div className="flex-1">{children}</div>
           <footer className="flex items-start justify-center gap-1.5 px-[var(--pad-x)] pb-[var(--sp-4)] pt-[var(--sp-3)] text-center text-[length:var(--fs-xs)] leading-[1.4] text-muted">
             <svg

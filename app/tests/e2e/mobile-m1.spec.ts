@@ -176,7 +176,9 @@ async function measure(page: Page): Promise<AuditData> {
       }
     }
     const scrollH = document.documentElement.scrollHeight
-    const tabbar = document.querySelector('[data-tabbar]')
+    // На компьютере (от 1024 px) нижней панели нет: разделы слева, панель скрыта и в расчёт не идёт.
+    const tabbarEl = document.querySelector('[data-tabbar]')
+    const tabbar = tabbarEl && tabbarEl.getClientRects().length > 0 ? tabbarEl : null
     const footer = document.querySelector('footer')
     const main = document.querySelector('main')
     const header = document.querySelector('header')
@@ -283,6 +285,9 @@ async function step(page: Page, vp: (typeof VIEWPORTS)[number], name: string, op
     if (d.tabbarTop !== null) {
       expect(d.footerBottom!, `${where}: подвал под нижней панелью (${d.footerBottom} > ${d.tabbarTop})`).toBeLessThanOrEqual(d.tabbarTop + 1)
       expect(d.covered, `${where}: элементы под нижней панелью в конце страницы`).toEqual([])
+    } else if (vp.width >= 1024 && !(opts.noTabbar === true || name.startsWith('staff') || name === 'login')) {
+      // Компьютер: у экрана студента вместо нижней панели — разделы слева.
+      await expect(page.locator('[data-sidenav]'), `${where}: нет разделов слева`).toBeVisible()
     } else {
       expect(opts.noTabbar === true || name.startsWith('staff') || name === 'login', `${where}: нижней панели нет, а экран студента`).toBe(true)
     }
@@ -409,12 +414,16 @@ for (const vp of VIEWPORTS) {
       expect(walk.length, `${vp.width}: Tab на «Сегодня» дошёл до конца`).toBeGreaterThan(6)
       expect(walk[0]!.label, 'первым получает фокус колокольчик').toContain('Уведомления')
       expect(walk[1]!.label, 'вторым — профиль').toContain('Профиль')
-      const tail = walk.slice(-4).map((f) => f.label)
-      expect(tail[0]).toContain('Сегодня')
-      expect(tail[1]).toContain('Расписание')
-      expect(tail[2]).toContain('Успеваемость')
-      expect(tail[3]).toContain('Заявки')
-      const middle = walk.slice(2, -4)
+      // Телефон: разделы — нижняя панель, фокус доходит до них последним.
+      // Компьютер (от 1024 px): разделы слева, сразу после шапки; блоки «Сегодня» — в две колонки,
+      // поэтому правило «фокус не возвращается выше» проверяется только на телефоне.
+      const desktop = vp.width >= 1024
+      const sections = (desktop ? walk.slice(2, 6) : walk.slice(-4)).map((f) => f.label)
+      expect(sections[0]).toContain('Сегодня')
+      expect(sections[1]).toContain('Расписание')
+      expect(sections[2]).toContain('Успеваемость')
+      expect(sections[3]).toContain('Заявки')
+      const middle = desktop ? [] : walk.slice(2, -4)
       for (let i = 1; i < middle.length; i += 1) {
         expect(middle[i]!.top, `${vp.width}: фокус вернулся выше: «${middle[i - 1]!.label}» → «${middle[i]!.label}»`).toBeGreaterThanOrEqual(middle[i - 1]!.top - 1)
       }
@@ -474,8 +483,11 @@ for (const vp of VIEWPORTS) {
       rec('focus', vp.width, 'request-detail', walk)
       expect(walk[0]!.label, 'первой в заявке — шапка (колокольчик)').toContain('Уведомления')
       expect(walk[1]!.label).toContain('Профиль')
-      expect(walk[2]!.label, 'следом — ссылка «Все заявки»').toContain('Все заявки')
-      expect(walk.slice(-4).map((f) => f.label.split(' ').slice(-1)[0]), 'в конце — вкладки').toEqual(['Сегодня', 'Расписание', 'Успеваемость', 'Заявки'])
+      // На компьютере разделы слева идут сразу после шапки, на телефоне — нижней панелью в конце.
+      const desktop = vp.width >= 1024
+      const sections = desktop ? walk.slice(2, 6) : walk.slice(-4)
+      expect(walk[desktop ? 6 : 2]!.label, 'следом — ссылка «Все заявки»').toContain('Все заявки')
+      expect(sections.map((f) => f.label.split(' ').slice(-1)[0]), 'разделы').toEqual(['Сегодня', 'Расписание', 'Успеваемость', 'Заявки'])
     })
 
     test('С-9: пустой список заявок и форма новой заявки только открываются, не отправляются (Э-7)', async () => {
@@ -492,7 +504,7 @@ for (const vp of VIEWPORTS) {
 
     test('С-2: «Расписание» → завтра в полосе дней (Э-3)', async () => {
       await page.goto('/')
-      await page.getByRole('link', { name: 'Расписание' }).last().click()
+      await page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Расписание' }).click()
       await expect(page).toHaveURL(/\/schedule/)
       await step(page, vp, 'schedule-day', {
         ready: page.getByRole('heading', { name: /^Расписание на/ }),
@@ -520,7 +532,7 @@ for (const vp of VIEWPORTS) {
 
     test('С-6, С-14, С-7: «Успеваемость» — сводка, карточки с итогом, экран дисциплины (Э-4, Э-5)', async () => {
       await page.goto('/')
-      await page.getByRole('link', { name: 'Успеваемость' }).last().click()
+      await page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Успеваемость' }).click()
       await expect(page).toHaveURL(/\/grades$/)
       await step(page, vp, 'grades-semester', {
         ready: page.getByRole('heading', { name: 'Как у меня дела' }),
@@ -615,8 +627,8 @@ for (const vp of VIEWPORTS) {
     if (vp.width === 360) {
       test('IMP-038: переход по вкладке с «Сегодня» — высота шапки и появление скелета по кадрам (только замер)', async () => {
         const targets: { name: string; link: () => Locator; ready: () => Locator }[] = [
-          { name: 'schedule', link: () => page.getByRole('link', { name: 'Расписание' }).last(), ready: () => page.getByRole('heading', { name: /^Расписание на/ }) },
-          { name: 'requests', link: () => page.getByRole('link', { name: 'Заявки' }).last(), ready: () => page.getByRole('heading', { name: 'Заявки', level: 1 }) },
+          { name: 'schedule', link: () => page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Расписание' }), ready: () => page.getByRole('heading', { name: /^Расписание на/ }) },
+          { name: 'requests', link: () => page.getByRole('navigation', { name: 'Разделы' }).getByRole('link', { name: 'Заявки' }), ready: () => page.getByRole('heading', { name: 'Заявки', level: 1 }) },
           { name: 'profile', link: () => page.getByRole('link', { name: 'Профиль' }), ready: () => page.getByRole('heading', { name: 'Профиль', level: 1 }) },
         ]
         for (const t of targets) {

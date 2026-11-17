@@ -7,7 +7,7 @@ import { SubmitButton } from '@/components/submit-button'
 // Шапка — по разделу 6 дизайн-системы (D-2.2-system), знак — по разделу 7.
 export function StaffShell({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div className="mx-auto w-full max-w-3xl lg:max-w-[1200px]">
       <header className="flex items-center gap-1 bg-header-bg px-[var(--pad-x)] pb-[var(--sp-3)] pt-[var(--sp-4)] text-on-header">
         {/* Знак 40×40 внутри круга 44×44. Подложка круга — переменная системы: прозрачная в светлой теме. */}
         <div className="grid size-11 flex-none place-items-center rounded-full bg-logo-plate">
