@@ -328,9 +328,9 @@ export const MAIN_COHORT: CohortSpec = {
           note: null,
           steps: [
             { status: 'submitted', dayOffset: -6 },
-            { status: 'rejected', dayOffset: -5, note: 'Такую справку выдают по заявлению в деканате. Подайте заявление лично' },
+            { status: 'rejected', dayOffset: -5, note: 'Укажите, за какие учебные годы нужна справка, и подайте заявку снова' },
           ],
-          rejectReason: 'not_eligible',
+          rejectReason: 'incomplete_data',
         },
         {
           key: 'cert-residence',
@@ -345,7 +345,7 @@ export const MAIN_COHORT: CohortSpec = {
           key: 'cert-rejected',
           kind: 'reminder',
           title: 'Заявка отклонена: справка о периоде обучения',
-          body: 'Причина: Нет оснований для выдачи. Можно подать снова',
+          body: 'Причина: Не хватает данных. Можно подать снова',
           link: '/requests/{id.cert-study}',
           unread: true,
         },

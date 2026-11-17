@@ -222,7 +222,7 @@ describe('прежний набор не оставляет следов (db:see
         })
       }
       const rejected = await client.query(`SELECT note FROM request_events WHERE status = 'rejected' AND request_id IN (SELECT id FROM requests WHERE ip = 'seed')`)
-      expect(rejected.rows).toEqual([{ note: 'Такую справку выдают по заявлению в деканате. Подайте заявление лично' }])
+      expect(rejected.rows).toEqual([{ note: 'Укажите, за какие учебные годы нужна справка, и подайте заявку снова' }])
     })
   })
 })

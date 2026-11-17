@@ -403,8 +403,8 @@ describe('заявки: путь по шагам, сроки считают фу
     expect(tuition.dueDate).toBe(addWorkingDays(addDays(MONDAY, -3), 10))
     expect(tuition).toMatchObject({ purpose: null, paymentYear: 2025, note: 'Для налогового вычета, договор «Зелёная-3»' })
     const rejected = requestOf(plan, 'nesterova', 'cert-study')
-    expect(rejected).toMatchObject({ status: 'rejected', rejectReason: 'not_eligible', purpose: 'study_period', dueDate: null })
-    expect(rejected.steps[1]!.note).toBe('Такую справку выдают по заявлению в деканате. Подайте заявление лично')
+    expect(rejected).toMatchObject({ status: 'rejected', rejectReason: 'incomplete_data', purpose: 'study_period', dueDate: null })
+    expect(rejected.steps[1]!.note).toBe('Укажите, за какие учебные годы нужна справка, и подайте заявку снова')
     expect(requestOf(plan, 'nesterova', 'cert-residence')).toMatchObject({ status: 'submitted', purpose: 'residence' })
   })
 
