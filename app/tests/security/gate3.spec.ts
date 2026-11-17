@@ -761,6 +761,18 @@ test.describe('В-10: подделка запроса к отметке «про
       sessionAlive: true,
     })
   })
+
+  test('R-3.10-9: Origin «null» и мусор — 403 от посредника, а не 500 от Next.js; действие не выполняется', async () => {
+    const actionId = await openFeedActionId(b.token)
+    for (const origin of ['null', 'garbage']) {
+      const mark = await postFeedForm(b.token, actionId, { source: 'notification', id: bUnreadNotification.id, filter: '' }, origin)
+      expect(mark.status, `отметка, Origin ${origin}`).toBe(403)
+      const status = await replayWithOrigin(statusAction, staff.token, aFresh, bFresh, origin)
+      expect(status.status, `смена статуса, Origin ${origin}`).toBe(403)
+    }
+    expect(await notificationRead(bUnreadNotification.id)).toBe(false)
+    expect(await requestStatus(bFresh)).toBe('submitted')
+  })
 })
 
 // ---------- Пункт 5 задания: экраны ошибки и действия при отказе базы ----------

@@ -1091,6 +1091,14 @@ history:
     what: "Смена В-5, часть 12: proxy.ts — R-3.10-1 и R-3.3-3 исправлены, ревью SEC-В5-1"
     who: "Участник В; оркестратор Opus 5.5; security-auditor Opus 5.5 / high"
     tokens: 107868
+  - date: 2026-11-17
+    item: "4.4"
+    what: "Смена 33: R-3.10-9 — посредник отклоняет 403 POST с Origin не-адресом; R-3.10-10 — проверка чтения заголовков; ревью RV-3.10-9-1; IMP-043. Сервер обновлён до 730ebc9"
+    who: "Участник А; Claude Opus 5.5, reviewer Sonnet 5.5 / high"
+    commit: "2bef579, 8eeaf3d"
+    rounds: 1
+    tokens: 55605
+    link: "docs/reviews/RV-3.10-9-1.md"
 
 reviews:
   - id: "R-0.3-1"
@@ -3533,14 +3541,16 @@ reviews:
     severity: "предложение"
     text: "SEC-В5-1, R-В5-1-3: Origin null и мусор — посредник пропускает, Next.js отвечает 500 со стеком в журнале"
     by: "security-auditor, Opus 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "2bef579: Origin не-адрес — 403; остаток с чужим правильным Origin — IMP-043"
   - id: "R-3.10-10"
     item: "3.10"
     round: 1
     severity: "предложение"
     text: "SEC-В5-1, R-В5-1-4: тест R-2.3-35 не видит request.headers.get в proxy.ts"
     by: "security-auditor, Opus 5.5 / high"
-    status: "открыто"
+    status: "исправлено"
+    comment: "2bef579; оговорка о пределах проверки — 8eeaf3d"
   - id: "R-3.10-11"
     item: "3.10"
     round: 1
@@ -3548,6 +3558,46 @@ reviews:
     text: "SEC-В5-1, R-В5-1-5: ответ 403 — голая строка без подсказки"
     by: "security-auditor, Opus 5.5 / high"
     status: "открыто"
+  - id: "R-3.10-12"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-3.10-9-1, пункт 1: правильный, но чужой Origin идёт в Next.js и получает 500"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "IMP-043: сверку хоста переносить только вместе с проверкой входа на сервере"
+  - id: "R-3.10-13"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-3.10-9-1, пункт 2: в тестах посредника нет законных Origin; пробел — тот же случай «заголовка нет»"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "8eeaf3d"
+  - id: "R-3.10-14"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-3.10-9-1, пункт 3: проверка чтения заголовков не видит headers?.get, headers['…'], деструктуризацию"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "8eeaf3d: оговорка в комментарии теста"
+  - id: "R-3.10-15"
+    item: "3.10"
+    round: 1
+    severity: "незначительное"
+    text: "RV-3.10-9-1, пункт 4: строка 134 ai-errors.md ссылается на запись журнала «смена 33», которой ещё нет"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "Запись журнала «смена 33» добавлена коммитом записей"
+  - id: "R-3.10-16"
+    item: "3.10"
+    round: 1
+    severity: "предложение"
+    text: "RV-3.10-9-1, пункт 5: комментарий proxy.ts неточен — хост не сверяется; стек пишется не во всех случаях"
+    by: "reviewer, Sonnet 5.5 / high"
+    status: "исправлено"
+    comment: "8eeaf3d"
 
 decisions:
   - id: "Р-0"
