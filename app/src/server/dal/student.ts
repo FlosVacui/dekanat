@@ -587,12 +587,6 @@ export async function listMyFeed(actor: Actor): Promise<FeedItem[]> {
   return items.slice(0, FEED_LIMIT)
 }
 
-/**
- * Отметить одну запись ленты прочитанной. Уведомление: `read_at` ставится строке с этим номером и этим студентом.
- * Объявление: отметка вставляется, только если оно адресовано группе или факультету студента; повтор — не ошибка.
- * Возвращает ссылку своего уведомления или null. Чужая, несуществующая запись и мусор вместо номера дают один ответ
- * (null) и ничего не меняют.
- */
 export interface FeedItemMark {
   /** Запись есть в ленте этого студента. `false` — чужая, несуществующая или мусор в форме: действие пишет отказ (R-3.5-5). */
   found: boolean
@@ -602,6 +596,12 @@ export interface FeedItemMark {
 
 const NOT_FOUND: FeedItemMark = { found: false, link: null }
 
+/**
+ * Отметить одну запись ленты прочитанной. Уведомление: `read_at` ставится строке с этим номером и этим студентом.
+ * Объявление: отметка вставляется, только если оно адресовано группе или факультету студента; повтор — не ошибка.
+ * Своя запись — `{ found: true, link }`. Чужая, несуществующая запись и мусор вместо номера дают один ответ
+ * `{ found: false, link: null }` и ничего не меняют.
+ */
 export async function markMyFeedItemRead(actor: Actor, source: unknown, id: unknown): Promise<FeedItemMark> {
   const { studentId, groupId } = requireStudent(actor)
   if (!isUuid(id)) return NOT_FOUND
