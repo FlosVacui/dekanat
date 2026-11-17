@@ -833,6 +833,8 @@ test.describe('известные замечания — живы ли', () => {
     try {
       const res = await postFeedForm(a.token, await openFeedActionId(a.token), { source: 'notification', id: row!.id, filter: '' })
       expect(res.status).not.toBe(500)
+      // Переход — на ленту, а не по непригодной ссылке (R-3.10-5, ревью RV-В5-1).
+      expect(res.location ?? '', `код ${res.status}`).toMatch(/^(https?:\/\/[^/]+)?\/notifications(\?|$)/)
     } finally {
       await sql('delete from notifications where id = $1', [row!.id])
     }
