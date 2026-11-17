@@ -373,6 +373,7 @@ items:
     owner: "Видеопродюсер (Sonnet 5.5 / medium); голос и съёмка — участники"
     review: "Пользователь"
     plan: {start: 2026-11-19, end: 2026-11-21}
+    fact: {2026-11-17: "В работе"}
   - id: "5.3"
     title: "README для жюри"
     person: "А"
@@ -1062,6 +1063,10 @@ history:
     commit: "8750739"
     tokens: 621909
     link: "docs/reviews/JURY-3.10.md"
+  - date: 2026-11-17
+    item: "5.2"
+    what: "Смена В-5: сценарий видео docs/submission/video-script.md. Ветка docs/5.2-video"
+    who: "Участник В"
 
 reviews:
   - id: "R-0.3-1"
