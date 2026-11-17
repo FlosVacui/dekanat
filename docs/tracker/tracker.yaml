@@ -1062,6 +1062,10 @@ history:
     commit: "8750739"
     tokens: 621909
     link: "docs/reviews/JURY-3.10.md"
+  - date: 2026-11-17
+    item: "5.3"
+    what: "Смена В-5: черновик README к первой отправке — ветка docs/5.3-readme, ждёт участника А"
+    who: "Участник В"
 
 reviews:
   - id: "R-0.3-1"
