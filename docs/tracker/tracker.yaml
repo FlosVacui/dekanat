@@ -1081,6 +1081,11 @@ history:
     what: "Смена В-5, часть 10: описание процесса дополнено на 17.11, сверка FC-5.1-2; HANDOFF и H-040; реестр рисков на воротах 3"
     who: "Участник В; оркестратор Opus 5.5; fact-checker Sonnet 5.5 / high"
     tokens: 96302
+  - date: 2026-11-17
+    item: "5.1"
+    what: "Смена В-5, часть 11: полная сверка FC-5.1-3, правки; сборка PDF tools/build_pdf.py"
+    who: "Участник В; оркестратор Opus 5.5; fact-checker Sonnet 5.5 / high"
+    tokens: 281238
 
 reviews:
   - id: "R-0.3-1"
