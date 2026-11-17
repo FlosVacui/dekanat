@@ -10,7 +10,6 @@ import { expect, test, type Browser, type BrowserContext, type Locator, type Pag
 import { appendFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { MAIN_COHORT } from '../../db/seed-data'
 import { addressHeaders, freshAddress } from './helpers/address'
 import { fillLogin } from './helpers/auth'
@@ -20,8 +19,11 @@ const [student1] = MAIN_COHORT.students
 if (!student1) throw new Error('В основном наборе нет студента')
 const staff = MAIN_COHORT.staff
 
-const SHOTS = fileURLToPath(new URL('../../../docs/evidence/screenshots/2026-11-17-3.10/', import.meta.url))
 const RUNS = join(process.env.LOCALAPPDATA ?? tmpdir(), 'dekanat-runs')
+// Снимки — во временную папку рядом с замерами. Снимки-доказательства ворот 3 лежат в
+// docs/evidence/screenshots/2026-11-17-3.10/ и обычным прогоном не перезаписываются (IMP-042, ошибка ИИ 133).
+// Переснять их или снять новые в репозиторий — явно: SCREENSHOT_DIR=<папка>, как в screenshots.ts.
+const SHOTS = process.env.SCREENSHOT_DIR ?? join(RUNS, 'mob-3.10-shots')
 const LOG = join(RUNS, 'mob-3.10-data.jsonl')
 const CONCEPT = 'Концепт для конкурса, не официальный сервис вуза'
 
