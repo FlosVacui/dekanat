@@ -8,6 +8,7 @@ import {
   LESSONS_BACK_DAYS,
   PAIR_TIMES,
   buildCohortPlan,
+  controlBaseDate,
   daysPhrase,
   planControlDates,
   toWorkday,
@@ -266,13 +267,16 @@ describe('дисциплины, работы, оценки', () => {
       const dates = planned.map((d) => d.examDate!)
       for (const date of dates) expect(weekdayOf(date), `${group.name}: ${date}`).not.toBe(0)
       expect(new Set(dates).size, `${group.name}: два контроля в один день`).toBe(dates.length)
-      // Порядок — как в наборе (по сдвигу), даты не раньше заданных и не позже чем на неделю после них.
-      const bySpec = group.disciplines.filter((d) => d.exam).sort((a, b) => a.exam!.dayOffset - b.exam!.dayOffset)
-      const placed = bySpec.map((d) => planned.find((p) => p.name === d.name)!.examDate!)
+      // Порядок — как в наборе (по заданному дню), даты не раньше заданных и не позже чем на неделю после них.
+      const bySpec = group.disciplines
+        .filter((d) => d.exam)
+        .map((d) => ({ d, base: controlBaseDate(d.exam!, today) }))
+        .sort((a, b) => (a.base < b.base ? -1 : a.base > b.base ? 1 : 0))
+      const placed = bySpec.map(({ d }) => planned.find((p) => p.name === d.name)!.examDate!)
       expect([...placed].sort()).toEqual(placed)
-      bySpec.forEach((d, i) => {
-        expect(placed[i]! >= addDays(today, d.exam!.dayOffset)).toBe(true)
-        expect(placed[i]! <= addDays(today, d.exam!.dayOffset + 7)).toBe(true)
+      bySpec.forEach(({ base }, i) => {
+        expect(placed[i]! >= base).toBe(true)
+        expect(placed[i]! <= addDays(base, 7)).toBe(true)
       })
     }
     // Пересдача стоит раньше сессии: не раньше Д и раньше любого другого контроля группы.
@@ -280,6 +284,25 @@ describe('дисциплины, работы, оценки', () => {
     expect(resit >= today).toBe(true)
     for (const d of plan.disciplines.filter((x) => x.groupName === group1.name && x.name !== 'Эконометрика' && x.examDate)) {
       expect(d.examDate! > resit).toBe(true)
+    }
+  })
+
+  // Освежение каждый день переносит Д на сегодня. Сессия постоянная: даты контроля текущего семестра не должны
+  // уезжать вместе с Д на праздники или раньше сессии (docs/data/check-2026-11-17.md, Д-1). Окно — от первой
+  // отправки работы до конца экспертизы и с запасом.
+  const AROUND_JURY = Array.from({ length: 21 }, (_, i) => addDays('2026-11-14', i))
+  const HOLIDAYS = ['2026-12-31', ...Array.from({ length: 8 }, (_, i) => `2027-01-0${i + 1}`)]
+  it.each(AROUND_JURY)('Д = %s: зачёты в зачётную неделю, экзамены в сессию, ничего в праздники', (today) => {
+    const plan = buildCohortPlan(MAIN_COHORT, today)
+    const current = plan.disciplines.filter((d) => d.examDate && d.name !== 'Эконометрика')
+    expect(current).toHaveLength(9)
+    for (const d of current) {
+      expect(HOLIDAYS, `${d.name}: ${d.examDate}`).not.toContain(d.examDate)
+      if (d.controlKind === 'credit') {
+        expect(d.examDate! >= '2026-12-21' && d.examDate! <= '2026-12-26', `${d.name}: ${d.examDate}`).toBe(true)
+      } else {
+        expect(d.examDate! >= '2026-12-28' && d.examDate! <= '2027-01-24', `${d.name}: ${d.examDate}`).toBe(true)
+      }
     }
   })
 

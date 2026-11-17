@@ -67,12 +67,24 @@ export interface DisciplineSpec {
   controlKind: 'exam' | 'credit'
   semester: number
   /**
-   * День, время и аудитория экзамена, зачёта или пересдачи; сдвиг от Д. У сданного в прошлую сессию — нет.
+   * День, время и аудитория экзамена, зачёта или пересдачи: сдвиг от Д или дата календаря — `ControlSpec`. У сданного в прошлую сессию — нет.
    * Выпавший на воскресенье контроль переносится на понедельник; если у группы в этот день уже есть контроль — на следующий
    * будний день без контроля. Суббота остаётся: по субботам есть пары. Даты для текстов — в `PlanVars`: `{exam.<название>}`.
    */
-  exam?: { dayOffset: number; time: string; room: string }
+  exam?: ControlSpec
   assignments: AssignmentSpec[]
+}
+
+/**
+ * День контроля: сдвигом от Д (`dayOffset`) или датой календаря (`date`, ГГГГ-ММ-ДД). Сдвиг — для того, что всегда
+ * впереди, например пересдачи. Дата — для сессии: её даты постоянные, и освежение их не двигает. Иначе экзамены
+ * уезжали бы вместе с Д на новогодние праздники и раньше начала сессии (docs/data/check-2026-11-17.md, Д-1).
+ */
+export type ControlSpec = ({ dayOffset: number; date?: never } | { date: string; dayOffset?: never }) & { time: string; room: string }
+
+/** Заданный день контроля до переноса с воскресенья и с занятого дня. */
+export function controlBaseDate(exam: ControlSpec, today: string): string {
+  return exam.date ?? addDays(today, exam.dayOffset!)
 }
 
 export interface GroupSpec {
@@ -495,16 +507,18 @@ function planLessons(group: GroupSpec, cohort: string, today: string, vars: Map<
 
 /**
  * Даты контроля группы. Выпавшее на воскресенье — на понедельник; занятый другим контролем группы день — на следующий будний
- * день без контроля. Суббота остаётся. Идёт по возрастанию сдвига, и ни один контроль не встаёт раньше предыдущего:
+ * день без контроля. Суббота остаётся. Идёт по возрастанию заданного дня (`controlBaseDate`), и ни один контроль не встаёт раньше предыдущего:
  * порядок контроля не меняется, пересдача остаётся раньше сессии.
  */
 export function planControlDates(disciplines: DisciplineSpec[], today: string): Map<string, string> {
   const dates = new Map<string, string>()
   const used = new Set<string>()
   let last = ''
-  const withExam = disciplines.filter((d) => d.exam).sort((a, b) => a.exam!.dayOffset - b.exam!.dayOffset)
-  for (const d of withExam) {
-    const base = addDays(today, d.exam!.dayOffset)
+  const withExam = disciplines
+    .filter((d) => d.exam)
+    .map((d) => ({ d, base: controlBaseDate(d.exam!, today) }))
+    .sort((a, b) => (a.base < b.base ? -1 : a.base > b.base ? 1 : 0))
+  for (const { d, base } of withExam) {
     let date = base < last ? last : base
     if (weekdayOf(date) === 0 || used.has(date)) {
       do {
