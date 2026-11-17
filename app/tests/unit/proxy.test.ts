@@ -11,6 +11,18 @@ describe('proxy', () => {
     expect(res.status).toBe(403)
   })
 
+  it('R-3.10-9: POST с Origin, который не адрес http или https, — 403', () => {
+    for (const origin of ['null', 'garbage', ' ', 'file://', 'javascript:alert(1)', 'data:text/html,x', 'http//localhost:3000']) {
+      const res = proxy(new NextRequest(`${BASE}/login`, { method: 'POST', headers: { origin } }))
+      expect(res.status, `Origin ${JSON.stringify(origin)}`).toBe(403)
+    }
+  })
+
+  it('R-3.10-9: POST с чужим, но правильным адресом пропускается — хост сверяет Next.js', () => {
+    const res = proxy(new NextRequest(`${BASE}/login`, { method: 'POST', headers: { origin: 'https://evil.example' } }))
+    expect(res.headers.get('x-middleware-next')).toBe('1')
+  })
+
   it('POST с Origin пропускается дальше', () => {
     const res = proxy(new NextRequest(`${BASE}/notifications`, { method: 'POST', headers: { origin: BASE } }))
     expect(res.status).toBe(200)

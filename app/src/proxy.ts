@@ -3,10 +3,22 @@ import { NextResponse, type NextRequest } from 'next/server'
 // Посредник перед каждым запросом страницы и действия (Next.js 16, файл proxy.ts).
 // 1. R-3.10-1: POST без заголовка Origin отклоняется. Браузер шлёт Origin с каждым POST,
 //    поэтому обычной работы это не меняет; закрывается подделка запроса не из браузера с чужой кукой.
-//    Совпадение Origin с адресом сайта проверяет сам Next.js — здесь только «заголовок есть».
+//    R-3.10-9: Origin, который не разбирается как адрес http или https («null», мусор), — тоже 403;
+//    раньше такой запрос доходил до Next.js, и тот отвечал 500 со стеком в журнале.
+//    Совпадение Origin с адресом сайта проверяет сам Next.js — здесь только «заголовок есть и это адрес».
 // 2. R-3.3-3: адрес с битой процентной кодировкой — экран «не найдено», а не ошибка сервера 500.
 
 const NOT_FOUND_PATH = '/__nf'
+
+function isHttpOrigin(origin: string | null): boolean {
+  if (!origin) return false
+  try {
+    const { protocol } = new URL(origin)
+    return protocol === 'http:' || protocol === 'https:'
+  } catch {
+    return false
+  }
+}
 
 function hasBrokenEncoding(pathname: string): boolean {
   try {
@@ -18,7 +30,7 @@ function hasBrokenEncoding(pathname: string): boolean {
 }
 
 export function proxy(request: NextRequest) {
-  if (request.method === 'POST' && !request.headers.get('origin')) {
+  if (request.method === 'POST' && !isHttpOrigin(request.headers.get('origin'))) {
     return new NextResponse('Запрос отклонён', { status: 403, headers: { 'content-type': 'text/plain; charset=utf-8' } })
   }
   const rawPath = new URL(request.url).pathname

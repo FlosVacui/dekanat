@@ -111,6 +111,12 @@ describe('R-2.3-35: выключателя проверок по окружен�
     expect(switches.map((f) => f.rel)).toEqual([])
     const headerReaders = src.filter((f) => /\bheaders\(\)/.test(f.text)).map((f) => f.rel)
     expect(headerReaders).toEqual(['server/auth/cookie.ts'])
+    // R-3.10-10: заголовок можно прочитать и у объекта запроса — request.headers.get(...).
+    // Так читает только посредник, и только Origin; любое другое такое чтение — повод для ревью.
+    const requestHeaderReads = src.flatMap((f) =>
+      [...f.text.replace(/\/\/.*$/gm, '').matchAll(/\.headers\s*\.\s*(get|has|entries|forEach|keys|values)\s*\(([^)]*)\)/g)].map((m) => `${f.rel}: ${m[1]}(${(m[2] ?? '').trim()})`),
+    )
+    expect(requestHeaderReads).toEqual(["proxy.ts: get('origin')"])
   })
 })
 
