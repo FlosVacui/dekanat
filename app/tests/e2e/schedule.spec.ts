@@ -176,7 +176,7 @@ test('полоса дней: семь дней от сегодняшнего, в
   await expect(page.getByRole('group', { name: 'Вид' }).getByRole('link', { name: 'День' })).toHaveAttribute('aria-current', 'true')
 })
 
-test('перенос внутри дня: «Перенос» дважды, новое время крупно, строка «Было», на старом месте — «Перенесена на»', async () => {
+test('перенос внутри дня: «Перенос» дважды, время старого места приглушено, а нового нет, строка «Было», на старом месте — «Перенесена на»', async () => {
   const l = plan.movedSameDay!
   const change = l.change!
   const from = wanted('movedSameDay', 'moved_from')
@@ -187,15 +187,32 @@ test('перенос внутри дня: «Перенос» дважды, но�
   await expect(card(to).getByText('Перенос', { exact: true })).toHaveCount(1)
   const newRoom = change.newRoom ?? l.room
   await expect(card(from).getByText(`Перенесена на ${change.newStartsAt}–${change.newEndsAt}, ауд. ${newRoom}`)).toBeVisible()
+  // Номер аудитории не рвётся по дефису: элемент с номером занимает одну строку (одна рамка) и не переносится.
+  const roomNumber = card(from).getByText(newRoom, { exact: true })
+  await expect(roomNumber).toHaveCount(1)
+  expect(await roomNumber.evaluate((el) => el.getClientRects().length), `номер «${newRoom}» разбит на строки`).toBe(1)
+  expect(await roomNumber.evaluate((el) => getComputedStyle(el).whiteSpace), 'перенос внутри номера').toBe('nowrap')
   // Строка «Было» — внутри карточки нового места этой пары, одна, в панели изменения.
   const was = card(to).locator('p', { hasText: 'Было:' })
   await expect(was).toHaveCount(1)
   await expect(was).toContainText(`${l.startsAt}–${l.endsAt}`)
-  // Новое время набрано крупнее остальных.
+  // Время старого места приглушено (цвет --muted), время нового — нет. Цвет токена берётся из страницы, а не из имени класса.
   const newTime = card(to).locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })
   await expect(newTime).toHaveCount(1)
-  const size = await newTime.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
-  expect(size, 'размер нового времени').toBeGreaterThanOrEqual(18)
+  const oldTime = card(from).locator('b', { hasText: new RegExp(`^${l.startsAt}$`) })
+  await expect(oldTime).toHaveCount(1)
+  const mutedColor = await page.evaluate(() => {
+    const probe = document.createElement('span')
+    probe.style.color = 'var(--muted)'
+    document.body.append(probe)
+    const color = getComputedStyle(probe).color
+    probe.remove()
+    return color
+  })
+  const colorOf = (time: Locator) => time.evaluate((el) => getComputedStyle(el).color)
+  expect(mutedColor, 'значение токена --muted').toMatch(/^rgb/)
+  expect(await colorOf(oldTime), 'цвет времени на старом месте').toBe(mutedColor)
+  expect(await colorOf(newTime), 'цвет времени на новом месте').not.toBe(mutedColor)
   await expectNoHorizontalScroll('день с переносом')
 })
 

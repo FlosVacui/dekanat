@@ -5,16 +5,6 @@ export function lessonKindLabel(kind: string): string {
   return LESSON_KINDS[kind] ?? kind
 }
 
-const CHANGE_KINDS: Record<string, string> = {
-  cancelled: 'Пара отменена',
-  moved: 'Пара перенесена',
-  room_changed: 'Сменилась аудитория',
-  teacher_changed: 'Сменился преподаватель',
-}
-export function changeKindLabel(kind: string): string {
-  return CHANGE_KINDS[kind] ?? kind
-}
-
 /** Слово плашки изменения пары на экранах «Расписание» и «Сегодня»: одно-два слова, утверждены 17.11.2026 (смена 35). */
 const CHANGE_BADGES: Record<string, string> = {
   cancelled: 'Отмена',

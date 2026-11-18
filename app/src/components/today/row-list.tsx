@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 import { GradeIcon } from '@/components/grades/icons'
-import { ChangeChip, changeBarClass } from '@/components/schedule/change-chip'
+import { ChangeChip, NoBreakRooms, changeBarClass } from '@/components/schedule/change-chip'
 import { changeBadgeLabel } from '@/lib/labels'
 import type { ScheduleEntry } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
@@ -116,7 +116,7 @@ export function ChangeTile({ href, dayWord, entry }: { href: string; dayWord: st
           </span>
         ) : null}
         {!entry.roomChange && (entry.was ?? entry.movedTo) ? (
-          <span className="text-[length:var(--fs-sm)] leading-[1.35] [overflow-wrap:anywhere]">{entry.movedTo ?? entry.was}</span>
+          <span className="text-[length:var(--fs-sm)] leading-[1.35] [overflow-wrap:anywhere]"><NoBreakRooms text={(entry.movedTo ?? entry.was)!} /></span>
         ) : null}
         {entry.cancelled ? <span className="text-[length:var(--fs-sm)] leading-[1.35]">Занятие не состоится</span> : null}
         {showNote ? <RowMeta>{entry.note}</RowMeta> : null}

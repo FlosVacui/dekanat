@@ -78,8 +78,8 @@ export function EntryChangePanel({ entry, className }: { entry: ScheduleEntry; c
   return (
     <ChangePanel kind={entry.changeKind} label={entry.badge} className={className}>
       {entry.roomChange ? <RoomChangeLine from={entry.roomChange.from} to={entry.roomChange.to} /> : null}
-      {entry.was && !entry.roomChange ? <p className="text-[length:var(--fs-md)] font-bold [overflow-wrap:anywhere]">{entry.was}</p> : null}
-      {entry.movedTo ? <p className="text-[length:var(--fs-md)] font-bold [overflow-wrap:anywhere]">{entry.movedTo}</p> : null}
+      {entry.was && !entry.roomChange ? <p className="text-[length:var(--fs-md)] font-bold [overflow-wrap:anywhere]"><NoBreakRooms text={entry.was} /></p> : null}
+      {entry.movedTo ? <p className="text-[length:var(--fs-md)] font-bold [overflow-wrap:anywhere]"><NoBreakRooms text={entry.movedTo} /></p> : null}
       {entry.cancelled ? <p className="text-[length:var(--fs-md)] font-bold">Занятие не состоится</p> : null}
       {/* Заметка нужна, когда сказать больше нечем: при отмене (причина) и когда строка изменения и «Перенесена на» не собрались. */}
       {entry.note && (entry.cancelled || (!entry.was && !entry.movedTo)) ? (
@@ -89,14 +89,35 @@ export function EntryChangePanel({ entry, className }: { entry: ScheduleEntry; c
   )
 }
 
+/**
+ * Строка изменения с номером аудитории («Перенесена на …, ауд. 1-305»): номер после «ауд. » стоит в элементе с `white-space: nowrap`
+ * и не рвётся по дефису. Символы текста те же, строка читается подряд.
+ */
+export function NoBreakRooms({ text }: { text: string }) {
+  const parts = text.split(/(?<=ауд\. )([^\s,;]+)/)
+  return (
+    <>
+      {parts.map((part, i) =>
+        i % 2 === 1 ? (
+          <span key={i} className="whitespace-nowrap">
+            {part}
+          </span>
+        ) : (
+          part
+        ),
+      )}
+    </>
+  )
+}
+
 /** Строка аудитории в панели: «Аудитория: 118 → 124», новый номер крупно. Текст целиком читается подряд. */
 export function RoomChangeLine({ from, to }: { from: string; to: string }) {
   return (
     <p className="flex flex-wrap items-baseline gap-x-[var(--sp-2)] font-bold [overflow-wrap:anywhere]">
       <span className="text-[length:var(--fs-md)] font-semibold">Аудитория:</span>{' '}
-      <span className="text-[length:var(--fs-md)]">{from}</span>{' '}
+      <span className="whitespace-nowrap text-[length:var(--fs-md)]">{from}</span>{' '}
       <span>→</span>{' '}
-      <span className="text-[length:var(--fs-xl)] font-extrabold leading-none">{to}</span>
+      <span className="whitespace-nowrap text-[length:var(--fs-xl)] font-extrabold leading-none">{to}</span>
     </p>
   )
 }
