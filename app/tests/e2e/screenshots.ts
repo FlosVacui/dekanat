@@ -9,6 +9,7 @@
 // таблицы `lessons`, которую берёт владелец, helpers/db.ts, `holdTableLock`; файлов loading.tsx в пакете нет).
 // Редизайн, заход А: «Сегодня» (`today`) и расписание, вид «День» с изменениями (schedule-day-room-teacher, -moved, -cancelled), 360 и 1280 px.
 // Редизайн, заход Б: «Успеваемость» с раскрытой карточкой (grades-semester-works-open) и страница предмета — экзамен и зачёт (subject-exam, subject-credit).
+// Редизайн, заход В: «Идеи и планы» (`ideas`) на 360 и 1280 px; «Сегодня» с колонкой разделов на 1280 и 1024 px (`1024-today`).
 // Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
 // Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
@@ -45,7 +46,8 @@ const [student1] = MAIN_COHORT.students
 if (!student1) throw new Error('В основном наборе нет студента')
 const { login: studentLogin, password: studentPassword } = student1
 
-type Width = 360 | 1280
+// 1024 — редизайн, заход В: «Сегодня» с узкой колонкой разделов (220 px); снимается отдельным проходом после основных ширин.
+type Width = 360 | 1024 | 1280
 const WIDTHS: Width[] = [360, 1280]
 
 async function newContext(browser: Browser, width: Width, ip?: string): Promise<BrowserContext> {
@@ -54,7 +56,7 @@ async function newContext(browser: Browser, width: Width, ip?: string): Promise<
   return browser.newContext(
     width === 360
       ? { baseURL: BASE_URL, extraHTTPHeaders, viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, locale: 'ru-RU', timezoneId: 'Europe/Moscow' }
-      : { baseURL: BASE_URL, extraHTTPHeaders, viewport: { width: 1280, height: 800 }, locale: 'ru-RU', timezoneId: 'Europe/Moscow' },
+      : { baseURL: BASE_URL, extraHTTPHeaders, viewport: { width, height: 800 }, locale: 'ru-RU', timezoneId: 'Europe/Moscow' },
   )
 }
 
@@ -299,6 +301,8 @@ async function main(): Promise<void> {
         skipMissing(`${width}-notifications-empty`, 'в основном наборе у студентов нет пустой ленты и пустого фильтра; данные не меняются, снимок не делается')
       }
       await shoot(page, width, 'profile', `${BASE_URL}/profile`)
+      // Редизайн, заход В (макет М6): «Идеи и планы».
+      await shoot(page, width, 'ideas', `${BASE_URL}/ideas`)
       // Пакет 3.7: «ошибка» на «Сегодня» и на расписании. Обе страницы читают таблицу `lessons`.
       await shootError(page, width, 'today-error', `${BASE_URL}/`, 'lessons')
       await shootError(page, width, 'schedule-error', `${BASE_URL}/schedule`, 'lessons')
@@ -325,6 +329,16 @@ async function main(): Promise<void> {
       if (target) await shoot(staffPage, width, 'staff-request-detail', `${BASE_URL}${target}`)
       await shootError(staffPage, width, 'staff-requests-error', `${BASE_URL}/staff/requests`, 'requests')
       await staffContext.close()
+    }
+
+    // Редизайн, заход В (макет М5): «Сегодня» на 1024 px — колонка разделов 220 px, плитки в ряд.
+    if (!only || only.test('today')) {
+      const narrow = await newContext(browser, 1024)
+      const narrowPage = await narrow.newPage()
+      await loginVia(narrowPage, studentLogin, studentPassword)
+      await resetFeedToSeed(studentLogin)
+      await shoot(narrowPage, 1024, 'today', `${BASE_URL}/`)
+      await narrow.close()
     }
   } finally {
     // Право чтения возвращено в `finally` каждого снимка; здесь ещё раз для всех таблиц, на случай обрыва между отзывом и возвратом.

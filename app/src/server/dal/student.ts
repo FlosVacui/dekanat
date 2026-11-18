@@ -63,6 +63,19 @@ export async function getMyProfile(actor: Actor): Promise<Profile | null> {
   return rows[0] ?? null
 }
 
+/**
+ * Номер текущего семестра: наибольший `disciplines.semester` у группы студента. Группа берётся из сессии, как в `getMyProfile`;
+ * у группы набор дисциплин нескольких семестров (5, 4, 3), текущий — самый поздний. Нет дисциплин — null.
+ */
+export async function getMyCurrentSemester(actor: Actor): Promise<number | null> {
+  const { groupId } = requireStudent(actor)
+  const rows = await getDb()
+    .select({ semester: sql<number | null>`max(${disciplines.semester})::int` })
+    .from(disciplines)
+    .where(eq(disciplines.groupId, groupId))
+  return rows[0]?.semester ?? null
+}
+
 // ---------- Расписание группы ----------
 
 export interface LessonItem {

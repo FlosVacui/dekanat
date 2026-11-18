@@ -76,6 +76,27 @@ export interface TodayView {
   subtitle: string
 }
 
+/** Числа четырёх плиток на «Сегодня» (только на компьютере). Ноль остаётся нулём. */
+export interface TodayTiles {
+  lessons: number
+  due: number
+  requests: number
+  unread: number
+}
+
+/** Заявка в работе — «Подана» или «В работе». Готовая, выданная и отклонённая в плитку не входят. */
+const IN_WORK_STATUSES: readonly string[] = ['submitted', 'in_progress']
+
+/** Сколько заявок студента в статусах «Подана» и «В работе». */
+export function countRequestsInWork(requests: readonly { status: string }[]): number {
+  return requests.filter((r) => IN_WORK_STATUSES.includes(r.status)).length
+}
+
+/** Числа плиток: пары сегодня и «сдать на этой неделе» — из раскладки экрана, заявки — своим счётом, уведомления — число колокольчика. */
+export function buildTiles(view: Pick<TodayView, 'todayCount' | 'due'>, requests: readonly { status: string }[], unread: number): TodayTiles {
+  return { lessons: view.todayCount, due: view.due.length, requests: countRequestsInWork(requests), unread }
+}
+
 /** Дней между двумя датами «ГГГГ-ММ-ДД»: `to − from`. */
 export function daysBetween(from: string, to: string): number {
   const ms = Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)
