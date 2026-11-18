@@ -2,7 +2,7 @@
 // поэтому тест не зависит от дня недели и часа запуска. База не нужна.
 import { describe, expect, it } from 'vitest'
 import type { ScheduleLesson } from '../../src/lib/schedule'
-import { buildToday, dueChipText, lessonCountText, subtitleText, type TodayDueInput } from '../../src/lib/today'
+import { buildToday, dueChipText, lessonCountText, nextDateTitle, subtitleText, type TodayDueInput } from '../../src/lib/today'
 
 // 2026-11-16 — понедельник; 2026-11-15 — воскресенье.
 const TODAY = '2026-11-16'
@@ -87,13 +87,14 @@ describe('пары сегодня и перенос', () => {
   })
 })
 
-describe('строка над временем и кнопка', () => {
+describe('подпись, заголовок даты и кнопка', () => {
   const morning = lesson({ id: 'a', startsAt: '10:10', endsAt: '11:40' })
 
-  it('пара ещё не началась: «Следующая пара · сегодня», кнопка на сегодня', () => {
+  it('пара ещё не началась: подпись «Следующая пара», заголовок «Сегодня», кнопка на сегодня', () => {
     const next = buildToday([morning], NO_DUE, TODAY, '09:00').next
     expect(next?.kind).toBe('today')
-    expect(next?.eyebrow).toBe('Следующая пара · сегодня')
+    expect(next?.caption).toBe('Следующая пара')
+    expect(next?.dateTitle).toBe('Сегодня')
     expect(next?.buttonLabel).toBe('Расписание на сегодня')
     expect(next?.href).toBe('/schedule')
   })
@@ -102,18 +103,20 @@ describe('строка над временем и кнопка', () => {
     for (const now of ['10:10', '11:00', '11:39']) {
       const next = buildToday([morning], NO_DUE, TODAY, now).next
       expect(next?.kind, now).toBe('now')
-      expect(next?.eyebrow, now).toBe('Идёт сейчас')
+      expect(next?.caption, now).toBe('Идёт сейчас')
+      expect(next?.dateTitle, now).toBe('Сегодня')
       expect(next?.href, now).toBe('/schedule')
     }
   })
 
-  it('пара кончилась: следующая — другого дня, «Следующая пара · пт, 20 ноября», кнопка на этот день', () => {
+  it('пара кончилась: следующая — другого дня, заголовок «Пт 20 ноября», кнопка на этот день', () => {
     const friday = lesson({ id: 'f', date: '2026-11-20', startsAt: '08:30', endsAt: '10:00' })
     const view = buildToday([morning, friday], NO_DUE, TODAY, '11:40')
     expect(view.todayFinished).toBe(true)
     expect(view.todayCount).toBe(1)
     expect(view.next?.kind).toBe('other_day')
-    expect(view.next?.eyebrow).toBe('Следующая пара · пт, 20 ноября')
+    expect(view.next?.caption).toBe('Следующая пара')
+    expect(view.next?.dateTitle).toBe('Пт 20 ноября')
     expect(view.next?.buttonLabel).toBe('Расписание на 20 ноября')
     expect(view.next?.href).toBe('/schedule?day=2026-11-20')
   })
@@ -123,8 +126,28 @@ describe('строка над временем и кнопка', () => {
     const view = buildToday([tuesday], NO_DUE, TODAY, '12:00')
     expect(view.todayCount).toBe(0)
     expect(view.todayFinished).toBe(false)
-    expect(view.next?.eyebrow).toBe('Следующая пара · вт, 17 ноября')
+    expect(view.next?.caption).toBe('Следующая пара')
+    expect(view.next?.dateTitle).toBe('Завтра, вт 17 ноября')
     expect(view.next?.href).toBe('/schedule?day=2026-11-17')
+  })
+
+  it('заголовок даты считается от переданного «сегодня», а не от часов: сегодня, завтра, другой день, через границу месяца и года', () => {
+    expect(nextDateTitle('2026-11-16', '2026-11-16')).toBe('Сегодня')
+    expect(nextDateTitle('2026-11-17', '2026-11-16')).toBe('Завтра, вт 17 ноября')
+    expect(nextDateTitle('2026-11-18', '2026-11-16')).toBe('Ср 18 ноября')
+    expect(nextDateTitle('2026-11-22', '2026-11-16')).toBe('Вс 22 ноября')
+    expect(nextDateTitle('2026-12-01', '2026-11-30')).toBe('Завтра, вт 1 декабря')
+    expect(nextDateTitle('2027-01-01', '2026-12-31')).toBe('Завтра, пт 1 января')
+    // Вчерашний день «завтра» не называется: такого заголовка быть не должно.
+    expect(nextDateTitle('2026-11-15', '2026-11-16')).toBe('Вс 15 ноября')
+  })
+
+  it('«Идёт сейчас» и «сегодня» дают один и тот же заголовок, плашки «пары закончились» нет', () => {
+    const now = buildToday([morning], NO_DUE, TODAY, '10:30')
+    const before = buildToday([morning], NO_DUE, TODAY, '08:00')
+    expect(now.next?.dateTitle).toBe(before.next?.dateTitle)
+    expect(now.todayFinished).toBe(false)
+    expect(before.todayFinished).toBe(false)
   })
 
   it('пар нет совсем: следующей нет', () => {

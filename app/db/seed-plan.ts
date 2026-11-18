@@ -73,6 +73,8 @@ export interface DisciplineSpec {
    */
   exam?: ControlSpec
   assignments: AssignmentSpec[]
+  /** Названия материалов курса по порядку: файлов и ссылок нет. У дисциплин прошлых семестров — пусто. */
+  materials?: string[]
 }
 
 /**
@@ -101,6 +103,13 @@ export interface GradeSpec {
   points: number | null
   outcome: '5' | '4' | '3' | '2' | 'credit' | 'no_credit' | 'pending'
   admitted?: boolean
+}
+
+/** Баллы студента за сданную работу: дисциплина и ключ работы из набора. Работы без записи — не сданы. */
+export interface WorkResultSpec {
+  discipline: string
+  assignmentKey: string
+  points: number
 }
 
 export interface RequestStepSpec {
@@ -143,6 +152,8 @@ export interface StudentSpec {
   course: number
   groupName: string
   grades: GradeSpec[]
+  /** Баллы за отдельные работы. Сумма по дисциплине равна баллам за семестр в `grades` (проверяет тест набора). */
+  workResults?: WorkResultSpec[]
   requests: RequestSpec[]
   notifications: NotificationSpec[]
   /** Что тест ищет в чужих ответах: у каждого студента своя метка в профиле, расписании, оценках, заявках и уведомлениях. */
@@ -288,6 +299,20 @@ export interface PlannedAssignment {
   maxPoints: number
 }
 
+export interface PlannedMaterial {
+  id: string
+  title: string
+  position: number
+}
+
+export interface PlannedWorkResult {
+  id: string
+  assignmentId: string
+  discipline: string
+  assignmentKey: string
+  points: number
+}
+
 export interface PlannedDiscipline {
   id: string
   groupName: string
@@ -298,6 +323,7 @@ export interface PlannedDiscipline {
   examTime: string | null
   examRoom: string | null
   assignments: PlannedAssignment[]
+  materials: PlannedMaterial[]
 }
 
 export interface PlannedStep {
@@ -352,6 +378,7 @@ export interface PlannedStudent {
   spec: StudentSpec
   groupId: string
   grades: PlannedGrade[]
+  workResults: PlannedWorkResult[]
   requests: PlannedRequest[]
   notifications: PlannedNotification[]
 }
@@ -558,6 +585,7 @@ function planDisciplines(group: GroupSpec, cohort: string, today: string, vars: 
         vars.set(`left.${a.key}`, daysPhrase(daysBetween(today, dueDate)))
         return { id: detId('assignment', id, a.key), key: a.key, title: a.title, dueDate, maxPoints: a.maxPoints }
       }),
+      materials: (d.materials ?? []).map((title, index) => ({ id: detId('material', id, title), title, position: index + 1 })),
     }
   })
 }
@@ -650,8 +678,25 @@ export function buildCohortPlan(spec: CohortSpec, today: string): CohortPlan {
         admitted: g.admitted ?? true,
       }
     })
+    const workResults = (s.workResults ?? []).map((w): PlannedWorkResult => {
+      const discipline = disciplines.find((d) => d.groupName === s.groupName && d.name === w.discipline)
+      const assignment = discipline?.assignments.find((a) => a.key === w.assignmentKey)
+      if (!discipline || !assignment) {
+        throw new Error(`У студента ${s.login} баллы за работу «${w.assignmentKey}» по дисциплине «${w.discipline}», которой нет в группе ${s.groupName}`)
+      }
+      if (!Number.isInteger(w.points) || w.points < 0 || w.points > assignment.maxPoints) {
+        throw new Error(`У студента ${s.login} баллы за «${assignment.title}»: ${w.points} при максимуме ${assignment.maxPoints}`)
+      }
+      return {
+        id: detId('assignment-result', userId, assignment.id),
+        assignmentId: assignment.id,
+        discipline: w.discipline,
+        assignmentKey: w.assignmentKey,
+        points: w.points,
+      }
+    })
     const requests = s.requests.map((r) => planRequest(r, userId, today, vars))
-    return { userId, spec: s, groupId: gId, grades, requests, notifications: [] }
+    return { userId, spec: s, groupId: gId, grades, workResults, requests, notifications: [] }
   })
 
   // Тексты — после того как посчитаны все значения подстановок.

@@ -1,67 +1,49 @@
-import { Card } from '@/components/card'
 import { lessonKindLabel } from '@/lib/labels'
 import type { ScheduleEntry } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
-import { ChangeChip } from './change-chip'
+import { EntryChangePanel } from './change-chip'
 
-// Карточка пары в виде «День» (D-2.2-system, раздел 8, пример «отменённая пара»). Экран ничего не считает: порядок, «Было»,
-// «Перенесена на» и текст плашки приходят готовыми из buildSchedule.
-// Не только цвет: плашка со значком и словом стоит перед названием; зачёркнутое продублировано словами для экранного чтеца.
-
-/** «Было: 10:15–11:45» -> «10:15–11:45»: слово «Было:» на экране набрано отдельно, а зачёркнута только суть. */
-function wasValue(was: string): string {
-  return was.replace(/^Было:\s*/, '')
-}
+// Карточка пары в виде «День» (макет М2-Б; D-2.2-system, раздел 8, пример «отменённая пара»). Экран ничего не считает: порядок, строка
+// изменения, «Перенесена на» и слово плашки приходят готовыми из buildSchedule. Карточка делится на две части: сверху время, название,
+// вид и то, что не менялось; снизу панель изменения на всю ширину, если пара менялась.
+// Не только цвет: в панели плашка со значком и словом; у отмены название и время зачёркнуты, а панель говорит «Занятие не состоится».
+// Прежний номер аудитории и прежний преподаватель названы в панели один раз, поэтому из верхней части эти строки убраны.
 
 export function LessonCard({ entry }: { entry: ScheduleEntry }) {
   const { cancelled } = entry
-  const isNewPlace = entry.placement === 'moved_to'
   const isOldPlace = entry.placement === 'moved_from'
+  const dim = cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')
+  // Строки, которые изменение уже назвало в панели, сверху не повторяются.
+  const roomInPanel = entry.roomChange !== null
+  const teacherInPanel = entry.changeKind === 'teacher_changed' && entry.was !== null
   return (
-    <Card className="grid grid-cols-[64px_1fr] gap-[var(--sp-3)]">
-      <div className="flex flex-col gap-0.5 tabular-nums">
-        <b
+    <article className="flex flex-col overflow-hidden rounded-surface border border-border bg-card shadow-card">
+      <div className="flex flex-1 flex-col gap-1 p-[var(--card-pad)]">
+        <p
           className={cn(
-            'leading-[1.2]',
-            isNewPlace ? 'text-[length:var(--fs-lg)] font-extrabold' : 'text-[length:var(--fs-md)]',
-            cancelled && 'font-bold text-muted line-through decoration-2',
-            isOldPlace && 'font-bold text-muted',
+            'text-[length:var(--fs-lg)] font-extrabold leading-[1.2] tabular-nums',
+            (cancelled || isOldPlace) && 'text-muted',
+            cancelled && 'line-through decoration-2',
           )}
         >
-          {entry.startsAt}
-        </b>
-        <span className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>{entry.endsAt}</span>
-      </div>
-      <div className="flex min-w-0 flex-col gap-[3px]">
-        {entry.badge && entry.changeKind ? <ChangeChip kind={entry.changeKind} label={entry.badge} className="mb-0.5" /> : null}
-        {/* В виде «День» после заголовка страницы (h1) идут карточки: уровень h2, без пропуска. Вид тот же: классы заданы здесь. */}
+          <b className="font-extrabold">{entry.startsAt}</b>–<span>{entry.endsAt}</span>
+        </p>
+        {/* В виде «День» после заголовка страницы (h1) идут карточки: уровень h2, без пропуска. */}
         <h2
           className={cn(
             'text-[length:var(--fs-md)] font-bold leading-[1.3] [overflow-wrap:anywhere]',
-            cancelled && 'text-muted line-through decoration-2',
-            isOldPlace && 'text-muted',
+            (cancelled || isOldPlace) && 'text-muted',
+            cancelled && 'line-through decoration-2',
           )}
         >
           {entry.discipline}
           {cancelled ? <span className="sr-only">, отменено</span> : null}
         </h2>
-        <p className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>
-          {lessonKindLabel(entry.lessonKind)}
-          <br />
-          Аудитория: {entry.room}
-          <br />
-          Преподаватель: {entry.teacher}
-        </p>
-        {cancelled ? <p className="text-[length:var(--fs-sm)] font-bold text-error">Занятие не состоится</p> : null}
-        {entry.movedTo ? <p className="text-[length:var(--fs-sm)] font-bold text-warning">{entry.movedTo}</p> : null}
-        {entry.was ? (
-          <p className="text-[length:var(--fs-sm)] text-muted">
-            <span className="font-bold">Было:</span> <s className="decoration-2">{wasValue(entry.was)}</s>
-          </p>
-        ) : null}
-        {/* Заметка нужна, когда сказать больше нечем: при отмене (причина) и когда «Было» и «Перенесена на» не собрались. */}
-        {entry.note && (cancelled || (!entry.was && !entry.movedTo)) ? <p className="text-[length:var(--fs-sm)] text-muted">Заметка деканата: {entry.note}</p> : null}
+        <p className={dim}>{lessonKindLabel(entry.lessonKind)}</p>
+        {roomInPanel ? null : <p className={cn(dim, '[overflow-wrap:anywhere]')}>Аудитория: {entry.room}</p>}
+        {teacherInPanel ? null : <p className={cn(dim, '[overflow-wrap:anywhere]')}>Преподаватель: {entry.teacher}</p>}
       </div>
-    </Card>
+      <EntryChangePanel entry={entry} />
+    </article>
   )
 }

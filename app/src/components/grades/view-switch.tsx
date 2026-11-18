@@ -12,6 +12,7 @@ export function ViewSwitch({ view }: { view: GradesView }) {
     <div role="group" aria-label="Вид" className="flex gap-1 rounded-pill border-2 border-border-strong bg-card p-1">
       <Link
         href="/grades"
+        scroll={false}
         aria-current={view === 'semester' ? 'true' : undefined}
         className={cn(base, view === 'semester' ? 'bg-primary font-extrabold text-on-primary' : 'font-semibold text-text')}
       >
@@ -19,6 +20,7 @@ export function ViewSwitch({ view }: { view: GradesView }) {
       </Link>
       <Link
         href="/grades?view=session"
+        scroll={false}
         aria-current={view === 'session' ? 'true' : undefined}
         className={cn(base, view === 'session' ? 'bg-primary font-extrabold text-on-primary' : 'font-semibold text-text')}
       >

@@ -1,10 +1,10 @@
 import { Card } from '@/components/card'
 import type { ScheduleDay, ScheduleEntry } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
-import { ChangeChip } from './change-chip'
+import { EntryChangePanel } from './change-chip'
 
 // Вид «Неделя»: семь дней одной лентой, под заголовком дня — пары строками. Таблицы с колонками по дням нет: на 360 px она не помещается.
-// Строка: время, дисциплина, аудитория, плашка изменения. Всё готовое приходит из buildSchedule.
+// Строка: время, дисциплина, аудитория; у изменённой пары под ними панель изменения. Всё готовое приходит из buildSchedule.
 
 function WeekRow({ entry }: { entry: ScheduleEntry }) {
   const { cancelled } = entry
@@ -25,7 +25,6 @@ function WeekRow({ entry }: { entry: ScheduleEntry }) {
         <span className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>{entry.endsAt}</span>
       </div>
       <div className="flex min-w-0 flex-col gap-[3px]">
-        {entry.badge && entry.changeKind ? <ChangeChip kind={entry.changeKind} label={entry.badge} /> : null}
         <p
           className={cn(
             'text-[length:var(--fs-md)] font-bold leading-[1.3] [overflow-wrap:anywhere]',
@@ -36,23 +35,13 @@ function WeekRow({ entry }: { entry: ScheduleEntry }) {
           {entry.discipline}
           {cancelled ? <span className="sr-only">, отменено</span> : null}
         </p>
-        <p className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>
-          ауд. {entry.room}
-        </p>
-        {/* Замена преподавателя: новый назван по месту (R-3.2-6). Если имя из заметки прочесть не удалось, `was` пуст, а в `teacher` прежний: тогда не пишем. */}
-        {entry.changeKind === 'teacher_changed' && entry.was ? (
-          <p className="text-[length:var(--fs-sm)]">
-            <span className="font-bold">Ведёт</span> {entry.teacher}
-          </p>
-        ) : null}
-        {cancelled ? <p className="text-[length:var(--fs-sm)] font-bold text-error">Занятие не состоится</p> : null}
-        {entry.movedTo ? <p className="text-[length:var(--fs-sm)] font-bold text-warning">{entry.movedTo}</p> : null}
-        {entry.was ? (
-          <p className="text-[length:var(--fs-sm)] text-muted">
-            <span className="font-bold">Было:</span> <s className="decoration-2">{entry.was.replace(/^Было:\s*/, '')}</s>
-          </p>
-        ) : null}
+        {/* Прежняя аудитория названа в панели изменения, здесь строка не повторяется. */}
+        {entry.roomChange ? null : (
+          <p className={cn('text-[length:var(--fs-sm)] text-muted', cancelled && 'line-through decoration-2')}>ауд. {entry.room}</p>
+        )}
       </div>
+      {/* Панель изменения на всю ширину строки (макет М2-Б). Новый преподаватель назван в ней один раз (R-3.2-6). */}
+      <EntryChangePanel entry={entry} className="col-span-2 rounded-control px-[var(--sp-3)]" />
     </li>
   )
 }

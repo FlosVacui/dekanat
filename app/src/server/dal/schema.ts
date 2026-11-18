@@ -199,6 +199,44 @@ export const grades = pgTable(
   ],
 )
 
+/**
+ * Баллы студента за отдельную работу группы. Одна строка на пару «студент — работа»; нет строки — работа не сдана.
+ * Баллы не меньше нуля проверяет база; «не больше максимума работы» проверить в базе нельзя (проверка не видит
+ * другую таблицу), это держат набор и тест на набор. Сумма сданных работ дисциплины равна `grades.points`.
+ */
+export const assignmentResults = pgTable(
+  'assignment_results',
+  {
+    id: id(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.userId, { onDelete: 'cascade' }),
+    assignmentId: uuid('assignment_id')
+      .notNull()
+      .references(() => assignments.id, { onDelete: 'cascade' }),
+    points: integer('points').notNull(),
+  },
+  (t) => [
+    unique('assignment_results_student_assignment_unique').on(t.studentId, t.assignmentId),
+    index('assignment_results_assignment_idx').on(t.assignmentId),
+    check('assignment_results_points_check', sql`${t.points} >= 0`),
+  ],
+)
+
+/** Материалы курса: названия по порядку. Файлов и ссылок нет — прототип показывает только перечень. */
+export const courseMaterials = pgTable(
+  'course_materials',
+  {
+    id: id(),
+    disciplineId: uuid('discipline_id')
+      .notNull()
+      .references(() => disciplines.id, { onDelete: 'cascade' }),
+    title: text('title').notNull(),
+    position: integer('position').notNull(),
+  },
+  (t) => [unique('course_materials_discipline_title_unique').on(t.disciplineId, t.title)],
+)
+
 /** Заявки. Адрес подачи записан в самой заявке; ссылки на сессию нет (ADR-0003, «Чистка спама»). */
 export const requests = pgTable(
   'requests',

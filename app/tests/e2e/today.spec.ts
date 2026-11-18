@@ -16,6 +16,7 @@ const [student1] = MAIN_COHORT.students
 if (!student1) throw new Error('В основном наборе нет студента')
 
 const today = todayIn('Europe/Moscow')
+const tomorrow = addDays(today, 1)
 const plan = planSchedule(today)
 
 let server: RunningServer | null = null
@@ -214,29 +215,35 @@ test('кнопка блока «следующая пара» ведёт на д
     await expect(hero).toBeVisible()
     if (plan.totalEntries === 0) {
       // В семи днях от сегодня у группы нет записей: блок говорит, что пар нет, кнопки нет.
-      await expect(hero).toContainText('Ближайших пар в расписании нет')
+      await expect(hero).toContainText('В ближайшие 7 дней пар нет')
       await expect(hero.getByRole('link')).toHaveCount(0)
       return
     }
     // Записи в семи днях есть. Какая из них «следующая», решают день и час запуска; тест читает ответ с экрана и сверяет с днём из семи.
-    const nowOrToday = hero.getByText(/^(Идёт сейчас|Следующая пара · сегодня)$/)
-    const otherDay = hero.getByText(/^Следующая пара · [а-я]{2}, \d{1,2} [а-я]+$/)
-    let expectedDate = today
-    let expectedHref = '/schedule'
-    if ((await nowOrToday.count()) === 0) {
-      await expect(otherDay).toHaveCount(1)
-      const eyebrow = ((await otherDay.textContent()) ?? '').trim()
-      const date = plan.window.find((d) => eyebrow === `Следующая пара · ${weekdayShort(d)}, ${formatDayMonth(d)}`)
-      expect(date, `день из строки «${eyebrow}» не найден среди семи дней`).toBeDefined()
-      expectedDate = date!
-      expectedHref = `/schedule?day=${date}`
-      expect(expectedDate > today, 'другой день позже сегодняшнего').toBe(true)
+    // Подпись — «Идёт сейчас» или «Следующая пара»; заголовок даты — «Сегодня», «Завтра, ср 18 ноября» или «Пт 20 ноября».
+    const caption = ((await hero.getByTestId('next-caption').textContent()) ?? '').trim()
+    expect(['Идёт сейчас', 'Следующая пара'], `подпись «${caption}»`).toContain(caption)
+    const dateTitle = ((await hero.getByTestId('next-date').textContent()) ?? '').trim()
+    const titleOf = (d: string): string =>
+      d === today
+        ? 'Сегодня'
+        : d === tomorrow
+          ? `Завтра, ${weekdayShort(d)} ${formatDayMonth(d)}`
+          : `${weekdayShort(d).charAt(0).toUpperCase()}${weekdayShort(d).slice(1)} ${formatDayMonth(d)}`
+    const date = plan.window.find((d) => dateTitle === titleOf(d))
+    expect(date, `день из заголовка «${dateTitle}» не найден среди семи дней`).toBeDefined()
+    const expectedDate = date!
+    const expectedHref = expectedDate === today ? '/schedule' : `/schedule?day=${expectedDate}`
+    if (expectedDate === today) {
+      // Пара сегодня: «Идёт сейчас» или «Следующая пара»; плашки «пары закончились» нет.
+      await expect(page.getByTestId('day-status')).toHaveCount(0)
     } else {
-      await expect(nowOrToday).toHaveCount(1)
+      expect(expectedDate > today, 'другой день позже сегодняшнего').toBe(true)
+      expect(caption, 'у пары другого дня «Идёт сейчас» не бывает').toBe('Следующая пара')
     }
     // Время «следующей пары» стоит отдельной строкой: «10:10 – 11:40».
     await expect(hero.locator('.hero-time')).toHaveText(/^\d{2}:\d{2}\s–\s\d{2}:\d{2}$/)
-    const name = ((await hero.getByRole('heading', { level: 2 }).textContent()) ?? '').trim()
+    const name = ((await hero.getByTestId('next-discipline').textContent()) ?? '').trim()
     expect(name.length, 'название пары').toBeGreaterThan(0)
 
     const button = hero.getByRole('link', { name: /^Расписание на / })

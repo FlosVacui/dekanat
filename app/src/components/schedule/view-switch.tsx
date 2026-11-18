@@ -11,6 +11,7 @@ export function ViewSwitch({ view }: { view: 'day' | 'week' }) {
     <div role="group" aria-label="Вид" className="flex gap-1 rounded-pill border-2 border-border-strong bg-card p-1">
       <Link
         href={dayHref()}
+        scroll={false}
         aria-current={view === 'day' ? 'true' : undefined}
         className={cn(base, view === 'day' ? 'bg-primary font-extrabold text-on-primary' : 'font-semibold text-text')}
       >
@@ -18,6 +19,7 @@ export function ViewSwitch({ view }: { view: 'day' | 'week' }) {
       </Link>
       <Link
         href={WEEK_HREF}
+        scroll={false}
         aria-current={view === 'week' ? 'true' : undefined}
         className={cn(base, view === 'week' ? 'bg-primary font-extrabold text-on-primary' : 'font-semibold text-text')}
       >

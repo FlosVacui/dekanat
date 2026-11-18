@@ -3,7 +3,7 @@
 // Касания считаются по правилам S-2.1, раздел 1: счёт идёт от экрана «Сегодня»; С-6 и С-14 — одно касание, С-7 и С-15 — два.
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
-import { formatDayMonth, todayIn, weekdayShort } from '../../src/lib/dates'
+import { addDays, formatDayMonth, todayIn, weekdayShort } from '../../src/lib/dates'
 import { addressHeaders } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import { expectedExamNeeds, planGrades, scoreWord, type PlannedRow } from './helpers/grades-plan'
@@ -121,6 +121,18 @@ function dateLine(r: PlannedRow): string {
   return `${formatDayMonth(r.examDate!)}, ${weekdayShort(r.examDate!)}${r.examTime ? `, ${r.examTime.slice(0, 5)}` : ''}`
 }
 
+/** Блок «Форма контроля» страницы предмета (М4): «экзамен — чт 24 декабря, 10:00, ауд. 314»; даты нет — только вид. */
+function controlForm(r: PlannedRow, word: string): string {
+  if (!r.examDate) return word
+  const parts = [`${weekdayShort(r.examDate)} ${formatDayMonth(r.examDate)}`]
+  if (r.examTime) parts.push(r.examTime.slice(0, 5))
+  if (r.examRoom) parts.push(`ауд. ${r.examRoom}`)
+  return `${word} — ${parts.join(', ')}`
+}
+
+/** Ссылка назад на странице предмета (М4): «Успеваемость»; одноимённая вкладка нижней панели в `main` не входит. */
+const backLink = (p: Page = page) => p.getByRole('main').getByRole('link', { name: 'Успеваемость', exact: true })
+
 test('данные: у студента 1 есть долг, недопуск, экзамен и зачёт впереди, сданные зачёт и экзамен; у другой группы есть свои дисциплины', () => {
   // Если этого нет, остальные тесты проверяют пустоту.
   expect(plan.rows).toHaveLength(7)
@@ -224,7 +236,8 @@ test('С-7: вкладка «Успеваемость», затем карточ
   expect(touches.n, 'число касаний С-7').toBe(2)
 
   await expect(page.getByRole('heading', { level: 1, name: admittedRow.name })).toBeVisible()
-  await expect(page.getByRole('link', { name: 'Все дисциплины' })).toHaveAttribute('href', '/grades')
+  // Было: ссылка «Все дисциплины». Стало (М4): «Успеваемость».
+  await expect(backLink()).toHaveAttribute('href', '/grades')
   await expect(page.getByTestId('points-line')).toHaveText(pointsText(admittedRow))
   await expect(page.getByRole('meter', { name: 'Набрано баллов' })).toHaveAttribute('aria-valuenow', String(admittedRow.points))
   await expect(page.getByTestId('threshold-mark')).toHaveCount(1)
@@ -232,21 +245,14 @@ test('С-7: вкладка «Успеваемость», затем карточ
   // Что нужно на экзамене для 3, 4 и 5 — по баллам из плана. У «Микроэкономики» оценка 5 недостижима: нужно 44 из 40 — это следствие набора.
   await expect(page.getByTestId('exam-targets').locator('li')).toHaveText(expectedExamNeeds(admittedRow.points))
   await expect(page.getByRole('heading', { level: 2, name: 'Что нужно на экзамене' })).toBeVisible()
-  // Дата, время и аудитория экзамена.
-  await expect(page.getByRole('heading', { level: 2, name: 'Экзамен', exact: true })).toBeVisible()
-  await expect(page.getByTestId('control-date')).toHaveText(dateLine(admittedRow))
-  await expect(page.getByText(`Аудитория: ${admittedRow.examRoom}`)).toBeVisible()
-  // Работы: название, срок, максимум баллов; баллов студента за работу нет и они не выдуманы.
-  const upcoming = admittedRow.works.filter((w) => w.dueDate >= today)
-  const past = admittedRow.works.filter((w) => w.dueDate < today)
-  await expect(page.getByTestId('works-upcoming').locator('> li')).toHaveCount(upcoming.length)
-  for (const w of upcoming) {
-    const item = page.getByTestId('works-upcoming').locator('> li').filter({ hasText: w.title })
-    await expect(item).toContainText(`Срок: ${formatDayMonth(w.dueDate)}, ${weekdayShort(w.dueDate)} · максимум ${w.maxPoints} ${scoreWord(w.maxPoints)}`)
-  }
-  await expect(page.getByTestId('works-past')).toHaveCount(past.length === 0 ? 0 : 1)
-  await expect(page.getByText('Баллы за отдельную работу здесь не показываются')).toBeVisible()
-  await expect(page.locator('table')).toHaveCount(0)
+  // Форма контроля — одной строкой (М4). Было: заголовок «Экзамен» и отдельные «Дата» и «Аудитория: …».
+  await expect(page.getByTestId('control-form')).toHaveText(controlForm(admittedRow, 'экзамен'))
+  // Работы: каждая названа; их список и баллы по статусам проверяет grades-works.spec.ts. Было: деление на «Предстоящие» и «Прошедшие»
+  // и подпись «Баллы за отдельную работу здесь не показываются» — баллы за работу теперь есть.
+  await expect(page.getByRole('heading', { level: 2, name: 'Работы', exact: true })).toBeVisible()
+  await expect(page.getByTestId('works-list').locator('> li')).toHaveCount(admittedRow.works.length)
+  // Было: «таблиц нет». Стало: на 360 px таблица работ есть в разметке, но скрыта (от 1024 px — таблица, ниже — список).
+  await expect(page.locator('table:visible')).toHaveCount(0)
   await expectNoHorizontalScroll('С-7')
   test.info().annotations.push({ type: 'Касаний С-7', description: String(touches.n) })
 })
@@ -294,7 +300,7 @@ test('С-15: вкладка «Успеваемость», затем «Сесс�
   }
   // Прошедшие у студента 1 — сданные без даты (Маркетинг, Статистика): проверка выше не пустая.
   expect(plan.sessionPast.map((n) => plan.rows.find((x) => x.name === n)!).some((r) => !r.examDate && r.state === 'passed')).toBe(true)
-  await expect(page.locator('table')).toHaveCount(0)
+  await expect(page.locator('table:visible')).toHaveCount(0)
   await expectNoHorizontalScroll('С-15')
   test.info().annotations.push({ type: 'Касаний С-15', description: String(touches.n) })
 })
@@ -307,8 +313,8 @@ test('дисциплина с долгом: итог «Оценка 2», пер�
   await expect(page.getByTestId('points-line')).toHaveText(pointsText(debtRow))
   await expect(page.getByTestId('threshold-mark')).toHaveCount(0)
   await expect(page.getByTestId('exam-targets')).toHaveCount(0)
-  await expect(page.getByRole('heading', { level: 2, name: 'Пересдача', exact: true })).toBeVisible()
-  await expect(page.getByTestId('control-date')).toHaveText(dateLine(debtRow))
+  // Было: заголовок «Пересдача» и дата отдельно. Стало: «Форма контроля: пересдача — …» (М4).
+  await expect(page.getByTestId('control-form')).toHaveText(controlForm(debtRow, 'пересдача'))
   await expect(page.getByRole('heading', { level: 2, name: 'Работ пока нет' })).toBeVisible()
   await expectNoHorizontalScroll('дисциплина с долгом')
 })
@@ -323,7 +329,7 @@ test('дисциплина без допуска: сколько не хвата
     `Впереди, до допуска не хватает ${noAdmissionRow.missing} ${scoreWord(noAdmissionRow.missing)}`,
   )
   await expect(page.getByTestId('exam-targets').locator('li')).toHaveText(expectedExamNeeds(noAdmissionRow.points))
-  await expect(page.getByTestId('control-date')).toHaveText(dateLine(noAdmissionRow))
+  await expect(page.getByTestId('control-form')).toHaveText(controlForm(noAdmissionRow, 'экзамен'))
 })
 
 test('зачёты: у сданного — итог «Зачтено», у предстоящего — баллы, срок и итог «Впереди», порога и «до допуска» нет', async () => {
@@ -332,8 +338,11 @@ test('зачёты: у сданного — итог «Зачтено», у пр
   await expect(page.getByTestId('points-line')).toHaveText(pointsText(passedCreditRow))
   await expect(page.getByTestId('exam-targets')).toHaveCount(0)
   await expect(page.getByTestId('threshold-mark')).toHaveCount(0)
-  // Сданное без даты: слов «дата не назначена» нет.
-  if (passedCreditRow.examDate === null) await expect(page.getByTestId('control-date')).toHaveCount(0)
+  // Сданное без даты: слов «дата не назначена» нет; в «Форме контроля» — только вид (было: блока контроля не было вовсе).
+  if (passedCreditRow.examDate === null) {
+    await expect(page.getByTestId('control-form')).toHaveText('зачёт')
+    await expect(page.locator('body')).not.toContainText('дата не назначена')
+  }
 
   await page.goto(`/grades/${creditAheadRow.id}`)
   await expect(page.getByRole('heading', { level: 1, name: creditAheadRow.name })).toBeVisible()
@@ -343,8 +352,7 @@ test('зачёты: у сданного — итог «Зачтено», у пр
   await expect(page.getByTestId('exam-targets')).toHaveCount(0)
   await expect(page.getByTestId('threshold-mark')).toHaveCount(0)
   await expect(page.getByTestId('admission-line')).toHaveCount(0)
-  await expect(page.getByRole('heading', { level: 2, name: 'Зачёт', exact: true })).toBeVisible()
-  await expect(page.getByTestId('control-date')).toHaveText(dateLine(creditAheadRow))
+  await expect(page.getByTestId('control-form')).toHaveText(controlForm(creditAheadRow, 'зачёт'))
   await expect(page.locator('body')).not.toContainText('не хватает')
 })
 
@@ -406,7 +414,7 @@ test('владелец данных — из сессии: метки друго
   await expect(page.getByRole('link', { name: 'Семестр', exact: true })).toHaveAttribute('aria-current', 'true')
 })
 
-test('нет таблиц, нет прокрутки вбок, зоны касания не меньше 44×44 — на «Семестре», «Сессии» и экране дисциплины', async () => {
+test('нет видимых таблиц, нет прокрутки вбок, зоны касания не меньше 44×44 — на «Семестре», «Сессии» и экране дисциплины', async () => {
   const where: [string, string][] = [
     ['семестр', '/grades'],
     ['сессия', '/grades?view=session'],
@@ -415,14 +423,15 @@ test('нет таблиц, нет прокрутки вбок, зоны каса
   for (const [name, path] of where) {
     await page.goto(path)
     await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-    await expect(page.locator('table'), `${name}: таблицы`).toHaveCount(0)
+    // Было: `table` — 0. Стало: таблица работ есть в разметке, но на 360 px скрыта, видимых таблиц нет.
+    await expect(page.locator('table:visible'), `${name}: видимые таблицы`).toHaveCount(0)
     await expect(page.locator('[role=table], [role=grid], [role=row]'), `${name}: роли таблицы`).toHaveCount(0)
     await expectNoHorizontalScroll(name)
     if (path.startsWith('/grades?') || path === '/grades') {
       await expectTapSize(page.getByRole('group', { name: 'Вид' }).getByRole('link'), 2, `${name}: переключатель`)
       await expectTapSize(page.locator('main ul > li').getByRole('link'), plan.rows.length - 1, `${name}: ссылки-карточки`)
     } else {
-      await expectTapSize(page.getByRole('link', { name: 'Все дисциплины' }), 1, `${name}: «Все дисциплины»`)
+      await expectTapSize(backLink(), 1, `${name}: «Успеваемость» (назад)`)
     }
     if (path === '/grades') await expectTapSize(page.getByTestId('first-action'), 1, `${name}: «что сделать первым»`)
   }
@@ -480,4 +489,74 @@ test('студент 2: баллов нет — «Баллов пока нет»
   } finally {
     await other.close()
   }
+})
+
+// Заход А редизайна, шаг 2: переключатели и полоса дней не прыгают наверх (scroll={false}). Ошибка ИИ 115: зелёный тест может
+// ничего не проверять, поэтому до нажатия проверяется, что страница действительно прокручена.
+// Допуск — высота шапки. Прыжок наверх он не прячет: после перехода scrollY обязан остаться больше нуля.
+async function expectNoJumpToTop(
+  where: string,
+  click: () => Promise<void>,
+  arrived: () => Promise<void>,
+  p: Page = page,
+): Promise<void> {
+  const headerHeight = (await p.locator('header').first().boundingBox())?.height ?? 0
+  expect(headerHeight, `${where}: высота шапки`).toBeGreaterThan(0)
+  const before = await p.evaluate(() => {
+    const max = document.documentElement.scrollHeight - window.innerHeight
+    window.scrollTo(0, Math.min(150, max))
+    return window.scrollY
+  })
+  expect(before, `${where}: страница должна быть прокручена до нажатия`).toBeGreaterThan(0)
+  await click()
+  await arrived()
+  const after = await p.evaluate(() => window.scrollY)
+  expect(after, `${where}: после перехода страница не должна оказаться наверху (было ${before}, стало ${after})`).toBeGreaterThan(0)
+  expect(Math.abs(after - before), `${where}: сдвиг ${before} → ${after} больше высоты шапки ${headerHeight}`).toBeLessThanOrEqual(headerHeight)
+}
+
+test('переключатель «Семестр / Сессия» не прыгает наверх', async () => {
+  await page.goto('/grades')
+  const group = page.getByRole('group', { name: 'Вид' })
+  await expectNoJumpToTop(
+    'Семестр → Сессия',
+    () => group.getByRole('link', { name: 'Сессия', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'Сессия', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+  await expectNoJumpToTop(
+    'Сессия → Семестр',
+    () => group.getByRole('link', { name: 'Семестр', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'Семестр', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+})
+
+test('переключатель «День / Неделя» и полоса дней в расписании не прыгают наверх', async () => {
+  // День с парами: ближайший к сегодняшнему из пн, вт, ср — у них в основном наборе не меньше двух пар. От дня запуска не зависит.
+  let busyDay = today
+  for (let i = 0; i < 7 && !['пн', 'вт', 'ср'].includes(weekdayShort(busyDay)); i += 1) busyDay = addDays(busyDay, 1)
+  await page.goto(`/schedule?day=${busyDay}`)
+  const group = page.getByRole('group', { name: 'Вид' })
+  await expectNoJumpToTop(
+    'День → Неделя',
+    () => group.getByRole('link', { name: 'Неделя', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'Неделя', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+  await expectNoJumpToTop(
+    'Неделя → День',
+    () => group.getByRole('link', { name: 'День', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'День', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+  // Полоса дней: другой день из пн, вт, ср, который сейчас не выбран.
+  await page.goto(`/schedule?day=${busyDay}`)
+  const other = page
+    .getByRole('navigation', { name: 'Дни недели' })
+    .locator('a:not([aria-current])')
+    .filter({ hasText: /^(пн|вт|ср)/ })
+    .first()
+  await expect(other, 'в полосе дней есть другой день из пн, вт, ср').toBeVisible()
+  await expectNoJumpToTop(
+    'Полоса дней',
+    () => other.click(),
+    () => expect(page).not.toHaveURL(`${BASE_URL}/schedule?day=${busyDay}`),
+  )
 })

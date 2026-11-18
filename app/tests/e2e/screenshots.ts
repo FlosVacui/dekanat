@@ -7,6 +7,8 @@
 // Пакет 3.7: состояние «ошибка» — today-error, schedule-error, staff-requests-error (отказ базы вызывает запрос владельца: отзыв права чтения, helpers/db.ts).
 // Пакет 3.7, заход 2: состояние «загрузка» — schedule-loading (границу ожидания `<Suspense>` внутри страницы держит блокировка
 // таблицы `lessons`, которую берёт владелец, helpers/db.ts, `holdTableLock`; файлов loading.tsx в пакете нет).
+// Редизайн, заход А: «Сегодня» (`today`) и расписание, вид «День» с изменениями (schedule-day-room-teacher, -moved, -cancelled), 360 и 1280 px.
+// Редизайн, заход Б: «Успеваемость» с раскрытой карточкой (grades-semester-works-open) и страница предмета — экзамен и зачёт (subject-exam, subject-credit).
 // Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
 // Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
@@ -87,12 +89,14 @@ async function captureWholePage(page: Page, path: string): Promise<void> {
   }
 }
 
-async function shoot(page: Page, width: Width, name: string, path: string): Promise<void> {
+/** `prepare` — действие после загрузки, до снимка: например, раскрыть «Все работы» (редизайн, заход Б). */
+async function shoot(page: Page, width: Width, name: string, path: string, prepare?: (page: Page) => Promise<void>): Promise<void> {
   if (only && !only.test(name)) return
   try {
     const response = await page.goto(path)
     if (!response || response.status() >= 400) throw new Error(`ответ ${response?.status()} на ${path}`)
     await page.waitForLoadState('networkidle')
+    if (prepare) await prepare(page)
     // Горизонтальной прокрутки быть не должно: снимок с ней — неудачный.
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
     if (overflow > 0) throw new Error(`горизонтальная прокрутка на ${overflow} px`)
@@ -235,6 +239,12 @@ async function main(): Promise<void> {
       else failMissing('schedule-day-moved', 'в окне нет переноса внутри дня')
       if (schedulePlan.cancelled) await shoot(page, width, 'schedule-day-cancelled', `${BASE_URL}${dayPath(schedulePlan.cancelled.date)}`)
       else failMissing('schedule-day-cancelled', 'в окне нет отменённой пары')
+      // Редизайн, заход А (макет М2-Б): смена аудитории и замена преподавателя стоят в одном дне — один снимок на оба; перенос и отмена — снимки выше.
+      if (!schedulePlan.roomChanged) failMissing('schedule-day-room-teacher', 'в окне нет смены аудитории')
+      else if (!schedulePlan.teacherChanged) failMissing('schedule-day-room-teacher', 'в окне нет замены преподавателя')
+      else if (schedulePlan.roomChanged.date !== schedulePlan.teacherChanged.date) {
+        failMissing('schedule-day-room-teacher', `смена аудитории (${schedulePlan.roomChanged.date}) и замена преподавателя (${schedulePlan.teacherChanged.date}) в разные дни`)
+      } else await shoot(page, width, 'schedule-day-room-teacher', `${BASE_URL}${dayPath(schedulePlan.roomChanged.date)}`)
       await shoot(page, width, 'schedule-week', `${BASE_URL}/schedule?view=week`)
       if (schedulePlan.emptyDate) await shoot(page, width, 'schedule-day-empty', `${BASE_URL}${dayPath(schedulePlan.emptyDate)}`)
       else skipMissing(`${width}-schedule-day-empty`, `в окне семи дней от ${schedulePlan.today} нет дня без пар и переносов; снимок не делается`)
@@ -246,6 +256,19 @@ async function main(): Promise<void> {
       const aheadDiscipline = gradesPlan.rows.find((r) => r.state === 'admitted' && r.controlKind === 'exam')
       if (aheadDiscipline) await shoot(page, width, 'grades-discipline-ahead', `${BASE_URL}/grades/${aheadDiscipline.id}`)
       else failMissing('grades-discipline-ahead', 'у студента нет экзамена впереди с допуском')
+      // Редизайн, заход Б: «Успеваемость» с раскрытой карточкой (М3-А) и страница предмета (М4) — экзамен и зачёт.
+      // Карточки находятся по названию: в основном наборе у «Корпоративных финансов» есть сданные работы, долг и работа впереди.
+      await shoot(page, width, 'grades-semester-works-open', `${BASE_URL}/grades`, async (p) => {
+        const card = p.getByRole('list', { name: 'Дисциплины' }).locator('> li').filter({ has: p.getByRole('heading', { level: 3, name: 'Корпоративные финансы', exact: true }) })
+        await card.locator('summary').click()
+        await card.getByTestId('works-summary').waitFor({ state: 'visible' })
+      })
+      const examSubject = gradesPlan.rows.find((r) => r.name === 'Микроэкономика')
+      if (examSubject) await shoot(page, width, 'subject-exam', `${BASE_URL}/grades/${examSubject.id}`)
+      else failMissing('subject-exam', 'у студента нет дисциплины «Микроэкономика»')
+      const creditSubject = gradesPlan.rows.find((r) => r.name === 'Логистика цепей поставок')
+      if (creditSubject) await shoot(page, width, 'subject-credit', `${BASE_URL}/grades/${creditSubject.id}`)
+      else failMissing('subject-credit', 'у студента нет дисциплины «Логистика цепей поставок»')
       await shoot(page, width, 'requests', `${BASE_URL}/requests`)
       await shoot(page, width, 'request-new', `${BASE_URL}/requests/new?type=dean_certificate`)
       if (firstRequest) await shoot(page, width, 'request-detail', `${BASE_URL}${firstRequest}`)

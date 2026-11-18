@@ -176,27 +176,43 @@ test('полоса дней: семь дней от сегодняшнего, в
   await expect(page.getByRole('group', { name: 'Вид' }).getByRole('link', { name: 'День' })).toHaveAttribute('aria-current', 'true')
 })
 
-test('перенос внутри дня: «Перенесена» дважды, новое время крупно, строка «Было», на старом месте — «Перенесена на»', async () => {
+test('перенос внутри дня: «Перенос» дважды, время старого места приглушено, а нового нет, строка «Было», на старом месте — «Перенесена на»', async () => {
   const l = plan.movedSameDay!
   const change = l.change!
   const from = wanted('movedSameDay', 'moved_from')
   const to = wanted('movedSameDay', 'moved_to')
   await page.goto(dayPath(l.date))
   // Плашка стоит и на старом, и на новом месте этой пары; слово и значок, а не только цвет. Другие переносы того же дня не мешают.
-  await expect(card(from).getByText('Перенесена', { exact: true })).toHaveCount(1)
-  await expect(card(to).getByText('Перенесена', { exact: true })).toHaveCount(1)
+  await expect(card(from).getByText('Перенос', { exact: true })).toHaveCount(1)
+  await expect(card(to).getByText('Перенос', { exact: true })).toHaveCount(1)
   const newRoom = change.newRoom ?? l.room
   await expect(card(from).getByText(`Перенесена на ${change.newStartsAt}–${change.newEndsAt}, ауд. ${newRoom}`)).toBeVisible()
-  // Строка «Было» — внутри карточки нового места этой пары.
+  // Номер аудитории не рвётся по дефису: элемент с номером занимает одну строку (одна рамка) и не переносится.
+  const roomNumber = card(from).getByText(newRoom, { exact: true })
+  await expect(roomNumber).toHaveCount(1)
+  expect(await roomNumber.evaluate((el) => el.getClientRects().length), `номер «${newRoom}» разбит на строки`).toBe(1)
+  expect(await roomNumber.evaluate((el) => getComputedStyle(el).whiteSpace), 'перенос внутри номера').toBe('nowrap')
+  // Строка «Было» — внутри карточки нового места этой пары, одна, в панели изменения.
   const was = card(to).locator('p', { hasText: 'Было:' })
   await expect(was).toHaveCount(1)
   await expect(was).toContainText(`${l.startsAt}–${l.endsAt}`)
-  await expectLineThrough(was.locator('s'), 'строка «Было»')
-  // Новое время набрано крупнее остальных.
+  // Время старого места приглушено (цвет --muted), время нового — нет. Цвет токена берётся из страницы, а не из имени класса.
   const newTime = card(to).locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })
   await expect(newTime).toHaveCount(1)
-  const size = await newTime.evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
-  expect(size, 'размер нового времени').toBeGreaterThanOrEqual(18)
+  const oldTime = card(from).locator('b', { hasText: new RegExp(`^${l.startsAt}$`) })
+  await expect(oldTime).toHaveCount(1)
+  const mutedColor = await page.evaluate(() => {
+    const probe = document.createElement('span')
+    probe.style.color = 'var(--muted)'
+    document.body.append(probe)
+    const color = getComputedStyle(probe).color
+    probe.remove()
+    return color
+  })
+  const colorOf = (time: Locator) => time.evaluate((el) => getComputedStyle(el).color)
+  expect(mutedColor, 'значение токена --muted').toMatch(/^rgb/)
+  expect(await colorOf(oldTime), 'цвет времени на старом месте').toBe(mutedColor)
+  expect(await colorOf(newTime), 'цвет времени на новом месте').not.toBe(mutedColor)
   await expectNoHorizontalScroll('день с переносом')
 })
 
@@ -218,7 +234,7 @@ test('перенос на другой день: старое место гов�
     const to = card(wanted(scenario, 'moved_to'))
     const was = to.locator('p', { hasText: 'Было:' })
     await expect(was).toHaveCount(1)
-    await expect(was).toContainText(`${weekdayShort(l!.date)}, ${formatDayMonth(l!.date)}, ${l!.startsAt}–${l!.endsAt}`)
+    await expect(was).toContainText(`${weekdayShort(l!.date)} ${formatDayMonth(l!.date)}, ${l!.startsAt}–${l!.endsAt}`)
     await expect(to.locator('b', { hasText: new RegExp(`^${change.newStartsAt}$`) })).toHaveCount(1)
   } else {
     // Новое место вне семи дней от сегодня: в полосе такого дня нет, видно только старое место с текстом. Новое место — в модульных тестах.
@@ -230,13 +246,13 @@ test('перенос на другой день: старое место гов�
   }
 })
 
-test('день с отменой: «Отменена», зачёркнутое название, «Занятие не состоится»', async () => {
+test('день с отменой: «Отмена», зачёркнутое название, «Занятие не состоится»', async () => {
   const l = plan.cancelled!
   await page.goto(dayPath(l.date))
   const cancelledCard = card(wanted('cancelled', 'regular'))
   await expect(cancelledCard).toHaveCount(1)
   await expect(cancelledCard.getByText('Занятие не состоится')).toBeVisible()
-  await expect(cancelledCard.getByText('Отменена', { exact: true })).toBeVisible()
+  await expect(cancelledCard.getByText('Отмена', { exact: true })).toBeVisible()
   const title = cancelledCard.getByRole('heading', { level: 2 })
   await expect(title).toContainText(l.discipline)
   await expectLineThrough(title, 'название отменённой пары')
@@ -248,22 +264,56 @@ test('день с отменой: «Отменена», зачёркнутое �
   await expectNoHorizontalScroll('день с отменой')
 })
 
-test('смена аудитории и замена преподавателя: плашка и строка «Было»', async () => {
+test('смена аудитории и замена преподавателя: плашка и одна строка изменения, без «Было»', async () => {
   const room = plan.roomChanged!
   await page.goto(dayPath(room.date))
   const roomCard = card(wanted('roomChanged', 'regular'))
-  await expect(roomCard.getByText('Сменилась аудитория', { exact: true })).toBeVisible()
-  await expect(roomCard).toContainText(`Аудитория: ${room.change!.newRoom}`)
-  await expect(roomCard.locator('p', { hasText: 'Было:' }).locator('s')).toHaveText(`ауд. ${room.room}`)
+  await expect(roomCard.getByText('Другая аудитория', { exact: true })).toBeVisible()
+  // Одна строка «Аудитория: прежняя → новая»; прежний номер назван в карточке один раз, строки «Было» нет.
+  const roomLine = roomCard.locator('p', { hasText: 'Аудитория:' })
+  await expect(roomLine).toHaveCount(1)
+  await expect(roomLine).toHaveText(`Аудитория: ${room.room} → ${room.change!.newRoom}`)
+  await expect(roomCard).not.toContainText('Было:')
+  // Новая аудитория набрана крупнее остальных (26 px).
+  const newRoomSize = await roomLine.locator('span', { hasText: new RegExp(`^${escapeRegExp(room.change!.newRoom!)}$`) }).evaluate((el) => parseFloat(getComputedStyle(el).fontSize))
+  expect(newRoomSize, 'размер новой аудитории').toBeGreaterThanOrEqual(24)
 
   const teacher = plan.teacherChanged
   expect(teacher, 'в окне нет замены преподавателя').toBeDefined()
   await page.goto(dayPath(teacher!.date))
   const [, next, prev] = /^Ведёт\s+(.+?)\s+вместо\s+(.+)$/.exec(teacher!.change!.note)!
   const teacherCard = card(wanted('teacherChanged', 'regular'))
-  await expect(teacherCard.getByText('Сменился преподаватель', { exact: true })).toBeVisible()
-  await expect(teacherCard).toContainText(`Преподаватель: ${next}`)
-  await expect(teacherCard.locator('p', { hasText: 'Было:' }).locator('s')).toHaveText(prev!)
+  await expect(teacherCard.getByText('Замена преподавателя', { exact: true })).toBeVisible()
+  await expect(teacherCard.locator('p', { hasText: 'Преподаватель:' })).toHaveCount(1)
+  await expect(teacherCard.locator('p', { hasText: 'Преподаватель:' })).toHaveText(`Преподаватель: ${next} вместо ${prev}`)
+  await expect(teacherCard).not.toContainText('Было:')
+  // ФИО прежнего преподавателя в карточке одно.
+  const cardText = (await teacherCard.textContent()) ?? ''
+  expect(cardText.split(prev!).length - 1, 'сколько раз в карточке прежний преподаватель').toBe(1)
+})
+
+test('четыре вида изменения: у каждого своя плашка со значком и словом, цвета разные, плашка не обрезана, прокрутки вбок нет', async () => {
+  // Плашка — слово и значок, а не только цвет; цвет у видов разный (отмена красная, перенос тёмный, остальные — своего цвета).
+  const cases: [string, ExpectedEntry][] = [
+    ['Другая аудитория', wanted('roomChanged', 'regular')],
+    ['Замена преподавателя', wanted('teacherChanged', 'regular')],
+    ['Перенос', wanted('movedSameDay', 'moved_to')],
+    ['Отмена', wanted('cancelled', 'regular')],
+  ]
+  const backgrounds: string[] = []
+  for (const [word, entry] of cases) {
+    await page.goto(dayPath(entry.date))
+    const chip = card(entry).getByText(word, { exact: true })
+    await expect(chip, word).toBeVisible()
+    await expect(chip.locator('svg'), `${word}: значок`).toHaveCount(1)
+    backgrounds.push(await chip.evaluate((el) => getComputedStyle(el).backgroundColor))
+    // Плашка в панели не обрезана и не вылезает за карточку (на 360 px слова «Замена преподавателя» и «Другая аудитория» длинные).
+    const box = (await chip.boundingBox())!
+    const cardBox = (await card(entry).boundingBox())!
+    expect(box.x + box.width, `${word}: плашка внутри карточки`).toBeLessThanOrEqual(cardBox.x + cardBox.width)
+    await expectNoHorizontalScroll(word)
+  }
+  expect(new Set(backgrounds).size, `цвета плашек: ${backgrounds.join('; ')}`).toBe(4)
 })
 
 test('адрес с мусором в «day» и «view» показывает сегодня и вид «День», без ошибки', async () => {

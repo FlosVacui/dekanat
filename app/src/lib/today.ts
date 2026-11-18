@@ -31,8 +31,10 @@ export interface NextLesson {
   /** День пары, «ГГГГ-ММ-ДД». */
   date: string
   entry: ScheduleEntry
-  /** Строка над временем: «Идёт сейчас», «Следующая пара · сегодня», «Следующая пара · пн, 16 ноября». */
-  eyebrow: string
+  /** Подпись в шапке блока: «Идёт сейчас» или «Следующая пара». */
+  caption: string
+  /** Заголовок даты под подписью: «Сегодня», «Завтра, ср 18 ноября», «Пт 20 ноября». */
+  dateTitle: string
   /** Подпись кнопки: «Расписание на сегодня» или «Расписание на 16 ноября». */
   buttonLabel: string
   /** Адрес кнопки: `/schedule` для сегодня, `/schedule?day=ГГГГ-ММ-ДД` для другого дня. */
@@ -65,7 +67,7 @@ export interface DueRow {
 export interface TodayView {
   /** Число пар сегодня: без отменённых и без старых мест перенесённых. */
   todayCount: number
-  /** Пары сегодня были, но все кончились: над следующей парой стоит «Сегодня пар больше нет». */
+  /** Пары сегодня были, но все кончились: над блоком следующей пары стоит плашка «На сегодня всё: пары закончились». */
   todayFinished: boolean
   next: NextLesson | null
   changes: TodayChange[]
@@ -112,6 +114,17 @@ function isUpcomingCandidate(entry: ScheduleEntry): boolean {
   return !entry.cancelled && entry.placement !== 'moved_from'
 }
 
+/**
+ * Заголовок даты в блоке «следующая пара»: «Сегодня» для сегодняшнего дня, «Завтра, ср 18 ноября» для завтрашнего,
+ * для остальных — день недели с большой буквы и дата без запятой: «Пт 20 ноября».
+ */
+export function nextDateTitle(date: string, today: string): string {
+  if (date === today) return 'Сегодня'
+  if (date === addDays(today, 1)) return `Завтра, ${weekdayShort(date)} ${formatDayMonth(date)}`
+  const weekday = weekdayShort(date)
+  return `${weekday.charAt(0).toUpperCase()}${weekday.slice(1)} ${formatDayMonth(date)}`
+}
+
 function pickNext(days: readonly ScheduleDay[], today: string, now: string): NextLesson | null {
   for (const day of days) {
     for (const entry of day.entries) {
@@ -123,7 +136,8 @@ function pickNext(days: readonly ScheduleDay[], today: string, now: string): Nex
           kind: started ? 'now' : 'today',
           date: day.date,
           entry,
-          eyebrow: started ? 'Идёт сейчас' : 'Следующая пара · сегодня',
+          caption: started ? 'Идёт сейчас' : 'Следующая пара',
+          dateTitle: nextDateTitle(day.date, today),
           buttonLabel: 'Расписание на сегодня',
           href: '/schedule',
         }
@@ -132,7 +146,8 @@ function pickNext(days: readonly ScheduleDay[], today: string, now: string): Nex
         kind: 'other_day',
         date: day.date,
         entry,
-        eyebrow: `Следующая пара · ${weekdayShort(day.date)}, ${formatDayMonth(day.date)}`,
+        caption: 'Следующая пара',
+        dateTitle: nextDateTitle(day.date, today),
         buttonLabel: `Расписание на ${formatDayMonth(day.date)}`,
         href: `/schedule?day=${day.date}`,
       }

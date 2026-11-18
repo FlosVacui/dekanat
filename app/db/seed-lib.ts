@@ -221,6 +221,15 @@ async function upsertGroupsAndTimetable(q: Query, plan: CohortPlan): Promise<voi
         )
       }
       await q('DELETE FROM assignments WHERE discipline_id = $1 AND id <> ALL($2::uuid[])', [d.id, d.assignments.map((a) => a.id)])
+      // Материалы курса — названия по порядку; как и работы, вставляются в обоих режимах, лишние удаляются.
+      for (const m of d.materials) {
+        await q(
+          `INSERT INTO course_materials (id, discipline_id, title, position) VALUES ($1, $2, $3, $4)
+           ON CONFLICT (discipline_id, title) DO UPDATE SET position = EXCLUDED.position`,
+          [m.id, d.id, m.title, m.position],
+        )
+      }
+      await q('DELETE FROM course_materials WHERE discipline_id = $1 AND title <> ALL($2::text[])', [d.id, d.materials.map((m) => m.title)])
     }
     await q('DELETE FROM disciplines WHERE group_id = $1 AND id <> ALL($2::uuid[])', [g.id, disciplines.map((d) => d.id)])
   }
@@ -262,5 +271,17 @@ async function upsertAccounts(
       )
     }
     await q('DELETE FROM grades WHERE student_id = $1 AND id <> ALL($2::uuid[])', [s.userId, s.grades.map((g) => g.id)])
+    // Баллы за работы: вставка по паре «студент — работа», лишние строки студента удаляются. Заявок и уведомлений это не касается.
+    for (const r of s.workResults) {
+      await q(
+        `INSERT INTO assignment_results (id, student_id, assignment_id, points) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (student_id, assignment_id) DO UPDATE SET points = EXCLUDED.points`,
+        [r.id, s.userId, r.assignmentId, r.points],
+      )
+    }
+    await q(
+      'DELETE FROM assignment_results WHERE student_id = $1 AND assignment_id <> ALL($2::uuid[])',
+      [s.userId, s.workResults.map((r) => r.assignmentId)],
+    )
   }
 }
