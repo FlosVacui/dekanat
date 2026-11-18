@@ -3680,7 +3680,8 @@ reviews:
     text: "Поле was хранит строку изменения — переименовать в changeLine вместе с двумя тестами, на потом"
     repro: "RV-redesign-A-1, R-4.6-7"
     by: "Sonnet 5.5 / high (reviewer)"
-    status: "открыто"
+    status: "отложено"
+    comment: "IMP-044, ответ участника А 18.11, смена 35, часть 3"
 
 decisions:
   - id: "Р-0"
