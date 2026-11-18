@@ -1126,6 +1126,13 @@ history:
     commit: "667e594"
     rounds: 1
     tokens: 195000
+  - date: 2026-11-18
+    item: "4.6"
+    what: "Смена 35, части 3–4: малый заход А (R-4.6-1…6), заход Б — М3-А, М4, баллы за работы, материалы"
+    who: "builder и reviewer, Sonnet 5.5 / high"
+    commit: "bd86be3"
+    rounds: 1
+    tokens: 659000
 
 reviews:
   - id: "R-0.3-1"
@@ -3688,6 +3695,33 @@ reviews:
     by: "Sonnet 5.5 / high (reviewer)"
     status: "отложено"
     comment: "IMP-044, ответ участника А 18.11, смена 35, часть 3"
+  - id: "R-4.6-8"
+    item: "4.6"
+    round: 1
+    severity: "незначительное"
+    text: "Скрытая подпись таблицы работ «Работы по дисциплине «…»» — текст из макета, не из DECISIONS"
+    repro: "RV-redesign-B-1, R-4.6-8"
+    by: "Sonnet 5.5 / high (reviewer)"
+    status: "отклонено"
+    comment: "Подпись утверждена участником А 18.11, смена 35, часть 4"
+  - id: "R-4.6-9"
+    item: "4.6"
+    round: 1
+    severity: "предложение"
+    text: "«·» в сводке работ остаётся в конце строки при переносе"
+    repro: "RV-redesign-B-1, R-4.6-9"
+    by: "Sonnet 5.5 / high (reviewer)"
+    status: "исправлено"
+    comment: "Исправлено в bd86be3, works-list.tsx"
+  - id: "R-4.6-10"
+    item: "4.6"
+    round: 1
+    severity: "предложение"
+    text: "Блоки «Баллы» и «Что нужно на экзамене» над блоками М4 — в макете их нет"
+    repro: "RV-redesign-B-1, R-4.6-10"
+    by: "Sonnet 5.5 / high (reviewer)"
+    status: "отклонено"
+    comment: "Блоки оставлены ответом участника А 18.11, смена 35, часть 4"
 
 decisions:
   - id: "Р-0"
