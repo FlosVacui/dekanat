@@ -9,7 +9,6 @@ import {
   examTargetsForDiscipline,
   pointsScale,
   pointsWord,
-  splitWorks,
 } from '@/lib/grades'
 import { controlKindLabel } from '@/lib/labels'
 import type { DisciplineDetail } from '@/server/dal/student'
@@ -17,10 +16,14 @@ import { Chip, OutcomeChip } from './chip'
 import { EmptyState } from './empty-state'
 import { GradeIcon } from './icons'
 import { PointsBar } from './points-bar'
+import { ratingRuleLines, RULES_NOTE } from './rating-rules'
+import { SubjectIcon } from './subject-icons'
+import { WorksView } from './works-list'
 
-// Э-5 «Дисциплина»: название, вид контроля, итог; баллы с полосой и допуском; что нужно на экзамене для 3, 4 и 5;
-// дата контроля; работы по срокам. Экран ничего не решает сам: слова и числа дают функции из lib/grades.
-// Баллов студента за отдельную работу в базе нет: показывается только максимум за работу.
+// Э-5 «Страница предмета» (М4): название, преподаватели пар, форма контроля, правила рейтинга раскрытием, работы с баллами студента,
+// материалы курса. Кнопок сдачи и загрузки нет, материалы — названия без ссылок. Слова и числа дают функции из lib/grades
+// и components/grades/rating-rules. Блоки «Баллы» и «Что нужно на экзамене» остались с прежних экранов: в макете М4 их нет,
+// но без них со страницы пропали бы допуск и расчёт оценки (вопрос участнику А в отчёте захода Б).
 
 function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1)
@@ -89,77 +92,103 @@ function ExamTargets({ item }: { item: DisciplineDetail }) {
   )
 }
 
-function ControlBlock({ item }: { item: DisciplineDetail }) {
-  const state = describeDiscipline(item)
-  const title = state.kind === 'debt' ? 'Пересдача' : controlKindLabel(item.controlKind)
-  // У закрытой дисциплины без даты блока нет: «дата не назначена» о сданном вводила бы в заблуждение.
-  if (state.kind === 'passed' && !item.examDate) return null
+function Teachers({ teachers }: { teachers: string[] }) {
   return (
-    <Card className="flex flex-col gap-[var(--sp-1)]">
-      <CardTitle>{title}</CardTitle>
-      {item.examDate ? (
-        <>
-          <p data-testid="control-date" className="text-[length:var(--fs-md)] font-extrabold">
-            {formatDayMonth(item.examDate)}, {weekdayShort(item.examDate)}
-            {item.examTime ? `, ${item.examTime}` : ''}
-          </p>
-          {item.examRoom ? <p className="text-[length:var(--fs-sm)] text-muted">Аудитория: {item.examRoom}</p> : null}
-        </>
-      ) : (
-        <p data-testid="control-date" className="text-[length:var(--fs-md)]">
-          Дата не назначена
-        </p>
-      )}
+    <Card>
+      <CardTitle>Преподаватели</CardTitle>
+      <ul data-testid="teachers" className="flex flex-col gap-[var(--sp-1)]">
+        {teachers.map((name) => (
+          <li key={name} className="flex min-h-[var(--tap)] items-center gap-[var(--sp-3)] text-[length:var(--fs-md)] font-bold">
+            <span className="grid size-9 flex-none place-items-center rounded-full bg-avatar-bg text-avatar-fg">
+              <SubjectIcon name="teacher" />
+            </span>
+            {name}
+          </li>
+        ))}
+      </ul>
     </Card>
   )
 }
 
-function Work({ work, past }: { work: DisciplineDetail['assignments'][number]; past: boolean }) {
+/** «экзамен — чт 24 декабря, 10:00, ауд. 314»; у долга — «пересдача», даты нет — «дата не назначена», у сданного без даты — только вид. */
+function controlFormText(item: DisciplineDetail): string {
+  const state = describeDiscipline(item)
+  const word = (state.kind === 'debt' ? 'Пересдача' : controlKindLabel(item.controlKind)).toLowerCase()
+  if (!item.examDate) return state.kind === 'passed' ? word : `${word} — дата не назначена`
+  const parts = [`${weekdayShort(item.examDate)} ${formatDayMonth(item.examDate)}`]
+  if (item.examTime) parts.push(item.examTime)
+  if (item.examRoom) parts.push(`ауд. ${item.examRoom}`)
+  return `${word} — ${parts.join(', ')}`
+}
+
+function ControlBlock({ item }: { item: DisciplineDetail }) {
   return (
-    <li className="flex flex-col gap-0.5 border-t border-border pt-[var(--sp-2)] first:border-t-0 first:pt-0">
-      <p className="text-[length:var(--fs-md)] font-bold [overflow-wrap:anywhere]">{work.title}</p>
-      <p className="text-[length:var(--fs-sm)] text-muted">
-        {past ? 'Срок был' : 'Срок'}: {formatDayMonth(work.dueDate)}, {weekdayShort(work.dueDate)} · максимум {work.maxPoints} {pointsWord(work.maxPoints)}
+    <section aria-label="Форма контроля" className="rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card">
+      <p className="text-[length:var(--fs-md)] leading-[1.4]">
+        <span className="text-muted">Форма контроля:</span>{' '}
+        <b data-testid="control-form" className="font-extrabold">
+          {controlFormText(item)}
+        </b>
       </p>
-    </li>
+    </section>
   )
 }
 
-function Works({ works, today }: { works: DisciplineDetail['assignments']; today: string }) {
-  if (works.length === 0) {
+function RatingRules({ controlKind }: { controlKind: string }) {
+  return (
+    <Card>
+      <details open data-testid="rating-rules" className="group">
+        <summary className="flex min-h-[var(--control-h)] cursor-pointer list-none items-center justify-between gap-[var(--sp-2)] rounded-pill border-2 border-primary bg-card px-[var(--sp-4)] font-bold text-primary group-open:bg-primary-soft [&::-webkit-details-marker]:hidden">
+          <span>Правила рейтинга</span>
+          <GradeIcon name="chevron" className="size-5 flex-none transition-transform group-open:rotate-90" />
+        </summary>
+        <ul className="mt-[var(--sp-2)] flex flex-col">
+          {ratingRuleLines(controlKind).map((line) => (
+            <li
+              key={line}
+              className="flex items-start gap-[var(--sp-2)] border-t border-border py-[var(--sp-3)] text-[length:var(--fs-md)] leading-[1.4] before:mt-[7px] before:size-2 before:flex-none before:rounded-full before:bg-primary before:content-[''] first:border-t-0"
+            >
+              {line}
+            </li>
+          ))}
+          <li className="flex items-start gap-[var(--sp-2)] border-t border-border py-[var(--sp-3)] text-[length:var(--fs-sm)] leading-[1.4] text-muted">
+            <SubjectIcon name="info" className="mt-[3px] size-4 flex-none" />
+            {RULES_NOTE}
+          </li>
+        </ul>
+      </details>
+    </Card>
+  )
+}
+
+function Works({ item, today }: { item: DisciplineDetail; today: string }) {
+  if (item.assignments.length === 0) {
     return <EmptyState title="Работ пока нет" text="Когда кафедра назначит работы со сроками, они появятся здесь." />
   }
-  const { upcoming, past } = splitWorks(works, today)
   return (
-    <Card className="flex flex-col gap-[var(--sp-3)]">
+    <Card className="flex flex-col gap-[var(--sp-2)]">
       <CardTitle>Работы</CardTitle>
-      <section aria-labelledby="works-upcoming" className="flex flex-col gap-[var(--sp-2)]">
-        <h3 id="works-upcoming" className="text-[length:var(--fs-sm)] font-extrabold">
-          Предстоящие
-        </h3>
-        {upcoming.length === 0 ? (
-          <p className="text-[length:var(--fs-sm)] text-muted">Предстоящих работ нет.</p>
-        ) : (
-          <ul data-testid="works-upcoming" className="flex flex-col gap-[var(--sp-2)]">
-            {upcoming.map((w) => (
-              <Work key={w.id} work={w} past={false} />
-            ))}
-          </ul>
-        )}
-      </section>
-      {past.length > 0 ? (
-        <section aria-labelledby="works-past" className="flex flex-col gap-[var(--sp-2)]">
-          <h3 id="works-past" className="text-[length:var(--fs-sm)] font-extrabold">
-            Прошедшие
-          </h3>
-          <ul data-testid="works-past" className="flex flex-col gap-[var(--sp-2)]">
-            {past.map((w) => (
-              <Work key={w.id} work={w} past />
-            ))}
-          </ul>
-        </section>
-      ) : null}
-      <p className="text-[length:var(--fs-sm)] text-muted">Баллы за отдельную работу здесь не показываются: видно только максимум.</p>
+      <WorksView works={item.assignments} today={today} disciplineName={item.name} headingLevel={3} />
+    </Card>
+  )
+}
+
+function Materials({ titles }: { titles: string[] }) {
+  return (
+    <Card className="flex flex-col gap-[var(--sp-1)]">
+      <CardTitle>Материалы курса</CardTitle>
+      <p className="text-[length:var(--fs-sm)] text-muted">В концепте — только названия, файлы не загружаются</p>
+      <ul data-testid="materials">
+        {titles.map((title) => (
+          <li
+            key={title}
+            className="flex min-h-[var(--tap)] items-center gap-[var(--sp-3)] border-t border-border py-[var(--sp-2)] text-[length:var(--fs-md)] font-semibold first:border-t-0"
+          >
+            <SubjectIcon name="doc" className="size-6 flex-none text-muted" />
+            {title}
+          </li>
+        ))}
+      </ul>
     </Card>
   )
 }
@@ -171,10 +200,10 @@ export function DisciplineView({ item, today }: { item: DisciplineDetail; today:
     <div className="flex flex-col gap-[var(--gap)]">
       <Link
         href="/grades"
-        className="-mb-1 inline-flex min-h-[var(--tap)] min-w-[var(--tap)] items-center gap-1 self-start pr-3 text-[length:var(--fs-sm)] font-bold text-primary focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="-mb-1 inline-flex min-h-[var(--tap)] min-w-[var(--tap)] items-center gap-1 self-start pr-3 text-[length:var(--fs-md)] font-bold text-primary focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus"
       >
-        <GradeIcon name="back" className="size-4 flex-none" />
-        Все дисциплины
+        <GradeIcon name="back" className="size-5 flex-none" />
+        Успеваемость
       </Link>
       <div>
         <PageTitle>{item.name}</PageTitle>
@@ -192,8 +221,15 @@ export function DisciplineView({ item, today }: { item: DisciplineDetail; today:
       </div>
       <PointsBlock item={item} />
       {showTargets ? <ExamTargets item={item} /> : null}
-      <ControlBlock item={item} />
-      <Works works={item.assignments} today={today} />
+      <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.4fr)] lg:items-start">
+        <div className="flex flex-col gap-[var(--gap)]">
+          {item.teachers.length > 0 ? <Teachers teachers={item.teachers} /> : null}
+          <ControlBlock item={item} />
+        </div>
+        <RatingRules controlKind={item.controlKind} />
+      </div>
+      <Works item={item} today={today} />
+      {item.materials.length > 0 ? <Materials titles={item.materials} /> : null}
     </div>
   )
 }

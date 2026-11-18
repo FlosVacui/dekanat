@@ -19,6 +19,7 @@ import {
   type PlannedLesson,
 } from '../../db/seed-plan'
 import { addDays, addWorkingDays, formatDate, weekInfo } from '../../src/lib/dates'
+import { workStatus } from '../../src/lib/grades'
 import { REQUEST_KIND_INFO, computeDueDate, computePickupUntil } from '../../src/lib/requests'
 
 const MONDAY = '2026-11-23' // первый день экспертизы; 13-я неделя семестра, верхняя
@@ -237,27 +238,48 @@ describe('привязка изменений пар при любом дне н
 })
 
 describe('дисциплины, работы, оценки', () => {
-  it.each(TWO_WEEKS)('Д = %s: срок работы не выпадает на субботу и воскресенье', (today) => {
+  // Было: шесть работ, все впереди (`w.dueDate >= today`). Стало: 31 работа — 23 сданные, 2 долга, 6 впереди (набор захода Б);
+  // статус считается от Д набора, а не от часов машины (ошибки ИИ 84 и 120), и не меняется ни при каком дне недели в роли Д.
+  it.each(TWO_WEEKS)('Д = %s: срок работы не выпадает на субботу и воскресенье; долги — позади, «впереди» — впереди', (today) => {
     const plan = buildCohortPlan(MAIN_COHORT, today)
     const works = plan.disciplines.flatMap((d) => d.assignments)
-    expect(works).toHaveLength(6)
+    expect(works).toHaveLength(31)
+    const donePairs = new Set(plan.students.flatMap((s) => s.workResults.map((r) => r.assignmentId)))
+    const byStatus = { done: [] as string[], debt: [] as string[], upcoming: [] as string[] }
     for (const w of works) {
       expect([0, 6], `${w.title}: ${w.dueDate}`).not.toContain(weekdayOf(w.dueDate))
-      expect(w.dueDate >= today).toBe(true)
+      byStatus[workStatus({ dueDate: w.dueDate, points: donePairs.has(w.id) ? 1 : null }, today)].push(w.title)
     }
+    expect(byStatus.done).toHaveLength(23)
+    expect(byStatus.debt.sort()).toEqual(['Домашнее задание по дисконтированию', 'Тест по запасам'])
+    expect(byStatus.upcoming.sort()).toEqual(
+      [
+        'Кейс по оценке проекта',
+        'Отчёт по лабораторной №4',
+        'Презентация на английском',
+        'Расчётная работа №3',
+        'Реферат по складской логистике',
+        'Чертёж детали с разрезом',
+      ].sort(),
+    )
   })
 
-  it('сроки работ при Д-понедельнике — по черновику: Д+2, Д+7, Д+9, Д+8, Д+3, Д+4', () => {
+  it('сроки работ при Д-понедельнике: «впереди» — Д+2, Д+7, Д+9, Д+8, Д+3, Д+4 (прежние), прошлые — по набору', () => {
     const plan = buildCohortPlan(MAIN_COHORT, MONDAY)
-    const due = Object.fromEntries(plan.disciplines.flatMap((d) => d.assignments).map((w) => [w.title, w.dueDate]))
-    expect(due).toEqual({
-      'Расчётная работа №3': addDays(MONDAY, 2),
-      'Кейс по оценке проекта': addDays(MONDAY, 7),
-      'Реферат по складской логистике': addDays(MONDAY, 9),
-      'Презентация на английском': addDays(MONDAY, 8),
-      'Отчёт по лабораторной №4': addDays(MONDAY, 3),
-      'Чертёж детали с разрезом': addDays(MONDAY, 4),
+    const due = Object.fromEntries(plan.disciplines.flatMap((d) => d.assignments.map((w) => [`${d.name} / ${w.key}`, w.dueDate])))
+    expect(due).toMatchObject({
+      'Микроэкономика / rz3': addDays(MONDAY, 2),
+      'Корпоративные финансы / case': addDays(MONDAY, 7),
+      'Логистика цепей поставок / abstract': addDays(MONDAY, 9),
+      'Деловой английский / presentation': addDays(MONDAY, 8),
+      'Физика / lab4': addDays(MONDAY, 3),
+      'Инженерная графика / drawing': addDays(MONDAY, 4),
+      // Долги: срок позади, суббота и воскресенье уходят на понедельник, но не дальше Д-1.
+      'Корпоративные финансы / discount-hw': toWorkday(addDays(MONDAY, -6)),
+      'Логистика цепей поставок / stock-test': toWorkday(addDays(MONDAY, -5)),
     })
+    // Максимум «Расчётной работы №3» — 15 вместо прежних 20 (DECISIONS, смена 35, часть 3, третье окно).
+    expect(plan.disciplines.flatMap((d) => d.assignments).find((w) => w.key === 'rz3')!.maxPoints).toBe(15)
   })
 
   it.each(TWO_WEEKS)('Д = %s: контроль не в воскресенье, у группы не больше одного в день, порядок и пересдача прежние (R-3.8-18)', (today) => {

@@ -50,6 +50,10 @@ const WEEK_ENGINEERING: LessonSlot[] = [
   // Суббота — без пар.
 ]
 
+/** Материалы курса текущего семестра: только названия, файлов и ссылок нет (DECISIONS, смена 35, часть 2, 18.11.2026). */
+const MATERIALS_EXAM = ['Программа курса', 'Вопросы к экзамену', 'Лекция 1 — слайды']
+const MATERIALS_CREDIT = ['Программа курса', 'Вопросы к зачёту', 'Лекция 1 — слайды']
+
 const GROUP_1: GroupSpec = {
   name: GROUP_ECONOMICS,
   faculty: FACULTY_ECONOMICS,
@@ -103,28 +107,54 @@ const GROUP_1: GroupSpec = {
       controlKind: 'exam',
       semester: 5,
       exam: { date: '2026-12-29', time: '10:00', room: '1-412' },
-      assignments: [{ key: 'rz3', title: 'Расчётная работа №3', dayOffset: 2, maxPoints: 20 }],
+      // Работы: сданные, долг и впереди. Срок долга — не позже Д-3 (суббота и воскресенье уходят на понедельник, не позже Д-1),
+      // срок «впереди» — не раньше Д+2: статус не зависит от дня запуска. Сумма максимумов экзамена — не больше 60.
+      assignments: [
+        { key: 'rz1', title: 'Расчётная работа №1', dayOffset: -35, maxPoints: 15 },
+        { key: 'rz2', title: 'Расчётная работа №2', dayOffset: -21, maxPoints: 15 },
+        { key: 'micro-test', title: 'Контрольная работа', dayOffset: -9, maxPoints: 15 },
+        { key: 'rz3', title: 'Расчётная работа №3', dayOffset: 2, maxPoints: 15 },
+      ],
+      materials: MATERIALS_EXAM,
     },
     {
       name: 'Корпоративные финансы',
       controlKind: 'exam',
       semester: 5,
       exam: { date: '2027-01-13', time: '10:00', room: '2-210' },
-      assignments: [{ key: 'case', title: 'Кейс по оценке проекта', dayOffset: 7, maxPoints: 15 }],
+      assignments: [
+        { key: 'case1', title: 'Кейс №1', dayOffset: -30, maxPoints: 15 },
+        { key: 'asset-test', title: 'Тест по оценке активов', dayOffset: -16, maxPoints: 15 },
+        { key: 'discount-hw', title: 'Домашнее задание по дисконтированию', dayOffset: -6, maxPoints: 15 },
+        { key: 'case', title: 'Кейс по оценке проекта', dayOffset: 7, maxPoints: 15 },
+      ],
+      materials: MATERIALS_EXAM,
     },
     {
       name: 'Логистика цепей поставок',
       controlKind: 'credit',
       semester: 5,
       exam: { date: '2026-12-23', time: '12:00', room: '1-204' },
-      assignments: [{ key: 'abstract', title: 'Реферат по складской логистике', dayOffset: 9, maxPoints: 25 }],
+      assignments: [
+        { key: 'transport-essay', title: 'Эссе по транспортной логистике', dayOffset: -28, maxPoints: 20 },
+        { key: 'logistics-test', title: 'Контрольная работа', dayOffset: -14, maxPoints: 25 },
+        { key: 'stock-test', title: 'Тест по запасам', dayOffset: -5, maxPoints: 15 },
+        { key: 'abstract', title: 'Реферат по складской логистике', dayOffset: 9, maxPoints: 25 },
+      ],
+      materials: MATERIALS_CREDIT,
     },
     {
       name: 'Деловой английский',
       controlKind: 'credit',
       semester: 5,
       exam: { date: '2026-12-25', time: '08:30', room: '3-118' },
-      assignments: [{ key: 'presentation', title: 'Презентация на английском', dayOffset: 8, maxPoints: 20 }],
+      assignments: [
+        { key: 'request-letter', title: 'Письмо-запрос', dayOffset: -27, maxPoints: 15 },
+        { key: 'lexis-test', title: 'Тест по лексике', dayOffset: -13, maxPoints: 15 },
+        { key: 'correspondence', title: 'Деловая переписка', dayOffset: -7, maxPoints: 20 },
+        { key: 'presentation', title: 'Презентация на английском', dayOffset: 8, maxPoints: 20 },
+      ],
+      materials: MATERIALS_CREDIT,
     },
     // Прошлый семестр: сданное и долг (решение пользователя 13.11.2026).
     { name: 'Статистика', controlKind: 'exam', semester: 4, assignments: [] },
@@ -151,24 +181,66 @@ const GROUP_2: GroupSpec = {
     },
   ],
   disciplines: [
-    { name: 'Математический анализ', controlKind: 'exam', semester: 3, exam: { date: '2026-12-30', time: '10:00', room: '4-501' }, assignments: [] },
+    {
+      name: 'Математический анализ',
+      controlKind: 'exam',
+      semester: 3,
+      exam: { date: '2026-12-30', time: '10:00', room: '4-501' },
+      assignments: [
+        { key: 'kr1', title: 'Контрольная работа №1', dayOffset: -32, maxPoints: 20 },
+        { key: 'kr2', title: 'Контрольная работа №2', dayOffset: -18, maxPoints: 20 },
+        { key: 'calc', title: 'Типовой расчёт', dayOffset: -6, maxPoints: 20 },
+      ],
+      materials: MATERIALS_EXAM,
+    },
     {
       name: 'Физика',
       controlKind: 'exam',
       semester: 3,
       exam: { date: '2027-01-14', time: '10:00', room: '4-501' },
-      assignments: [{ key: 'lab4', title: 'Отчёт по лабораторной №4', dayOffset: 3, maxPoints: 10 }],
+      assignments: [
+        { key: 'lab1', title: 'Отчёт по лабораторной №1', dayOffset: -35, maxPoints: 10 },
+        { key: 'lab2', title: 'Отчёт по лабораторной №2', dayOffset: -28, maxPoints: 10 },
+        { key: 'lab3', title: 'Отчёт по лабораторной №3', dayOffset: -21, maxPoints: 10 },
+        { key: 'colloquium', title: 'Коллоквиум', dayOffset: -10, maxPoints: 20 },
+        { key: 'lab4', title: 'Отчёт по лабораторной №4', dayOffset: 3, maxPoints: 10 },
+      ],
+      materials: MATERIALS_EXAM,
     },
-    { name: 'Программирование на Python', controlKind: 'credit', semester: 3, exam: { date: '2026-12-22', time: '08:30', room: '4-310' }, assignments: [] },
+    {
+      name: 'Программирование на Python',
+      controlKind: 'credit',
+      semester: 3,
+      exam: { date: '2026-12-22', time: '08:30', room: '4-310' },
+      assignments: [
+        { key: 'py1', title: 'Лабораторная работа №1', dayOffset: -30, maxPoints: 20 },
+        { key: 'py2', title: 'Лабораторная работа №2', dayOffset: -17, maxPoints: 20 },
+        { key: 'py3', title: 'Лабораторная работа №3', dayOffset: -7, maxPoints: 25 },
+      ],
+      materials: MATERIALS_CREDIT,
+    },
     {
       name: 'Инженерная графика',
       controlKind: 'credit',
       semester: 3,
       exam: { date: '2026-12-24', time: '12:00', room: '4-118' },
-      assignments: [{ key: 'drawing', title: 'Чертёж детали с разрезом', dayOffset: 4, maxPoints: 15 }],
+      assignments: [
+        { key: 'sketch', title: 'Эскиз детали', dayOffset: -29, maxPoints: 15 },
+        { key: 'shaft', title: 'Чертёж вала', dayOffset: -15, maxPoints: 15 },
+        { key: 'assembly', title: 'Сборочный чертёж', dayOffset: -8, maxPoints: 20 },
+        { key: 'drawing', title: 'Чертёж детали с разрезом', dayOffset: 4, maxPoints: 15 },
+      ],
+      materials: MATERIALS_CREDIT,
     },
-    // Дисциплина без баллов, пар в расписании нет: проект без аудиторных занятий (состояние «баллы бывают пустыми»).
-    { name: 'Основы проектной работы', controlKind: 'credit', semester: 3, exam: { date: '2026-12-26', time: '10:15', room: '4-402' }, assignments: [] },
+    // Дисциплина без баллов, пар в расписании нет: проект без аудиторных занятий (состояние «баллы бывают пустыми»). Работ нет.
+    {
+      name: 'Основы проектной работы',
+      controlKind: 'credit',
+      semester: 3,
+      exam: { date: '2026-12-26', time: '10:15', room: '4-402' },
+      assignments: [],
+      materials: MATERIALS_CREDIT,
+    },
     { name: 'Линейная алгебра', controlKind: 'exam', semester: 2, assignments: [] },
     { name: 'Информатика', controlKind: 'exam', semester: 2, assignments: [] },
     { name: 'История России', controlKind: 'credit', semester: 2, assignments: [] },
@@ -198,6 +270,19 @@ export const MAIN_COHORT: CohortSpec = {
         { discipline: 'Маркетинг', points: 72, outcome: 'credit' },
         // 32 за семестр и 9 на экзамене; в базе одно число (черновик, 2.1).
         { discipline: 'Эконометрика', points: 41, outcome: '2' },
+      ],
+      // Сумма сданных работ равна баллам за семестр выше (тест seed-work-results.test.ts). Нет записи — работа не сдана.
+      workResults: [
+        { discipline: 'Микроэкономика', assignmentKey: 'rz1', points: 14 },
+        { discipline: 'Микроэкономика', assignmentKey: 'rz2', points: 13 },
+        { discipline: 'Микроэкономика', assignmentKey: 'micro-test', points: 14 },
+        { discipline: 'Корпоративные финансы', assignmentKey: 'case1', points: 12 },
+        { discipline: 'Корпоративные финансы', assignmentKey: 'asset-test', points: 10 },
+        { discipline: 'Логистика цепей поставок', assignmentKey: 'transport-essay', points: 18 },
+        { discipline: 'Логистика цепей поставок', assignmentKey: 'logistics-test', points: 20 },
+        { discipline: 'Деловой английский', assignmentKey: 'request-letter', points: 14 },
+        { discipline: 'Деловой английский', assignmentKey: 'lexis-test', points: 13 },
+        { discipline: 'Деловой английский', assignmentKey: 'correspondence', points: 17 },
       ],
       requests: [
         {
@@ -246,7 +331,7 @@ export const MAIN_COHORT: CohortSpec = {
           key: 'rz3',
           kind: 'reminder',
           title: 'Срок через {left.rz3}: Расчётная работа №3',
-          body: 'Микроэкономика, 20 баллов',
+          body: 'Микроэкономика, 15 баллов',
           link: '/grades',
           unread: true,
         },
@@ -309,6 +394,21 @@ export const MAIN_COHORT: CohortSpec = {
         { discipline: 'Линейная алгебра', points: 92, outcome: '5' },
         { discipline: 'Информатика', points: 87, outcome: '5' },
         { discipline: 'История России', points: 88, outcome: 'credit' },
+      ],
+      workResults: [
+        { discipline: 'Математический анализ', assignmentKey: 'kr1', points: 18 },
+        { discipline: 'Математический анализ', assignmentKey: 'kr2', points: 17 },
+        { discipline: 'Математический анализ', assignmentKey: 'calc', points: 17 },
+        { discipline: 'Физика', assignmentKey: 'lab1', points: 9 },
+        { discipline: 'Физика', assignmentKey: 'lab2', points: 10 },
+        { discipline: 'Физика', assignmentKey: 'lab3', points: 9 },
+        { discipline: 'Физика', assignmentKey: 'colloquium', points: 19 },
+        { discipline: 'Программирование на Python', assignmentKey: 'py1', points: 19 },
+        { discipline: 'Программирование на Python', assignmentKey: 'py2', points: 20 },
+        { discipline: 'Программирование на Python', assignmentKey: 'py3', points: 22 },
+        { discipline: 'Инженерная графика', assignmentKey: 'sketch', points: 14 },
+        { discipline: 'Инженерная графика', assignmentKey: 'shaft', points: 15 },
+        { discipline: 'Инженерная графика', assignmentKey: 'assembly', points: 17 },
       ],
       requests: [
         {

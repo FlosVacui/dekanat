@@ -30,7 +30,7 @@ export default async function GradesPage({ searchParams }: { searchParams: Promi
         <div className="flex flex-col gap-[var(--gap)]">
           <Summary items={items} today={today} />
           <ViewSwitch view={view} />
-          {view === 'semester' ? <SemesterView items={items} /> : <SessionView items={items} today={today} />}
+          {view === 'semester' ? <SemesterView items={items} today={today} /> : <SessionView items={items} today={today} />}
         </div>
       )}
     </StudentShell>

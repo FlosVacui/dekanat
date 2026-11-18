@@ -10,7 +10,9 @@ import { RequestLimitError, isUuid, requireStudent } from './guards'
 import {
   announcementReads,
   announcements,
+  assignmentResults,
   assignments,
+  courseMaterials,
   disciplines,
   grades,
   groups,
@@ -139,6 +141,15 @@ export async function listMyLessons(actor: Actor, from: string, to: string): Pro
 
 // ---------- Успеваемость ----------
 
+/** Работа дисциплины с баллами текущего студента: `points` пусто — работа не сдана. Баллы других студентов сюда не попадают. */
+export interface WorkItem {
+  id: string
+  title: string
+  dueDate: string
+  maxPoints: number
+  points: number | null
+}
+
 export interface GradeItem {
   disciplineId: string
   name: string
@@ -153,6 +164,29 @@ export interface GradeItem {
   examRoom: string | null
   /** Ближайшая работа со сроком не раньше `today`. */
   nextDue: { title: string; dueDate: string } | null
+  /** Все работы дисциплины по срокам, с баллами студента из сессии. */
+  works: WorkItem[]
+}
+
+/**
+ * Работы дисциплин с баллами одного студента. Баллы подставляются соединением по номеру студента из сессии:
+ * результаты других студентов группы в выборку не попадают. Номера дисциплин вызывающий уже проверил по группе.
+ */
+async function worksWithPoints(studentId: string, disciplineIds: string[]): Promise<(WorkItem & { disciplineId: string })[]> {
+  if (disciplineIds.length === 0) return []
+  return getDb()
+    .select({
+      id: assignments.id,
+      disciplineId: assignments.disciplineId,
+      title: assignments.title,
+      dueDate: assignments.dueDate,
+      maxPoints: assignments.maxPoints,
+      points: assignmentResults.points,
+    })
+    .from(assignments)
+    .leftJoin(assignmentResults, and(eq(assignmentResults.assignmentId, assignments.id), eq(assignmentResults.studentId, studentId)))
+    .where(inArray(assignments.disciplineId, disciplineIds))
+    .orderBy(asc(assignments.dueDate), asc(assignments.title))
 }
 
 /** Дисциплины группы студента с его баллами и итогами. */
@@ -191,6 +225,14 @@ export async function listMyGrades(actor: Actor, today: string): Promise<GradeIt
     if (!nextByDiscipline.has(d.disciplineId)) nextByDiscipline.set(d.disciplineId, { title: d.title, dueDate: d.dueDate })
   }
 
+  const allWorks = await worksWithPoints(studentId, ids)
+  const worksByDiscipline = new Map<string, WorkItem[]>()
+  for (const { disciplineId, ...work } of allWorks) {
+    const list = worksByDiscipline.get(disciplineId) ?? []
+    list.push(work)
+    worksByDiscipline.set(disciplineId, list)
+  }
+
   return rows.map((r) => ({
     disciplineId: r.disciplineId,
     name: r.name,
@@ -203,11 +245,16 @@ export async function listMyGrades(actor: Actor, today: string): Promise<GradeIt
     examTime: r.examTime ? r.examTime.slice(0, 5) : null,
     examRoom: r.examRoom,
     nextDue: nextByDiscipline.get(r.disciplineId) ?? null,
+    works: worksByDiscipline.get(r.disciplineId) ?? [],
   }))
 }
 
-export interface DisciplineDetail extends Omit<GradeItem, 'nextDue'> {
-  assignments: { id: string; title: string; dueDate: string; maxPoints: number }[]
+export interface DisciplineDetail extends Omit<GradeItem, 'nextDue' | 'works'> {
+  assignments: WorkItem[]
+  /** Различные преподаватели пар этой дисциплины у группы студента, по алфавиту. У самой дисциплины преподавателя в базе нет. */
+  teachers: string[]
+  /** Названия материалов курса по порядку. Файлов и ссылок нет. */
+  materials: string[]
 }
 
 /** Дисциплина по номеру: условие «номер и группа из сессии» в одном запросе. Чужая — null. */
@@ -234,11 +281,20 @@ export async function getMyDiscipline(actor: Actor, disciplineId: string): Promi
     .limit(1)
   const row = rows[0]
   if (!row) return null
-  const works = await db
-    .select({ id: assignments.id, title: assignments.title, dueDate: assignments.dueDate, maxPoints: assignments.maxPoints })
-    .from(assignments)
-    .where(eq(assignments.disciplineId, row.disciplineId))
-    .orderBy(asc(assignments.dueDate))
+  const works = (await worksWithPoints(studentId, [row.disciplineId])).map(
+    (w): WorkItem => ({ id: w.id, title: w.title, dueDate: w.dueDate, maxPoints: w.maxPoints, points: w.points }),
+  )
+  // Группа — из сессии, дисциплина — уже проверенная выше: преподаватели берутся только у пар этой группы.
+  const teacherRows = await db
+    .selectDistinct({ teacher: lessons.teacher })
+    .from(lessons)
+    .where(and(eq(lessons.groupId, groupId), eq(lessons.discipline, row.name)))
+    .orderBy(asc(lessons.teacher))
+  const materialRows = await db
+    .select({ title: courseMaterials.title })
+    .from(courseMaterials)
+    .where(eq(courseMaterials.disciplineId, row.disciplineId))
+    .orderBy(asc(courseMaterials.position))
   return {
     disciplineId: row.disciplineId,
     name: row.name,
@@ -251,6 +307,8 @@ export async function getMyDiscipline(actor: Actor, disciplineId: string): Promi
     examTime: row.examTime ? row.examTime.slice(0, 5) : null,
     examRoom: row.examRoom,
     assignments: works,
+    teachers: teacherRows.map((t) => t.teacher),
+    materials: materialRows.map((m) => m.title),
   }
 }
 

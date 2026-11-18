@@ -391,6 +391,72 @@ export function splitWorks<T extends { dueDate: string; title: string }>(works: 
   return { upcoming, past }
 }
 
+// ---------- Работы: статус, сводка, фразы (редизайн, М3-А и М4) ----------
+// Статус считается из срока и баллов: есть баллы — «Сдано»; баллов нет и срок прошёл — «Долг»; срок не прошёл — «Впереди».
+// «Сегодня» приходит аргументом: часов здесь нет (ошибки ИИ 84 и 120). Срок в день `today` ещё не прошёл.
+
+export type WorkStatus = 'done' | 'debt' | 'upcoming'
+
+export interface WorkInput {
+  dueDate: string
+  maxPoints: number
+  /** Баллы студента за работу; пусто — не сдана. */
+  points: number | null
+}
+
+export function workStatus(w: Pick<WorkInput, 'dueDate' | 'points'>, today: string): WorkStatus {
+  if (w.points !== null) return 'done'
+  return w.dueDate < today ? 'debt' : 'upcoming'
+}
+
+/** Короткое слово статуса: плашка в таблице и сводка. */
+export const WORK_STATUS_WORD: Readonly<Record<WorkStatus, string>> = { done: 'Сдано', debt: 'Долг', upcoming: 'Впереди' }
+
+/** Фраза статуса на телефоне: «Сдано — 12 из 15», «Долг — срок был 10 ноября», «Впереди — срок 25 ноября». */
+export function workStatusPhrase(w: WorkInput, today: string): string {
+  const status = workStatus(w, today)
+  if (status === 'done') return `${WORK_STATUS_WORD.done} — ${displayPoints(w.points, w.maxPoints)} из ${w.maxPoints}`
+  if (status === 'debt') return `${WORK_STATUS_WORD.debt} — срок был ${formatDayMonth(w.dueDate)}`
+  return `${WORK_STATUS_WORD.upcoming} — срок ${formatDayMonth(w.dueDate)}`
+}
+
+export interface WorksSummary {
+  done: number
+  debt: number
+  upcoming: number
+}
+
+export function summarizeWorks(works: Pick<WorkInput, 'dueDate' | 'points'>[], today: string): WorksSummary {
+  const summary: WorksSummary = { done: 0, debt: 0, upcoming: 0 }
+  for (const w of works) summary[workStatus(w, today)] += 1
+  return summary
+}
+
+/** Части сводки по порядку «Сдано, Долг, Впереди»; частей с нулём нет, как в макете предмета с зачётом. */
+export function worksSummaryParts(summary: WorksSummary): { status: WorkStatus; text: string }[] {
+  return (['done', 'debt', 'upcoming'] as const)
+    .filter((status) => summary[status] > 0)
+    .map((status) => ({ status, text: `${WORK_STATUS_WORD[status]} ${summary[status]}` }))
+}
+
+/** «Сдано 3 · Долг 1 · Впереди 2». */
+export function worksSummaryLine(summary: WorksSummary): string {
+  return worksSummaryParts(summary)
+    .map((p) => p.text)
+    .join(' · ')
+}
+
+/** Подпись кнопки раскрытия в карточке предмета: «Все работы (6)». */
+export function allWorksLabel(count: number): string {
+  return `Все работы (${count})`
+}
+
+/** Доля полосы баллов работы, 0–100. Нет баллов — 0. */
+export function workBarPercent(w: Pick<WorkInput, 'points' | 'maxPoints'>): number {
+  const shown = displayPoints(w.points, w.maxPoints)
+  return shown === null || w.maxPoints <= 0 ? 0 : Math.round((shown / w.maxPoints) * 100)
+}
+
 export interface SessionGroups<T> {
   /** Контроль не раньше сегодняшнего дня; ближайший сверху. */
   upcoming: T[]
