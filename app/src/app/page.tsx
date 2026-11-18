@@ -2,13 +2,11 @@ import { redirect } from 'next/navigation'
 import { Chip } from '@/components/grades/chip'
 import { PageTitle } from '@/components/card'
 import { RequestStatusChip } from '@/components/requests/status-chip'
-import { ChangeChip } from '@/components/schedule/change-chip'
 import { dayHref } from '@/components/schedule/hrefs'
 import { StudentShell } from '@/components/student-shell'
 import { NextLessonBlock } from '@/components/today/next-lesson'
-import { EmptyRow, RowLink, RowList, RowMeta, TodayBlock } from '@/components/today/row-list'
+import { ChangesBlock, ChangeTile, EmptyRow, RowLink, RowList, RowMeta, TodayBlock } from '@/components/today/row-list'
 import { endOfWeek, formatDayMonth, nowTimeIn, todayIn, weekdayShort } from '@/lib/dates'
-import { changeKindLabel } from '@/lib/labels'
 import { isRequestKind, isRequestStatus, REQUEST_KIND_INFO, statusText } from '@/lib/requests'
 import { scheduleRange } from '@/lib/schedule'
 import { buildToday } from '@/lib/today'
@@ -57,28 +55,17 @@ export default async function TodayPage() {
       <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2 lg:items-start">
         <NextLessonBlock next={view.next} finished={view.todayFinished} />
 
-        <TodayBlock id="today-changes" title="Изменения в расписании">
-          {view.changes.length === 0 ? (
+        {view.changes.length === 0 ? (
+          <TodayBlock id="today-changes" title="Изменения в расписании">
             <EmptyRow>На сегодня и завтра изменений нет</EmptyRow>
-          ) : (
-            <RowList>
-              {view.changes.map(({ dayWord, date, entry }) => (
-                <RowLink
-                  key={entry.key}
-                  href={dayHref(date === today ? undefined : date)}
-                  chip={entry.changeKind ? <ChangeChip kind={entry.changeKind} label={entry.badge ?? changeKindLabel(entry.changeKind)} /> : null}
-                  title={`${dayWord}, ${entry.startsAt} · ${entry.discipline}`}
-                  meta={
-                    <>
-                      {entry.changeKind && entry.note ? <RowMeta>{entry.note}</RowMeta> : null}
-                      {entry.movedTo ?? entry.was ? <RowMeta>{entry.movedTo ?? entry.was}</RowMeta> : null}
-                    </>
-                  }
-                />
-              ))}
-            </RowList>
-          )}
-        </TodayBlock>
+          </TodayBlock>
+        ) : (
+          <ChangesBlock id="today-changes" title="Изменения в расписании">
+            {view.changes.map(({ dayWord, date, entry }) => (
+              <ChangeTile key={entry.key} href={dayHref(date === today ? undefined : date)} dayWord={dayWord} entry={entry} />
+            ))}
+          </ChangesBlock>
+        )}
 
         <TodayBlock id="today-due" title="Что сдать на этой неделе">
           {view.due.length === 0 ? (

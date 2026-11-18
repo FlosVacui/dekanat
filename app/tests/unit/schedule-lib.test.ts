@@ -1,6 +1,6 @@
 // Пакет 3.2: чистая функция раскладки расписания по семи дням. База не нужна.
 import { describe, expect, it } from 'vitest'
-import { SCHEDULE_DAYS, buildSchedule, pickDay, pickView, type ScheduleLesson } from '../../src/lib/schedule'
+import { SCHEDULE_DAYS, buildSchedule, pickDay, pickView, roomChangeText, teacherChangeText, type ScheduleLesson } from '../../src/lib/schedule'
 
 // Понедельник 16.11.2026 — «сегодня» во всех проверках.
 const TODAY = '2026-11-16'
@@ -100,7 +100,7 @@ describe('отмена', () => {
       placement: 'regular',
       changeKind: 'cancelled',
       cancelled: true,
-      badge: 'Отменена',
+      badge: 'Отмена',
       startsAt: '12:00',
       note: 'преподаватель в командировке',
     })
@@ -135,7 +135,7 @@ describe('перенос внутри дня', () => {
 
   it('на старом месте — «Перенесена на …», прежнее время', () => {
     expect(entries[1]).toMatchObject({
-      badge: 'Перенесена',
+      badge: 'Перенос',
       startsAt: '10:15',
       endsAt: '11:45',
       movedTo: 'Перенесена на 15:45–17:15, ауд. 1-204',
@@ -145,7 +145,7 @@ describe('перенос внутри дня', () => {
 
   it('на новом месте — новое время и «Было: …», аудитория та же и не повторяется', () => {
     expect(entries[3]).toMatchObject({
-      badge: 'Перенесена',
+      badge: 'Перенос',
       startsAt: '15:45',
       endsAt: '17:15',
       room: '1-204',
@@ -196,8 +196,8 @@ describe('перенос на другой день', () => {
       startsAt: '10:15',
       endsAt: '11:45',
       room: '2-214',
-      badge: 'Перенесена',
-      was: 'Было: чт, 19 ноября, 12:00–13:30, ауд. 2-210',
+      badge: 'Перенос',
+      was: 'Было: чт 19 ноября, 12:00–13:30, ауд. 2-210',
     })
     expect(days[5]).toMatchObject({ hasChanges: true, lessonCount: 1 })
   })
@@ -242,7 +242,7 @@ describe('перенос за пределы семи дней', () => {
     )
     const all = days.flatMap((d) => d.entries)
     expect(all.map((e) => e.placement)).toEqual(['moved_to'])
-    expect(days[1]!.entries[0]!.was).toBe('Было: сб, 14 ноября, 12:00–13:30')
+    expect(days[1]!.entries[0]!.was).toBe('Было: сб 14 ноября, 12:00–13:30')
   })
 })
 
@@ -270,8 +270,8 @@ describe('пара, перенесённая с прошедшего дня (R-3
       startsAt: '08:30',
       endsAt: '10:00',
       room: '2-214',
-      badge: 'Перенесена',
-      was: 'Было: пт, 13 ноября, 12:00–13:30, ауд. 2-210',
+      badge: 'Перенос',
+      was: 'Было: пт 13 ноября, 12:00–13:30, ауд. 2-210',
     })
     // Признак «есть изменения» и число пар дня считаются с такой парой.
     expect(days[0]).toMatchObject({ hasChanges: true, lessonCount: 1 })
@@ -346,16 +346,59 @@ describe('смена аудитории и преподавателя', () => {
   )
   const [room, teacher, teacherUnparsed] = days[0]!.entries
 
-  it('аудитория: новая на месте, «Было: ауд. …» отдельной строкой', () => {
-    expect(room).toMatchObject({ placement: 'regular', changeKind: 'room_changed', cancelled: false, badge: 'Сменилась аудитория', room: '2-108', was: 'Было: ауд. 2-210' })
+  it('аудитория: новая на месте, одна строка «Аудитория: 2-210 → 2-108», строки «Было» нет', () => {
+    expect(room).toMatchObject({
+      placement: 'regular',
+      changeKind: 'room_changed',
+      cancelled: false,
+      badge: 'Другая аудитория',
+      room: '2-108',
+      was: 'Аудитория: 2-210 → 2-108',
+      roomChange: { from: '2-210', to: '2-108' },
+    })
+    expect(room!.was).not.toMatch(/Было/)
   })
 
-  it('преподаватель: новый на месте, прежний в «Было»', () => {
-    expect(teacher).toMatchObject({ changeKind: 'teacher_changed', badge: 'Сменился преподаватель', teacher: 'Яковлева А. С.', was: 'Было: Мельник Д. О.' })
+  it('преподаватель: новый на месте, одна строка «Преподаватель: новый вместо прежнего», строки «Было» нет', () => {
+    expect(teacher).toMatchObject({
+      changeKind: 'teacher_changed',
+      badge: 'Замена преподавателя',
+      teacher: 'Яковлева А. С.',
+      was: 'Преподаватель: Яковлева А. С. вместо Мельник Д. О.',
+      roomChange: null,
+    })
+    expect(teacher!.was).not.toMatch(/Было/)
+  })
+
+  it('ФИО прежнего преподавателя встречается один раз: в строке замены; в поле «преподаватель» — только новый', () => {
+    // Заметка деканата хранит исходный текст «Ведёт … вместо …», но экран показывает её, только когда строка замены не собралась.
+    expect(teacher!.was!.split('Мельник Д. О.')).toHaveLength(2)
+    expect(teacher!.teacher).toBe('Яковлева А. С.')
+    expect(teacher!.teacher).not.toContain('Мельник')
   })
 
   it('заметка не по шаблону не ломает раскладку: прежний преподаватель и заметка остаются', () => {
-    expect(teacherUnparsed).toMatchObject({ teacher: 'Иванов И. И.', was: null, note: 'Ведёт другой преподаватель', badge: 'Сменился преподаватель' })
+    expect(teacherUnparsed).toMatchObject({ teacher: 'Иванов И. И.', was: null, note: 'Ведёт другой преподаватель', badge: 'Замена преподавателя' })
+  })
+
+  it('строки изменения собирают функции roomChangeText и teacherChangeText — те же слова', () => {
+    expect(roomChangeText('118', '124')).toBe('Аудитория: 118 → 124')
+    expect(teacherChangeText('Яковлева А. С.', 'Мельник Д. О.')).toBe('Преподаватель: Яковлева А. С. вместо Мельник Д. О.')
+  })
+
+  it('перенос: «Было: пн 16 ноября, 10:10–11:40» без запятой после дня недели; с другой аудиторией — «, ауд. N» в конце', () => {
+    const moved = buildSchedule(
+      [
+        lesson({ id: 'p1', date: TODAY, startsAt: '10:10', endsAt: '11:40', change: change('moved', { newDate: '2026-11-18', newStartsAt: '11:50', newEndsAt: '13:20' }) }),
+        lesson({ id: 'p2', date: TODAY, startsAt: '10:10', endsAt: '11:40', room: '118', change: change('moved', { newDate: '2026-11-19', newStartsAt: '11:50', newEndsAt: '13:20', newRoom: '124' }) }),
+      ],
+      TODAY,
+    )
+      .flatMap((d) => d.entries)
+      .filter((e) => e.placement === 'moved_to')
+    expect(moved.map((e) => e.was)).toEqual(['Было: пн 16 ноября, 10:10–11:40', 'Было: пн 16 ноября, 10:10–11:40, ауд. 118'])
+    // Новая аудитория у переноса — не «смена аудитории»: крупной строки аудитории нет.
+    expect(moved.map((e) => e.roomChange)).toEqual([null, null])
   })
 
   it('все три пары считаются, день отмечен', () => {
@@ -373,7 +416,7 @@ describe('странные входные данные', () => {
   it('перенос без новых данных — одна строка с плашкой, а не двойник', () => {
     const [day] = buildSchedule([lesson({ id: 'a', date: TODAY, startsAt: '10:15', endsAt: '11:45', change: change('moved') })], TODAY)
     expect(day!.entries).toHaveLength(1)
-    expect(day!.entries[0]).toMatchObject({ placement: 'regular', changeKind: 'moved', badge: 'Перенесена', movedTo: null, was: null })
+    expect(day!.entries[0]).toMatchObject({ placement: 'regular', changeKind: 'moved', badge: 'Перенос', movedTo: null, was: null })
   })
 
   it('перенос с одним новым временем (только начало или только конец) — как без нового времени, «12:00–11:45» не бывает (R-3.2-7)', () => {
@@ -381,7 +424,7 @@ describe('странные входные данные', () => {
       // Только время: одна строка с плашкой.
       const [same] = buildSchedule([lesson({ id: 'a', date: TODAY, startsAt: '10:15', endsAt: '11:45', change: change('moved', partial) })], TODAY)
       expect(same!.entries).toHaveLength(1)
-      expect(same!.entries[0]).toMatchObject({ placement: 'regular', startsAt: '10:15', endsAt: '11:45', badge: 'Перенесена', movedTo: null, was: null })
+      expect(same!.entries[0]).toMatchObject({ placement: 'regular', startsAt: '10:15', endsAt: '11:45', badge: 'Перенос', movedTo: null, was: null })
       // С новой аудиторией: два места, но время прежнее, а не половина нового.
       const [withRoom] = buildSchedule(
         [lesson({ id: 'b', date: TODAY, startsAt: '10:15', endsAt: '11:45', change: change('moved', { ...partial, newRoom: '2-108' }) })],

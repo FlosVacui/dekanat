@@ -16,6 +16,7 @@ export function DayStrip({ days, selected }: { days: ScheduleDay[]; selected: st
             <li key={d.date} className="min-w-0">
               <Link
                 href={dayHref(d.date)}
+                scroll={false}
                 aria-current={isSelected ? 'date' : undefined}
                 className={cn(
                   'flex min-h-[58px] min-w-[var(--tap)] flex-col items-center justify-center gap-0.5 rounded-control border-2 px-0 py-1 focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus',

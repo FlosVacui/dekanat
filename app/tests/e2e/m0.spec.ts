@@ -108,9 +108,9 @@ test('сквозной сценарий М0: вход, расписание, о�
     const changes = page.locator('section', { has: page.getByRole('heading', { name: 'Изменения в расписании' }) })
     if (roomChange?.change) {
       // Вид изменения — в плашке, в строке — только новое сведение: при Д-понедельнике «2-210 → 2-108» (R-3.6-2).
-      await expect(changes).toContainText('Сменилась аудитория')
-      await expect(changes).toContainText(roomChange.change.note)
-      await expect(changes).not.toContainText(`Сменилась аудитория: ${roomChange.change.note}`)
+      await expect(changes).toContainText('Другая аудитория')
+      await expect(changes).toContainText(`Аудитория: ${roomChange.change.note}`)
+      await expect(changes).not.toContainText(`Другая аудитория: ${roomChange.change.note}`)
     } else {
       // Единственный день без пар в Д и Д+1 — суббота нижней недели: показать смену аудитории экрану не на чем.
       expect(group1Lessons.filter((l) => l.date === today || l.date === tomorrow), 'пары есть, а смена аудитории не поставлена').toHaveLength(0)
@@ -158,16 +158,14 @@ test('сквозной сценарий М0: вход, расписание, о�
     const movedToToday = group1Lessons.filter((l) => l.date !== today && l.change?.kind === 'moved' && l.change.newDate === today)
     if (lesson1) {
       await expect(page.getByText(lesson1.discipline).first()).toBeVisible()
-      // Пакет 3.2: при смене аудитории экран показывает новую, а прежнюю — строкой «Было»; при замене преподавателя новый стоит
-      // на месте преподавателя (и в заметке изменения), а прежний — в «Было».
+      // Редизайн, заход А: при смене аудитории экран показывает одну строку «Аудитория: прежняя → новая»; при замене преподавателя —
+      // одну строку «Преподаватель: новый вместо прежнего» (макет М2-Б).
       const room1 = lesson1.change?.kind === 'room_changed' && lesson1.change.newRoom ? lesson1.change.newRoom : lesson1.room
-      await expect(page.getByText(`Аудитория: ${room1}`).first()).toBeVisible()
-      if (room1 !== lesson1.room) await expect(page.getByText(`ауд. ${lesson1.room}`).first()).toBeVisible()
+      await expect(page.getByText(room1 !== lesson1.room ? `Аудитория: ${lesson1.room} → ${room1}` : `Аудитория: ${room1}`).first()).toBeVisible()
       if (lesson1.change?.kind === 'teacher_changed') {
         const swap = /^Ведёт\s+(.+?)\s+вместо\s+(.+)$/.exec(lesson1.change.note)
         expect(swap, 'заметка замены не по шаблону «Ведёт … вместо …»').not.toBeNull()
-        await expect(page.getByText(`Преподаватель: ${swap![1]}`).first()).toBeVisible()
-        await expect(page.getByText(swap![2]!).first()).toBeVisible()
+        await expect(page.getByText(`Преподаватель: ${swap![1]} вместо ${swap![2]}`).first()).toBeVisible()
       } else await expect(page.getByText(`Преподаватель: ${lesson1.teacher}`).first()).toBeVisible()
     } else if (movedToToday.length > 0) {
       // Пар по сетке на сегодня нет, но на сегодня перенесена пара с другого дня: «Сегодня пар нет» быть не должно.

@@ -3,7 +3,7 @@
 // Касания считаются по правилам S-2.1, раздел 1: счёт идёт от экрана «Сегодня»; С-6 и С-14 — одно касание, С-7 и С-15 — два.
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test'
 import { MAIN_COHORT } from '../../db/seed-data'
-import { formatDayMonth, todayIn, weekdayShort } from '../../src/lib/dates'
+import { addDays, formatDayMonth, todayIn, weekdayShort } from '../../src/lib/dates'
 import { addressHeaders } from './helpers/address'
 import { fillLogin } from './helpers/auth'
 import { expectedExamNeeds, planGrades, scoreWord, type PlannedRow } from './helpers/grades-plan'
@@ -480,4 +480,74 @@ test('студент 2: баллов нет — «Баллов пока нет»
   } finally {
     await other.close()
   }
+})
+
+// Заход А редизайна, шаг 2: переключатели и полоса дней не прыгают наверх (scroll={false}). Ошибка ИИ 115: зелёный тест может
+// ничего не проверять, поэтому до нажатия проверяется, что страница действительно прокручена.
+// Допуск — высота шапки. Прыжок наверх он не прячет: после перехода scrollY обязан остаться больше нуля.
+async function expectNoJumpToTop(
+  where: string,
+  click: () => Promise<void>,
+  arrived: () => Promise<void>,
+  p: Page = page,
+): Promise<void> {
+  const headerHeight = (await p.locator('header').first().boundingBox())?.height ?? 0
+  expect(headerHeight, `${where}: высота шапки`).toBeGreaterThan(0)
+  const before = await p.evaluate(() => {
+    const max = document.documentElement.scrollHeight - window.innerHeight
+    window.scrollTo(0, Math.min(150, max))
+    return window.scrollY
+  })
+  expect(before, `${where}: страница должна быть прокручена до нажатия`).toBeGreaterThan(0)
+  await click()
+  await arrived()
+  const after = await p.evaluate(() => window.scrollY)
+  expect(after, `${where}: после перехода страница не должна оказаться наверху (было ${before}, стало ${after})`).toBeGreaterThan(0)
+  expect(Math.abs(after - before), `${where}: сдвиг ${before} → ${after} больше высоты шапки ${headerHeight}`).toBeLessThanOrEqual(headerHeight)
+}
+
+test('переключатель «Семестр / Сессия» не прыгает наверх', async () => {
+  await page.goto('/grades')
+  const group = page.getByRole('group', { name: 'Вид' })
+  await expectNoJumpToTop(
+    'Семестр → Сессия',
+    () => group.getByRole('link', { name: 'Сессия', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'Сессия', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+  await expectNoJumpToTop(
+    'Сессия → Семестр',
+    () => group.getByRole('link', { name: 'Семестр', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'Семестр', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+})
+
+test('переключатель «День / Неделя» и полоса дней в расписании не прыгают наверх', async () => {
+  // День с парами: ближайший к сегодняшнему из пн, вт, ср — у них в основном наборе не меньше двух пар. От дня запуска не зависит.
+  let busyDay = today
+  for (let i = 0; i < 7 && !['пн', 'вт', 'ср'].includes(weekdayShort(busyDay)); i += 1) busyDay = addDays(busyDay, 1)
+  await page.goto(`/schedule?day=${busyDay}`)
+  const group = page.getByRole('group', { name: 'Вид' })
+  await expectNoJumpToTop(
+    'День → Неделя',
+    () => group.getByRole('link', { name: 'Неделя', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'Неделя', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+  await expectNoJumpToTop(
+    'Неделя → День',
+    () => group.getByRole('link', { name: 'День', exact: true }).click(),
+    () => expect(group.getByRole('link', { name: 'День', exact: true })).toHaveAttribute('aria-current', 'true'),
+  )
+  // Полоса дней: другой день из пн, вт, ср, который сейчас не выбран.
+  await page.goto(`/schedule?day=${busyDay}`)
+  const other = page
+    .getByRole('navigation', { name: 'Дни недели' })
+    .locator('a:not([aria-current])')
+    .filter({ hasText: /^(пн|вт|ср)/ })
+    .first()
+  await expect(other, 'в полосе дней есть другой день из пн, вт, ср').toBeVisible()
+  await expectNoJumpToTop(
+    'Полоса дней',
+    () => other.click(),
+    () => expect(page).not.toHaveURL(`${BASE_URL}/schedule?day=${busyDay}`),
+  )
 })

@@ -7,6 +7,7 @@
 // Пакет 3.7: состояние «ошибка» — today-error, schedule-error, staff-requests-error (отказ базы вызывает запрос владельца: отзыв права чтения, helpers/db.ts).
 // Пакет 3.7, заход 2: состояние «загрузка» — schedule-loading (границу ожидания `<Suspense>` внутри страницы держит блокировка
 // таблицы `lessons`, которую берёт владелец, helpers/db.ts, `holdTableLock`; файлов loading.tsx в пакете нет).
+// Редизайн, заход А: «Сегодня» (`today`) и расписание, вид «День» с изменениями (schedule-day-room, -teacher, -moved, -cancelled), 360 и 1280 px.
 // Снимки кладутся в docs/evidence/screenshots/<дата прогона>-3.3/ (папку можно задать SCREENSHOT_DIR); прежние папки (например, 2026-11-14-3.2) не трогаются.
 // Снимать не всё, а часть экранов: SCREENSHOT_ONLY — регулярное выражение по имени снимка без ширины (например, ^grades-). Не задано — снимаются все.
 // Имя говорит, что на снимке: 360-schedule-day.png. Неудачный снимок не удаляется: его имя начинается с fail-.
@@ -235,6 +236,11 @@ async function main(): Promise<void> {
       else failMissing('schedule-day-moved', 'в окне нет переноса внутри дня')
       if (schedulePlan.cancelled) await shoot(page, width, 'schedule-day-cancelled', `${BASE_URL}${dayPath(schedulePlan.cancelled.date)}`)
       else failMissing('schedule-day-cancelled', 'в окне нет отменённой пары')
+      // Редизайн, заход А (макет М2-Б): дни со сменой аудитории и с заменой преподавателя; перенос и отмена — снимки выше.
+      if (schedulePlan.roomChanged) await shoot(page, width, 'schedule-day-room', `${BASE_URL}${dayPath(schedulePlan.roomChanged.date)}`)
+      else failMissing('schedule-day-room', 'в окне нет смены аудитории')
+      if (schedulePlan.teacherChanged) await shoot(page, width, 'schedule-day-teacher', `${BASE_URL}${dayPath(schedulePlan.teacherChanged.date)}`)
+      else failMissing('schedule-day-teacher', 'в окне нет замены преподавателя')
       await shoot(page, width, 'schedule-week', `${BASE_URL}/schedule?view=week`)
       if (schedulePlan.emptyDate) await shoot(page, width, 'schedule-day-empty', `${BASE_URL}${dayPath(schedulePlan.emptyDate)}`)
       else skipMissing(`${width}-schedule-day-empty`, `в окне семи дней от ${schedulePlan.today} нет дня без пар и переносов; снимок не делается`)

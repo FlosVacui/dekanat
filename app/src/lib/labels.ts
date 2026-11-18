@@ -15,12 +15,12 @@ export function changeKindLabel(kind: string): string {
   return CHANGE_KINDS[kind] ?? kind
 }
 
-/** Короткая подпись плашки изменения пары на экране «Расписание»: одно-два слова. */
+/** Слово плашки изменения пары на экранах «Расписание» и «Сегодня»: одно-два слова, утверждены 17.11.2026 (смена 35). */
 const CHANGE_BADGES: Record<string, string> = {
-  cancelled: 'Отменена',
-  moved: 'Перенесена',
-  room_changed: 'Сменилась аудитория',
-  teacher_changed: 'Сменился преподаватель',
+  cancelled: 'Отмена',
+  moved: 'Перенос',
+  room_changed: 'Другая аудитория',
+  teacher_changed: 'Замена преподавателя',
 }
 export function changeBadgeLabel(kind: string): string {
   return CHANGE_BADGES[kind] ?? kind

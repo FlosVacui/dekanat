@@ -87,12 +87,20 @@ export interface ScheduleEntry {
   changeKind: ScheduleChangeKind | null
   /** Отменена: название и время на экране зачёркнуты, под ними «Занятие не состоится». */
   cancelled: boolean
-  /** Текст плашки: «Отменена», «Перенесена», «Сменилась аудитория», «Сменился преподаватель». `null` — плашки нет. */
+  /** Слово плашки: «Отмена», «Перенос», «Другая аудитория», «Замена преподавателя». `null` — плашки нет. */
   badge: string | null
   /** Только у `moved_from`: «Перенесена на сб, 21 ноября, 10:15–11:45, ауд. 2-214». Если день тот же — без даты: «Перенесена на 15:45–17:15, ауд. 1-204». Аудитория названа всегда. */
   movedTo: string | null
-  /** «Было: …» у `moved_to`, смены аудитории и замены преподавателя; иначе `null`. Время, дата и аудитория — только то, что поменялось. */
+  /**
+   * Строка изменения для панели карточки; одна на запись, ФИО и номер в ней не повторяются:
+   * - у смены аудитории — «Аудитория: 118 → 124»;
+   * - у замены преподавателя — «Преподаватель: Яковлева А. С. вместо Мельник Д. О.» (в `teacher` тот же новый);
+   * - у `moved_to` — «Было: пн 16 ноября, 10:10–11:40»; время, день и аудитория — только то, что поменялось (аудитория — «, ауд. 118»).
+   * Иначе `null`. Имя поля осталось от прежнего вида «Было: …» — его читают проверки, которые это задание не правит.
+   */
   was: string | null
+  /** Только у смены аудитории: прежний и новый номер — панель набирает новый крупно. Остальные записи — `null`. */
+  roomChange: { from: string; to: string } | null
   /** Заметка деканата как есть («преподаватель в командировке»); `null`, если изменения нет. */
   note: string | null
 }
@@ -128,9 +136,24 @@ function parseTeacherChange(note: string): { next: string; prev: string } | null
   return m ? { next: m[1]!, prev: m[2]! } : null
 }
 
-/** «сб, 21 ноября» */
+/** «сб, 21 ноября» — для «Перенесена на …». */
 function dayLabel(date: string): string {
   return `${weekdayShort(date)}, ${formatDayMonth(date)}`
+}
+
+/** «сб 21 ноября» — для «Было: …», без запятой после дня недели. */
+function dayLabelPlain(date: string): string {
+  return `${weekdayShort(date)} ${formatDayMonth(date)}`
+}
+
+/** «Аудитория: 118 → 124» */
+export function roomChangeText(from: string, to: string): string {
+  return `Аудитория: ${from} → ${to}`
+}
+
+/** «Преподаватель: Яковлева А. С. вместо Мельник Д. О.» */
+export function teacherChangeText(next: string, prev: string): string {
+  return `Преподаватель: ${next} вместо ${prev}`
 }
 
 /**
@@ -179,6 +202,7 @@ export function buildSchedule(lessons: readonly ScheduleLesson[], today: string,
           badge: changeBadgeLabel('moved'),
           movedTo: null,
           was: null,
+          roomChange: null,
         })
         continue
       }
@@ -195,8 +219,9 @@ export function buildSchedule(lessons: readonly ScheduleLesson[], today: string,
         badge: changeBadgeLabel('moved'),
         movedTo: `Перенесена на ${target}`,
         was: null,
+        roomChange: null,
       })
-      const wasDate = sameDay ? '' : `${dayLabel(lesson.date)}, `
+      const wasDate = sameDay ? '' : `${dayLabelPlain(lesson.date)}, `
       const wasRoom = next.room !== lesson.room ? `, ауд. ${lesson.room}` : ''
       byDate.get(newDate)?.push({
         ...base,
@@ -211,6 +236,7 @@ export function buildSchedule(lessons: readonly ScheduleLesson[], today: string,
         badge: changeBadgeLabel('moved'),
         movedTo: null,
         was: `Было: ${wasDate}${range(lesson.startsAt, lesson.endsAt)}${wasRoom}`,
+        roomChange: null,
       })
       continue
     }
@@ -218,14 +244,16 @@ export function buildSchedule(lessons: readonly ScheduleLesson[], today: string,
     let room = lesson.room
     let teacher = lesson.teacher
     let was: string | null = null
+    let roomChange: ScheduleEntry['roomChange'] = null
     if (kind === 'room_changed' && change?.newRoom && change.newRoom !== lesson.room) {
       room = change.newRoom
-      was = `Было: ауд. ${lesson.room}`
+      roomChange = { from: lesson.room, to: change.newRoom }
+      was = roomChangeText(lesson.room, change.newRoom)
     } else if (kind === 'teacher_changed' && change) {
       const parsed = parseTeacherChange(change.note)
       if (parsed) {
         teacher = parsed.next
-        was = `Было: ${parsed.prev}`
+        was = teacherChangeText(parsed.next, parsed.prev)
       }
     }
     byDate.get(lesson.date)?.push({
@@ -241,6 +269,7 @@ export function buildSchedule(lessons: readonly ScheduleLesson[], today: string,
       badge: kind ? changeBadgeLabel(kind) : null,
       movedTo: null,
       was,
+      roomChange,
     })
   }
 
