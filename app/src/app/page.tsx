@@ -4,16 +4,18 @@ import { PageTitle } from '@/components/card'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { dayHref } from '@/components/schedule/hrefs'
 import { StudentShell } from '@/components/student-shell'
+import { KpiTiles } from '@/components/today/kpi-tiles'
 import { NextLessonBlock } from '@/components/today/next-lesson'
 import { ChangesBlock, ChangeTile, EmptyRow, RowLink, RowList, RowMeta, TodayBlock } from '@/components/today/row-list'
 import { endOfWeek, formatDayMonth, nowTimeIn, todayIn, weekdayShort } from '@/lib/dates'
 import { isRequestKind, isRequestStatus, REQUEST_KIND_INFO, statusText } from '@/lib/requests'
 import { scheduleRange } from '@/lib/schedule'
-import { buildToday } from '@/lib/today'
+import { buildTiles, buildToday } from '@/lib/today'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import { getCurrentActor } from '@/server/auth/cookie'
 import { getConfig } from '@/server/config'
 import {
+  countMyUnreadNotifications,
   listMyAssignmentsDue,
   listMyLessons,
   listMyRequests,
@@ -35,14 +37,16 @@ export default async function TodayPage() {
   const today = todayIn(tz)
   const now = nowTimeIn(tz)
   const range = scheduleRange(today)
-  const [lessons, due, requests, announcements] = await Promise.all([
+  const [lessons, due, requests, announcements, unread] = await Promise.all([
     listMyLessons(actor, range.from, range.to),
     listMyAssignmentsDue(actor, today, endOfWeek(today)),
     listMyRequests(actor),
     listMyUnreadAnnouncements(actor),
+    countMyUnreadNotifications(actor),
   ])
 
   const view = buildToday(lessons, due, today, now)
+  const tiles = buildTiles(view, requests, unread)
   const news = requests.filter((r) => ['in_progress', 'ready', 'rejected'].includes(r.status))
 
   return (
@@ -53,6 +57,8 @@ export default async function TodayPage() {
       </div>
       {/* На компьютере от 1024 px — две колонки блоков; на телефоне — одна лента, порядок тот же. */}
       <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2 lg:items-start">
+        {/* Плитки с числами — только от 1024 px; на телефоне их нет. */}
+        <KpiTiles tiles={tiles} />
         <NextLessonBlock next={view.next} finished={view.todayFinished} />
 
         {view.changes.length === 0 ? (

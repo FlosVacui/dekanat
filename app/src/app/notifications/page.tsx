@@ -20,7 +20,7 @@ export default async function NotificationsPage({ searchParams }: { searchParams
   const shown = filter === null ? feed : feed.filter((item) => item.feed === (filter === 'news' ? 'news' : 'reminder'))
   const tz = getConfig().timezone
   return (
-    <StudentShell actor={actor} active={null}>
+    <StudentShell actor={actor} active="notifications">
       <PageTitle>Уведомления</PageTitle>
       <FilterSwitch filter={filter} />
       <UnreadBar count={unread} filter={filter} />

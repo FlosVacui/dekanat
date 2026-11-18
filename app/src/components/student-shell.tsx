@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react'
 import { todayIn, weekInfo } from '@/lib/dates'
+import { headerLine } from '@/lib/header-line'
 import { getConfig } from '@/server/config'
-import { countMyUnreadNotifications, getMyProfile } from '@/server/dal/student'
+import { countMyUnreadNotifications, getMyCurrentSemester, getMyProfile } from '@/server/dal/student'
 import type { Actor } from '@/server/auth/session'
 import { StudentFrame, type StudentTab } from '@/components/states/shell-parts'
 
@@ -27,14 +28,17 @@ export async function StudentShell({
   active: StudentTab | null
   children: ReactNode
 }) {
-  const [profile, unread] = await Promise.all([getMyProfile(actor), countMyUnreadNotifications(actor)])
+  const [profile, unread, semester] = await Promise.all([
+    getMyProfile(actor),
+    countMyUnreadNotifications(actor),
+    getMyCurrentSemester(actor),
+  ])
   const week = weekInfo(todayIn(getConfig().timezone))
   return (
     <StudentFrame
       active={active}
       data={{
-        groupName: profile?.groupName ?? '',
-        weekLine: week ? ` · ${week.number}-я неделя, ${week.kind}` : '',
+        line: headerLine({ groupName: profile?.groupName ?? '', week, semester }),
         unread,
         initials: initials(profile?.fullName ?? ''),
       }}

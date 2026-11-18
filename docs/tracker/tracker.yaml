@@ -1134,6 +1134,20 @@ history:
     commit: "bd86be3"
     rounds: 1
     tokens: 659000
+  - date: 2026-11-18
+    item: "4.6"
+    what: "Заход В редизайна: каркас М5, плитки, семестр, «Идеи и планы» М6"
+    who: "Sonnet 5.5 / high (builder)"
+    commit: "9b9593a"
+    rounds: 1
+    tokens: 251461
+  - date: 2026-11-18
+    item: "4.6"
+    what: "Ревью RV-redesign-C-1 захода В"
+    who: "Sonnet 5.5 / high (reviewer)"
+    commit: "9b9593a"
+    rounds: 1
+    tokens: 146379
 
 reviews:
   - id: "R-0.3-1"
@@ -3723,6 +3737,33 @@ reviews:
     by: "Sonnet 5.5 / high (reviewer)"
     status: "отклонено"
     comment: "Блоки оставлены ответом участника А 18.11, смена 35, часть 4"
+  - id: "R-4.6-11"
+    item: "4.6"
+    round: 1
+    severity: "предложение"
+    text: "Число непрочитанных уведомлений читается дважды: каркасом и страницей «Сегодня» для плитки"
+    repro: "RV-redesign-C-1, R-4.6-11"
+    by: "Sonnet 5.5 / high (reviewer)"
+    status: "отложено"
+    comment: "Значения совпадают; второй запрос разрешало задание B-redesign-C-shell-ideas"
+  - id: "R-4.6-12"
+    item: "4.6"
+    round: 1
+    severity: "незначительное"
+    text: "Тест ширины колонки на 1280 проверял только «не меньше 240 px»"
+    repro: "RV-redesign-C-1, R-4.6-12"
+    by: "Sonnet 5.5 / high (reviewer)"
+    status: "исправлено"
+    comment: "Точная ширина 240 и 220 px в shell-ideas.spec.ts, 9b9593a"
+  - id: "R-4.6-13"
+    item: "4.6"
+    round: 1
+    severity: "предложение"
+    text: "Ширины 220, 240 и высота 560 px — числа в классах, токенов нет"
+    repro: "RV-redesign-C-1, R-4.6-13"
+    by: "Sonnet 5.5 / high (reviewer)"
+    status: "отклонено"
+    comment: "Задание запретило новые токены"
 
 decisions:
   - id: "Р-0"

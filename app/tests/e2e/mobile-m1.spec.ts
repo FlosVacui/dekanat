@@ -488,7 +488,12 @@ for (const vp of VIEWPORTS) {
       // На компьютере разделы слева идут сразу после шапки, на телефоне — нижней панелью в конце.
       const desktop = vp.width >= 1024
       const sections = desktop ? walk.slice(2, 6) : walk.slice(-4)
-      expect(walk[desktop ? 6 : 2]!.label, 'следом — ссылка «Все заявки»').toContain('Все заявки')
+      // Редизайн, заход В: в колонке после четырёх разделов ещё «Уведомления» и «Идеи и планы».
+      if (desktop) {
+        expect(walk[6]!.label, 'в колонке после разделов — «Уведомления»').toContain('Уведомления')
+        expect(walk[7]!.label, 'в колонке последняя — «Идеи и планы»').toContain('Идеи и планы')
+      }
+      expect(walk[desktop ? 8 : 2]!.label, 'следом — ссылка «Все заявки»').toContain('Все заявки')
       expect(sections.map((f) => f.label.split(' ').slice(-1)[0]), 'разделы').toEqual(['Сегодня', 'Расписание', 'Успеваемость', 'Заявки'])
     })
 
@@ -562,7 +567,8 @@ for (const vp of VIEWPORTS) {
 
     test('С-10, С-16: колокольчик → лента «Все», фильтр «Напоминания»; непрочитанное не нажимается (Э-9)', async () => {
       await page.goto('/')
-      await page.getByRole('link', { name: /^Уведомления/ }).click()
+      // Колокольчик в шапке: на компьютере в колонке разделов тоже есть «Уведомления» (редизайн, заход В).
+      await page.locator('header').getByRole('link', { name: /^Уведомления/ }).click()
       await expect(page).toHaveURL(/\/notifications$/)
       await step(page, vp, 'notifications-feed', {
         ready: page.getByTestId('unread-line'),

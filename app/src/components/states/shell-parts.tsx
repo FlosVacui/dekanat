@@ -8,7 +8,10 @@ import { cn } from '@/lib/utils'
 // (loading.tsx и error.tsx: error.tsx — клиентский компонент, серверный код в него не тянется).
 // Вид — раздел 6 дизайн-системы (D-2.2-system); знак — раздел 7.
 
-export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests'
+// Раздел, на котором стоит студент. Нижняя панель знает четыре первых; «Уведомления» и «Идеи и планы» есть только в колонке
+// на компьютере (на телефоне — колокольчик в шапке и ссылка внизу страницы), но «активными» могут быть оба.
+export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests' | 'notifications' | 'ideas'
+type BarTab = 'today' | 'schedule' | 'grades' | 'requests'
 
 // Значки вкладок — простые контуры 24×24 (штрих 2, скруглённые концы), по образцу макета V-AC; встроенные, без пакета значков.
 const TAB_ICONS: Record<StudentTab, ReactNode> = {
@@ -32,23 +35,47 @@ const TAB_ICONS: Record<StudentTab, ReactNode> = {
       <path d="M14 3v4h4M10 12h5M10 16h5" />
     </>
   ),
+  notifications: (
+    <>
+      <path d="M6 17v-6a6 6 0 0 1 12 0v6l1.5 2h-15z" />
+      <path d="M10 21.5h4" />
+    </>
+  ),
+  ideas: (
+    <>
+      <path d="M9 18h6M10 21h4" />
+      <path d="M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3z" />
+    </>
+  ),
 }
 
-const TABS: { id: StudentTab; label: string; href: string }[] = [
-  { id: 'today', label: 'Сегодня', href: '/' },
-  { id: 'schedule', label: 'Расписание', href: '/schedule' },
-  { id: 'grades', label: 'Успеваемость', href: '/grades' },
-  { id: 'requests', label: 'Заявки', href: '/requests' },
+// Все разделы в одном месте: и нижняя панель, и колонка берут подписи и адреса отсюда.
+const ITEMS: Record<StudentTab, { label: string; href: string }> = {
+  today: { label: 'Сегодня', href: '/' },
+  schedule: { label: 'Расписание', href: '/schedule' },
+  grades: { label: 'Успеваемость', href: '/grades' },
+  requests: { label: 'Заявки', href: '/requests' },
+  notifications: { label: 'Уведомления', href: '/notifications' },
+  ideas: { label: 'Идеи и планы', href: '/ideas' },
+}
+
+// Нижняя панель на телефоне: четыре вкладки.
+const BAR_TABS: BarTab[] = ['today', 'schedule', 'grades', 'requests']
+const TABS = BAR_TABS.map((id) => ({ id, ...ITEMS[id] }))
+
+// Колонка на компьютере: две группы с подписями, «Идеи и планы» внизу отдельно.
+const SIDE_GROUPS: { caption: string; ids: StudentTab[] }[] = [
+  { caption: 'Учёба', ids: ['today', 'schedule', 'grades'] },
+  { caption: 'Деканат', ids: ['requests', 'notifications'] },
 ]
 
 // Рамка фокуса в шапке: 3 px, цвет --on-header (раздел 5, общие правила).
 const HEADER_FOCUS = 'focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-on-header'
 
-/** Что шапка знает о студенте. Нет данных — `null`: строки группы и недели нет, у колокольчика нет числа, у аватара нет инициалов. */
+/** Что шапка знает о студенте. Нет данных — `null`: строки группы, недели и семестра нет, у колокольчика нет числа, у аватара нет инициалов. */
 export interface HeaderData {
-  groupName: string
-  /** Хвост строки под названием: « · 12-я неделя, чётная» или пустая строка. */
-  weekLine: string
+  /** Строка под названием, собрана `headerLine`: «ИТ-23-04 · 11 неделя, верхняя · 3 семестр»; части без данных пропущены. */
+  line: string
   unread: number
   initials: string
 }
@@ -63,12 +90,7 @@ export function StudentHeader({ data }: { data: HeaderData | null }) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[length:var(--fs-md)] font-bold leading-[1.2]">Деканат в кармане</div>
-        {data ? (
-          <div className="text-[length:var(--fs-xs)] leading-[1.3] text-header-muted">
-            {data.groupName}
-            {data.weekLine}
-          </div>
-        ) : null}
+        {data?.line ? <div className="text-[length:var(--fs-xs)] leading-[1.3] text-header-muted">{data.line}</div> : null}
       </div>
       <Link
         href="/notifications"
@@ -142,53 +164,107 @@ export function StudentTabBar({ active }: { active: StudentTab | null }) {
   )
 }
 
-/**
- * Боковое меню на компьютере, от 1024 px: те же четыре раздела, что у нижней панели, столбиком слева от содержимого.
- * Нижняя панель на этой ширине скрыта, так что в дереве доступности одна навигация «Разделы» (решение 17.11.2026,
- * DECISIONS «Смена ролей 17.11.2026»; шаг 2 JURY-3.10).
- */
-export function StudentSideNav({ active }: { active: StudentTab | null }) {
+function SideLink({ id, active, unread = 0 }: { id: StudentTab; active: StudentTab | null; unread?: number }) {
+  const isActive = id === active
+  const item = ITEMS[id]
   return (
-    <nav data-sidenav aria-label="Разделы" className="hidden lg:block">
-      <ul className="sticky top-[var(--sp-4)] flex flex-col gap-[var(--sp-1)] px-[var(--sp-3)] py-[var(--sp-4)]">
-        {TABS.map((tab) => {
-          const isActive = tab.id === active
-          return (
-            <li key={tab.id}>
-              <Link
-                href={tab.href}
-                aria-current={isActive ? 'page' : undefined}
-                data-tab={tab.id}
-                className={cn(
-                  'flex min-h-[var(--tap)] items-center gap-[var(--sp-3)] rounded-control px-[var(--sp-3)] text-[length:var(--fs-md)] leading-[1.2] focus-visible:outline-[3px] focus-visible:outline-offset-0 focus-visible:outline-nav-active',
-                  isActive ? 'bg-nav-active-bg font-bold text-nav-active' : 'font-semibold text-nav-icon hover:bg-nav-active-bg/60',
-                )}
-              >
-                <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
-                  {TAB_ICONS[tab.id]}
-                </svg>
-                <span>{tab.label}</span>
-              </Link>
-            </li>
-          )
-        })}
-      </ul>
+    <li>
+      <Link
+        href={item.href}
+        aria-current={isActive ? 'page' : undefined}
+        data-tab={id}
+        className={cn(
+          'flex min-h-[var(--tap)] items-center gap-[var(--sp-3)] rounded-control px-[var(--sp-3)] text-[length:var(--fs-md)] leading-[1.2] focus-visible:outline-[3px] focus-visible:outline-offset-0 focus-visible:outline-nav-active',
+          isActive ? 'bg-nav-active-bg font-extrabold text-nav-active' : 'font-semibold text-text hover:bg-nav-active-bg/60',
+        )}
+      >
+        <svg
+          aria-hidden="true"
+          focusable="false"
+          viewBox="0 0 24 24"
+          width="24"
+          height="24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={cn('flex-none', isActive ? 'text-nav-active' : 'text-nav-icon')}
+        >
+          {TAB_ICONS[id]}
+        </svg>
+        <span>{item.label}</span>
+        {id === 'notifications' && unread > 0 ? (
+          // Тот же счёт, что у колокольчика, из одного запроса каркаса. `relative` — чтобы скрытая подпись не раздвигала страницу.
+          <span
+            data-testid="side-count"
+            className="relative ml-auto h-6 min-w-6 rounded-full bg-accent px-[7px] text-center text-[length:var(--fs-xs)] font-extrabold leading-6 text-on-accent"
+          >
+            <span className="sr-only">Новых: </span>
+            {unread}
+          </span>
+        ) : null}
+      </Link>
+    </li>
+  )
+}
+
+/**
+ * Колонка разделов на компьютере, от 1024 px (220 px, от 1280 px — 240 px): группы «Учёба» и «Деканат» с подписями,
+ * внизу отдельно «Идеи и планы». Нижняя панель на этой ширине скрыта (`display: none`), так что в дереве доступности
+ * одна навигация «Разделы» (решение 17.11.2026, DECISIONS «Смена ролей 17.11.2026»; шаг 2 JURY-3.10; макет М5).
+ */
+export function StudentSideNav({ active, unread = 0 }: { active: StudentTab | null; unread?: number }) {
+  return (
+    <nav data-sidenav aria-label="Разделы" className="hidden border-r border-border lg:block">
+      <div className="sticky top-[var(--sp-4)] flex min-h-[560px] flex-col gap-[var(--sp-4)] py-[var(--sp-4)] pl-[var(--pad-x)] pr-[var(--sp-3)]">
+        {SIDE_GROUPS.map((group) => (
+          <div key={group.caption} className="flex flex-col gap-0.5">
+            <p className="mb-[var(--sp-1)] ml-[var(--sp-3)] text-[length:var(--fs-sm)] font-extrabold text-muted">{group.caption}</p>
+            <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+              {group.ids.map((id) => (
+                <SideLink key={id} id={id} active={active} unread={unread} />
+              ))}
+            </ul>
+          </div>
+        ))}
+        <div className="mt-auto border-t border-border pt-[var(--sp-3)]">
+          <ul className="m-0 flex list-none flex-col gap-0.5 p-0">
+            <SideLink id="ideas" active={active} />
+          </ul>
+        </div>
+      </div>
     </nav>
   )
 }
 
 /**
- * Рамка экрана студента: шапка, середина, нижняя панель; на компьютере от 1024 px — шапка, боковое меню и середина. `data` — то, что шапка знает о студенте; `null` — каркас без данных
- * (состояния «загрузка» и «ошибка»).
+ * Рамка экрана студента: шапка, середина, нижняя панель; на компьютере от 1024 px — шапка, колонка разделов и середина.
+ * `data` — то, что шапка знает о студенте; `null` — каркас без данных (состояния «загрузка» и «ошибка»).
+ * Ниже 1024 px после середины стоит ссылка «Идеи и планы» (макет М6): она вне навигации «Разделы» и над общим подвалом.
  */
 export function StudentFrame({ data, active, children }: { data: HeaderData | null; active: StudentTab | null; children: ReactNode }) {
+  const ideasActive = active === 'ideas'
   return (
-    <div className="mx-auto w-full max-w-3xl lg:grid lg:max-w-[1200px] lg:grid-cols-[240px_minmax(0,1fr)]">
+    <div className="mx-auto w-full max-w-3xl lg:grid lg:max-w-[1200px] lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
       <div className="lg:col-span-2">
         <StudentHeader data={data} />
       </div>
-      <StudentSideNav active={active} />
+      <StudentSideNav active={active} unread={data?.unread ?? 0} />
       <main className="min-w-0 px-[var(--pad-x)] py-[var(--sp-4)]">{children}</main>
+      <div className="flex justify-center pb-[var(--sp-2)] lg:hidden">
+        <Link
+          href={ITEMS.ideas.href}
+          aria-current={ideasActive ? 'page' : undefined}
+          data-ideas-link
+          className={cn(
+            'inline-flex min-h-[var(--tap)] items-center justify-center rounded-pill px-[var(--sp-3)] text-[length:var(--fs-sm)]',
+            ideasActive ? 'bg-nav-active-bg font-extrabold text-nav-active' : 'font-bold text-primary',
+          )}
+        >
+          {ITEMS.ideas.label}
+        </Link>
+      </div>
       <StudentTabBar active={active} />
     </div>
   )
