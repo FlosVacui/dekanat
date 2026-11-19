@@ -27,10 +27,15 @@ export default async function GradesPage({ searchParams }: { searchParams: Promi
       {items.length === 0 ? (
         <EmptyState title="Дисциплин пока нет" text="Когда деканат внесёт дисциплины вашей группы, здесь появятся баллы, зачёты и даты сессии." />
       ) : (
-        <div className="flex flex-col gap-[var(--gap)]">
-          <Summary items={items} today={today} />
-          <ViewSwitch view={view} />
-          {view === 'semester' ? <SemesterView items={items} today={today} /> : <SessionView items={items} today={today} />}
+        // От 1024 px сводка закреплена слева (sticky), предметы справа; на телефоне — столбцом.
+        <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start lg:gap-[var(--sp-5)]">
+          <div className="lg:sticky lg:top-[var(--sp-4)]">
+            <Summary items={items} today={today} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-[var(--gap)]">
+            <ViewSwitch view={view} />
+            {view === 'semester' ? <SemesterView items={items} today={today} /> : <SessionView items={items} today={today} />}
+          </div>
         </div>
       )}
     </StudentShell>

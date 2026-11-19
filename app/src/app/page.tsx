@@ -5,25 +5,28 @@ import { LinkButton } from '@/components/link-button'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { dayHref } from '@/components/schedule/hrefs'
 import { StudentShell } from '@/components/student-shell'
-import { KpiTiles } from '@/components/today/kpi-tiles'
 import { NextLessonBlock } from '@/components/today/next-lesson'
 import { ChangesBlock, ChangeTile, EmptyRow, RowLink, RowList, RowMeta, TodayBlock } from '@/components/today/row-list'
-import { endOfWeek, formatDayMonth, nowTimeIn, todayIn, weekdayShort } from '@/lib/dates'
+import { WaitingBlock } from '@/components/today/waiting-block'
+import { endOfWeek, formatDayMonth, nowTimeIn, todayIn, weekdayShort, weekInfo } from '@/lib/dates'
+import { headerLine } from '@/lib/header-line'
 import { isRequestKind, isRequestStatus, REQUEST_KIND_INFO, statusText } from '@/lib/requests'
 import { scheduleRange } from '@/lib/schedule'
-import { buildTiles, buildToday } from '@/lib/today'
+import { buildToday, buildWaiting, dateHeading } from '@/lib/today'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import { getCurrentActor } from '@/server/auth/cookie'
 import { getConfig } from '@/server/config'
 import {
-  countMyUnreadNotifications,
+  getMyProfile,
   listMyAssignmentsDue,
+  listMyGrades,
   listMyLessons,
+  listMyQuestions,
   listMyRequests,
   listMyUnreadAnnouncements,
 } from '@/server/dal/student'
 
-// Э-2 «Сегодня»: следующая пара; изменения на сегодня и завтра; что сдать на этой неделе; заявки с новостью; непрочитанные объявления.
+// Э-2 «Сегодня»: заголовок — дата; «Ждёт вас»; следующая пара; изменения на сегодня и завтра; что сдать на этой неделе; заявки с новостью; непрочитанные объявления.
 // Раскладку считает чистая функция buildToday (lib/today.ts), экран только рисует. Пары просятся с запасом назад (scheduleRange):
 // пара, перенесённая на сегодня с прошедшего дня, стоит в базе на старой дате. Состояния «загрузка» и «ошибка» — пакет 3.7.
 export const dynamic = 'force-dynamic'
@@ -38,30 +41,44 @@ export default async function TodayPage() {
   const today = todayIn(tz)
   const now = nowTimeIn(tz)
   const range = scheduleRange(today)
-  const [lessons, due, requests, announcements, unread] = await Promise.all([
+  const [lessons, due, requests, announcements, grades, questions, profile] = await Promise.all([
     listMyLessons(actor, range.from, range.to),
     listMyAssignmentsDue(actor, today, endOfWeek(today)),
     listMyRequests(actor),
     listMyUnreadAnnouncements(actor),
-    countMyUnreadNotifications(actor),
+    listMyGrades(actor, today),
+    listMyQuestions(actor),
+    getMyProfile(actor),
   ])
 
   const view = buildToday(lessons, due, today, now)
-  const tiles = buildTiles(view, requests, unread)
+  const waiting = buildWaiting({
+    grades,
+    requests,
+    questions: questions.map((q) => ({ id: q.id, topic: q.topic, status: q.status, answeredOn: q.answeredAt ? todayIn(tz, q.answeredAt) : null })),
+    today,
+  })
+  const subtitle = headerLine({ groupName: profile?.groupName ?? '', week: weekInfo(today), semester: null })
   const news = requests.filter((r) => ['in_progress', 'ready', 'rejected'].includes(r.status))
 
   return (
     <StudentShell actor={actor} active="today">
       <div className="mb-[var(--gap)] [&>h1]:mb-0">
-        <PageTitle>Сегодня</PageTitle>
-        <p className="mt-[var(--sp-1)] text-[length:var(--fs-sm)] text-muted">{view.subtitle}</p>
+        {/* Заголовок — дата. Слово «Сегодня» стоит только для экранного чтеца: так экран называет и вкладка. */}
+        <PageTitle>
+          <span className="sr-only">Сегодня: </span>
+          {dateHeading(today)}
+        </PageTitle>
+        {subtitle ? <p className="mt-[var(--sp-1)] text-[length:var(--fs-sm)] text-muted">{subtitle}</p> : null}
       </div>
-      {/* На компьютере от 1024 px — две колонки блоков; на телефоне — одна лента, порядок тот же. */}
-      <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2 lg:items-start">
-        {/* Плитки с числами — только от 1024 px; на телефоне их нет. */}
-        <KpiTiles tiles={tiles} />
-        <NextLessonBlock next={view.next} finished={view.todayFinished} />
+      {/* От 1024 px две колонки: слева «Ждёт вас» и пара, справа изменения, сроки, заявки, объявления. На телефоне — тот же порядок столбцом. */}
+      <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-start lg:gap-[var(--sp-5)]">
+        <div className="flex flex-col gap-[var(--gap)]">
+          <WaitingBlock rows={waiting} />
+          <NextLessonBlock next={view.next} finished={view.todayFinished} />
+        </div>
 
+        <div className="flex flex-col gap-[var(--gap)]">
         {view.changes.length === 0 ? (
           <TodayBlock id="today-changes" title="Изменения в расписании">
             <EmptyRow>На сегодня и завтра изменений нет</EmptyRow>
@@ -101,7 +118,7 @@ export default async function TodayPage() {
                 <RowLink
                   key={r.id}
                   href={`/requests/${r.id}`}
-                  chip={isRequestStatus(r.status) ? <RequestStatusChip status={r.status} /> : null}
+                  trailing={isRequestStatus(r.status) ? <RequestStatusChip status={r.status} /> : null}
                   title={isRequestKind(r.kind) ? REQUEST_KIND_INFO[r.kind].title : 'Заявка'}
                   meta={
                     isRequestKind(r.kind) && isRequestStatus(r.status) ? (
@@ -131,7 +148,7 @@ export default async function TodayPage() {
           title="Объявления"
           aside={
             announcements.length > 0 ? (
-              <span className="inline-flex items-center whitespace-nowrap rounded-pill bg-accent-2-bg px-2 py-1 text-[length:var(--fs-xs)] font-bold leading-[1.2] text-accent-2-text">
+              <span className="inline-flex items-center whitespace-nowrap rounded-tag bg-accent-2-bg px-2 py-1 text-[length:var(--fs-xs)] font-bold leading-[1.2] text-accent-2-text">
                 {`Новых: ${announcements.length}`}
               </span>
             ) : null
@@ -147,6 +164,7 @@ export default async function TodayPage() {
             </RowList>
           )}
         </TodayBlock>
+        </div>
       </div>
     </StudentShell>
   )

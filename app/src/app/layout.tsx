@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from 'next'
-// Шрифт Nunito: файлы лежат в пакете npm и отдаются своим сервером, внешних адресов нет (D-2.2-system, раздел 3).
-// Пакет объявляет семейство «Nunito Variable»; браузер грузит файл набора знаков только когда в тексте есть такие знаки.
-import '@fontsource-variable/nunito'
+// Шрифт Golos Text: файлы лежат в пакете npm и отдаются своим сервером, внешних адресов нет (D-2.2-system, раздел 3).
+// Пакет объявляет семейство «Golos Text Variable»; браузер грузит файл набора знаков только когда в тексте есть такие знаки.
+import '@fontsource-variable/golos-text'
 import './globals.css'
 
 export const metadata: Metadata = {

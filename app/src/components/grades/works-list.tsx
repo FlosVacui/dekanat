@@ -16,7 +16,7 @@ import { Chip, type ChipTone } from './chip'
 import { GradeIcon, type GradeIconName } from './icons'
 
 // Работы дисциплины по М3-А: сводка одной строкой, на телефоне — список (название, срок, плашка-фраза, полоса баллов),
-// от 1024 px (lg) — таблица «Работа, Срок, Статус, Баллы». Оба вида лежат в разметке рядом, лишний скрыт стилем: скриптов нет.
+// от 560 px ширины самого блока (контейнерный запрос, `container-type: inline-size`) — таблица «Работа, Срок, Статус, Баллы». Оба вида лежат в разметке рядом, лишний скрыт стилем: скриптов нет.
 // Статус — значок и слово, цвет только дополняет. Полоса скрыта от экранного чтеца: число баллов написано рядом.
 // Один компонент на карточку предмета в «Успеваемости» и на страницу предмета (М4).
 
@@ -71,7 +71,7 @@ function maxLine(work: WorkItem): string {
 function PhoneList({ works, today, headingLevel }: { works: WorkItem[]; today: string; headingLevel: 3 | 4 }) {
   const Heading = headingLevel === 3 ? 'h3' : 'h4'
   return (
-    <ul data-testid="works-list" className="flex flex-col lg:hidden">
+    <ul data-testid="works-list" className="flex flex-col @min-[560px]:hidden">
       {works.map((work) => {
         const status = workStatus(work, today)
         return (
@@ -98,7 +98,7 @@ function DesktopTable({ works, today, caption }: { works: WorkItem[]; today: str
   const th = 'border-b-2 border-border-strong px-[var(--sp-3)] py-[var(--sp-2)] text-left text-[length:var(--fs-sm)] font-extrabold text-muted'
   const td = 'border-b border-border p-[var(--sp-3)] align-middle'
   return (
-    <div className="hidden overflow-x-auto lg:block">
+    <div className="hidden overflow-x-auto @min-[560px]:block">
       <table data-testid="works-table" className="w-full border-collapse text-[length:var(--fs-sm)]">
         <caption className="sr-only">{caption}</caption>
         <thead>
@@ -157,7 +157,7 @@ export function WorksView({
   headingLevel: 3 | 4
 }) {
   return (
-    <div className="flex flex-col gap-[var(--sp-2)]">
+    <div className="@container flex flex-col gap-[var(--sp-2)]">
       <WorksSummaryLine works={works} today={today} />
       <PhoneList works={works} today={today} headingLevel={headingLevel} />
       <DesktopTable works={works} today={today} caption={`Работы по дисциплине «${disciplineName}»`} />

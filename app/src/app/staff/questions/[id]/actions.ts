@@ -4,7 +4,8 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getClientIp } from '@/server/auth/cookie'
 import { requireStaffActor } from '@/server/auth/page-guards'
-import { answerQuestion } from '@/server/dal/staff'
+import { aiEnabled, draftStaffAnswer } from '@/server/ai'
+import { answerQuestion, getCohortQuestion } from '@/server/dal/staff'
 import { logSecurityEvent } from '@/server/security-log'
 
 /**
@@ -33,4 +34,35 @@ export async function answerQuestionAction(formData: FormData): Promise<void> {
   revalidatePath(`/staff/questions/${questionId}`)
   revalidatePath('/staff/requests')
   redirect(`/staff/questions/${questionId}`)
+}
+
+/** Состояние кнопки «Черновик ИИ»: текст для поля или код отказа (текст отказа выбирает форма). */
+export interface DraftState {
+  draft: string | null
+  error: 'unavailable' | 'failed' | null
+  /** Растёт с каждым черновиком: форма понимает, что пришёл новый, даже если текст тот же. */
+  version: number
+}
+
+/**
+ * 19.11, ИИ-функции: «Черновик ИИ». Сотрудника и его набор определяет сессия, вопрос ищется слоем доступа вместе с набором
+ * (чужой и несуществующий — одинаковый отказ и событие, как у страницы вопроса). Модели уходит только текст вопроса.
+ * Ничего не отправляется и не сохраняется: черновик возвращается форме и попадает в поле, правит и отправляет сотрудник.
+ * Из формы берётся один номер вопроса. Без ключа модели действие ничего не делает.
+ */
+export async function draftAnswerAction(previous: DraftState, formData: FormData): Promise<DraftState> {
+  const actor = await requireStaffActor()
+  const version = (typeof previous?.version === 'number' ? previous.version : 0) + 1
+  const questionId = formData.get('questionId')
+  if (typeof questionId !== 'string' || !aiEnabled()) return { draft: null, error: 'unavailable', version }
+  const ip = await getClientIp()
+  const question = await getCohortQuestion(actor, questionId)
+  if (!question) {
+    logSecurityEvent('access_denied_record', { userId: actor.userId, ip })
+    return { draft: null, error: 'failed', version }
+  }
+  // Ответ один: на вопрос с ответом черновик не нужен.
+  if (question.answer !== null) return { draft: null, error: 'failed', version }
+  const result = await draftStaffAnswer(question.body, actor.userId)
+  return result.ok ? { draft: result.text, error: null, version } : { draft: null, error: 'failed', version }
 }

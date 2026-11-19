@@ -8,11 +8,16 @@ export function TextAreaField({
   name,
   label,
   hint,
+  value,
+  onValueChange,
 }: {
   id: string
   name: string
   label: string
   hint?: string
+  /** Управляемое поле: значение и обработчик задаются вместе (форма ответа с черновиком ИИ). Без них поле обычное. */
+  value?: string
+  onValueChange?: (value: string) => void
 }) {
   const hintId = hint ? `${id}-hint` : undefined
   return (
@@ -27,6 +32,7 @@ export function TextAreaField({
         rows={6}
         maxLength={QUESTION_MAX_LENGTH}
         aria-describedby={hintId}
+        {...(value !== undefined && onValueChange ? { value, onChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => onValueChange(e.target.value) } : {})}
         className="block min-h-[var(--control-h)] w-full resize-y rounded-control border-2 border-border-strong bg-card px-[var(--sp-4)] py-3 text-[length:var(--fs-md)] leading-[1.4] text-text focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus"
       />
       {hint ? (

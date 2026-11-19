@@ -12,13 +12,19 @@ import { StudentShell } from '@/components/student-shell'
 import { formatDate, todayIn } from '@/lib/dates'
 import { topicLabel } from '@/lib/questions'
 import {
+  REQUEST_FILTERS,
+  REQUEST_FILTER_LABELS,
   REQUEST_KINDS,
   REQUEST_KIND_INFO,
+  filterRequests,
   isRequestKind,
   isRequestStatus,
+  parseRequestFilter,
   requestFieldLine,
   statusText,
+  type RequestFilter,
 } from '@/lib/requests'
+import { cn } from '@/lib/utils'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
@@ -27,9 +33,11 @@ import { listMyQuestions, listMyRequests } from '@/server/dal/student'
 // Э-6 «Заявки»: сверху по кнопке на каждый вид (видов три, кнопки «Все виды» нет), ниже — мои заявки (S-2.1, раздел 3).
 export const dynamic = 'force-dynamic'
 
-export default async function RequestsPage() {
+export default async function RequestsPage({ searchParams }: { searchParams: Promise<{ filter?: string | string[] }> }) {
   // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
   const actor = await requireStudentActor()
+  // Фильтр списка — параметр адреса `?filter=`, обычные ссылки: работает без скриптов. Неизвестное значение — «Все».
+  const filter = parseRequestFilter((await searchParams).filter)
 
   return (
     <Suspense
@@ -39,14 +47,15 @@ export default async function RequestsPage() {
         </StudentFrame>
       }
     >
-      <RequestsContent actor={actor} />
+      <RequestsContent actor={actor} filter={filter} />
     </Suspense>
   )
 }
 
 // Читает данные экрана и рисует его. Внутри границы нет redirect(), notFound(), forbidden() и denyRecord().
-async function RequestsContent({ actor }: { actor: Actor }) {
-  const [items, questionItems] = await Promise.all([listMyRequests(actor), listMyQuestions(actor)])
+async function RequestsContent({ actor, filter }: { actor: Actor; filter: RequestFilter }) {
+  const [allItems, questionItems] = await Promise.all([listMyRequests(actor), listMyQuestions(actor)])
+  const items = filterRequests(allItems, filter)
   return (
     <StudentShell actor={actor} active="requests">
       <PageTitle>Заявки</PageTitle>
@@ -62,8 +71,36 @@ async function RequestsContent({ actor }: { actor: Actor }) {
           </LinkButton>
         </section>
         <h2 className="text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)]">Мои заявки</h2>
-        {items.length === 0 ? (
+        {allItems.length > 0 ? (
+          <nav aria-label="Фильтр заявок">
+            <ul className="flex flex-wrap gap-[var(--sp-2)]">
+              {REQUEST_FILTERS.map((f) => {
+                const active = f === filter
+                return (
+                  <li key={f}>
+                    <Link
+                      href={f === 'all' ? '/requests' : `/requests?filter=${f}`}
+                      aria-current={active ? 'page' : undefined}
+                      className={cn(
+                        'inline-flex min-h-[var(--tap)] items-center gap-1.5 rounded-pill border-2 px-[var(--sp-3)] text-[length:var(--fs-sm)] font-bold',
+                        active ? 'border-primary bg-primary text-on-primary' : 'border-border-strong bg-card text-text',
+                      )}
+                    >
+                      {REQUEST_FILTER_LABELS[f]}
+                      <span className={cn('rounded-pill px-1.5 text-[length:var(--fs-xs)]', active ? 'bg-card text-primary' : 'bg-primary-soft text-primary')}>
+                        {filterRequests(allItems, f).length}
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </nav>
+        ) : null}
+        {allItems.length === 0 ? (
           <EmptyState level={3} title="Заявок пока нет" text="Выберите вид выше, чтобы подать первую" />
+        ) : items.length === 0 ? (
+          <EmptyState level={3} title="Таких заявок нет" text="Выберите другой фильтр: «Все» покажет все заявки" />
         ) : (
           <ul className="flex flex-col gap-[var(--gap)]">
             {items.map((r) => {

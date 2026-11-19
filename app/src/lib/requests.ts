@@ -425,3 +425,72 @@ export function buildRequestSteps(input: BuildStepsInput): RequestStep[] {
     return { key: step, title, state, note: pickupNote, where: null, current: false }
   })
 }
+
+// ---------- Фильтр списка заявок студента ----------
+
+export const REQUEST_FILTERS = ['all', 'active', 'action', 'ready'] as const
+export type RequestFilter = (typeof REQUEST_FILTERS)[number]
+
+export const REQUEST_FILTER_LABELS: Record<RequestFilter, string> = {
+  all: 'Все',
+  active: 'В работе',
+  action: 'Требуют ответа',
+  ready: 'Готовы',
+}
+
+/** Параметр адреса `?filter=`: неизвестное значение и массив — «Все». */
+export function parseRequestFilter(value: unknown): RequestFilter {
+  return typeof value === 'string' && (REQUEST_FILTERS as readonly string[]).includes(value) ? (value as RequestFilter) : 'all'
+}
+
+/**
+ * Ход за студентом: заявка готова (нужно прийти за документом) или отклонена (можно подать снова). Пока заявка «Подана» или
+ * «В работе», ход у деканата: шаг «Готова» у такой заявки помечен `next_you` как будущее действие студента, но сейчас
+ * делать студенту нечего, поэтому в «Требуют ответа» она не попадает.
+ */
+export function needsStudentAction(status: string): boolean {
+  return status === 'ready' || status === 'rejected'
+}
+
+/** Подходит ли заявка под фильтр. «В работе» — подана и в работе; «Готовы» — только статус «Готова». */
+export function matchesRequestFilter(status: string, filter: RequestFilter): boolean {
+  switch (filter) {
+    case 'all':
+      return true
+    case 'active':
+      return status === 'submitted' || status === 'in_progress'
+    case 'action':
+      return needsStudentAction(status)
+    case 'ready':
+      return status === 'ready'
+  }
+}
+
+export function filterRequests<T extends { status: string }>(items: readonly T[], filter: RequestFilter): T[] {
+  return items.filter((item) => matchesRequestFilter(item.status, filter))
+}
+
+// ---------- Просрочка (список сотрудника) ----------
+
+/** Сколько дней прошло после срока; 0 и меньше — не просрочена. Срок есть у заявки «В работе». Даты — «ГГГГ-ММ-ДД». */
+export function overdueDays(dueDate: string | null, status: string, today: string): number {
+  if (status !== 'in_progress' || !dueDate) return 0
+  const days = Math.round((Date.parse(`${today}T00:00:00Z`) - Date.parse(`${dueDate}T00:00:00Z`)) / 86_400_000)
+  return Number.isFinite(days) && days > 0 ? days : 0
+}
+
+/**
+ * Просроченные первыми, по убыванию дней просрочки; остальные — в прежнем порядке. Сортировка устойчивая.
+ * `daysById` — просрочка по номеру заявки (нет в карте — не просрочена).
+ */
+export function sortOverdueFirst<T extends { id: string }>(items: readonly T[], daysById: ReadonlyMap<string, number>): T[] {
+  return items
+    .map((item, index) => ({ item, index, days: daysById.get(item.id) ?? 0 }))
+    .sort((a, b) => (b.days > 0 ? b.days : 0) - (a.days > 0 ? a.days : 0) || a.index - b.index)
+    .map((entry) => entry.item)
+}
+
+/** «Просрочена на 1 дн.» — как в задании: «N дн.» без склонения. */
+export function overdueLabel(days: number): string {
+  return `Просрочена на ${days} дн.`
+}

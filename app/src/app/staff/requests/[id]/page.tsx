@@ -34,7 +34,7 @@ export default async function StaffRequestPage({ params }: { params: Promise<{ i
   const options = nextStatuses(request.status).map((status) => ({ status, label: STATUS_LABELS[status] }))
   const reasons = REJECT_REASONS.map((reason) => ({ status: reason, label: REJECT_REASON_LABELS[reason] }))
   return (
-    <StaffShell>
+    <StaffShell juryMode={getConfig().juryMode}>
       <div className="flex flex-col gap-[var(--gap)]">
         <BackLink href="/staff/requests">К списку заявок</BackLink>
         <PageTitle>{REQUEST_KIND_INFO[request.kind].title}</PageTitle>

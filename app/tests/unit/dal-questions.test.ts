@@ -118,7 +118,7 @@ describe('слой студента: свой вопрос, чужой — null'
     expect(row.rows[0].student_id).toBe(a.userId)
     expect(row.rows[0].status).toBe('sent')
     expect((await studentDal.listMyQuestions(a)).some((q) => q.id === id)).toBe(true)
-    for (const item of await studentDal.listMyQuestions(a)) expect(Object.keys(item).sort()).toEqual(['createdAt', 'id', 'status', 'topic'])
+    for (const item of await studentDal.listMyQuestions(a)) expect(Object.keys(item).sort()).toEqual(['answeredAt', 'createdAt', 'id', 'status', 'topic'])
   })
 
   it('чужой и несуществующий вопрос — одинаково null; в списке чужого нет', async () => {

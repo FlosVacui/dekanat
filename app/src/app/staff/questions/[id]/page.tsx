@@ -1,15 +1,15 @@
 import { Card, CardTitle, PageTitle } from '@/components/card'
 import { QuestionStatusChip } from '@/components/questions/status-chip'
-import { TextAreaField } from '@/components/questions/text-area-field'
+import { StaffAnswerForm } from '@/components/questions/staff-answer-form'
 import { BackLink } from '@/components/requests/back-link'
 import { StaffShell } from '@/components/staff-shell'
-import { SubmitButton } from '@/components/submit-button'
 import { formatDate, todayIn } from '@/lib/dates'
 import { topicLabel } from '@/lib/questions'
 import { denyRecord, requireStaffActor } from '@/server/auth/page-guards'
+import { aiEnabled } from '@/server/ai'
 import { getConfig } from '@/server/config'
 import { getCohortQuestion } from '@/server/dal/staff'
-import { answerQuestionAction } from './actions'
+import { answerQuestionAction, draftAnswerAction } from './actions'
 
 // Вопрос студента — сотрудник (пакет 4.1): тема, студент и группа, дата, текст вопроса. Пока вопрос «Отправлен» — поле
 // «Ответ студенту» и кнопка «Отправить ответ»; когда ответ дан — блок «Ответ деканата» с датой. Ответ один.
@@ -24,7 +24,7 @@ export default async function StaffQuestionPage({ params }: { params: Promise<{ 
   if (!question) return denyRecord(actor)
   const tz = getConfig().timezone
   return (
-    <StaffShell>
+    <StaffShell juryMode={getConfig().juryMode}>
       <div className="flex flex-col gap-[var(--gap)]">
         <BackLink href="/staff/requests?view=questions">К списку заявок</BackLink>
         <PageTitle>{topicLabel(question.topic)}</PageTitle>
@@ -67,13 +67,7 @@ export default async function StaffQuestionPage({ params }: { params: Promise<{ 
             </p>
           </Card>
         ) : (
-          <form action={answerQuestionAction} className="flex flex-col gap-[var(--gap)]">
-            <input type="hidden" name="questionId" value={question.id} />
-            <Card>
-              <TextAreaField id="answer-text" name="text" label="Ответ студенту" />
-            </Card>
-            <SubmitButton>Отправить ответ</SubmitButton>
-          </form>
+          <StaffAnswerForm questionId={question.id} answerAction={answerQuestionAction} draftAction={aiEnabled() ? draftAnswerAction : undefined} />
         )}
       </div>
     </StaffShell>

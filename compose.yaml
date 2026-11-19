@@ -77,6 +77,15 @@ services:
       DATABASE_URL: postgresql://dekanat_app:${POSTGRES_APP_PASSWORD}@db:5432/dekanat
       CLIENT_IP_HEADER: ${CLIENT_IP_HEADER:-}
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
+      # Подпись кода справки с QR. Пусто — «Получить сразу» и /verify выключены.
+      CERTIFICATE_SECRET: ${CERTIFICATE_SECRET:-}
+      # ИИ: OpenAI-совместимый API (Yandex AI Studio, Cloud.ru). Пусто — запасной путь без модели.
+      AI_BASE_URL: ${AI_BASE_URL:-}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_MODEL: ${AI_MODEL:-}
+      AI_FOLDER_ID: ${AI_FOLDER_ID:-}
+      # Панель «Сценарий для жюри»: off — выключить.
+      JURY_MODE: ${JURY_MODE:-on}
       NEXT_TELEMETRY_DISABLED: "1"
     # Порт наружу не публикуется. Обратный прокси из compose.proxy.yaml ходит сюда по внутренней сети.
     expose: ["3000"]

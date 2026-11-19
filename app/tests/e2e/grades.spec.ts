@@ -539,6 +539,18 @@ test('переключатель «Семестр / Сессия» не прыг
 })
 
 test('переключатель «День / Неделя» и полоса дней в расписании не прыгают наверх', async () => {
+  // После дизайн-прохода день с двумя парами умещается в окно 360×800 целиком, и прокручивать нечего: проверка прыжка наверх
+  // стала бы пустой. Окно ниже — страница заведомо длиннее него; в конце высота возвращается.
+  const viewport = page.viewportSize()
+  await page.setViewportSize({ width: viewport?.width ?? 360, height: 480 })
+  try {
+    await checkScheduleNoJump()
+  } finally {
+    if (viewport) await page.setViewportSize(viewport)
+  }
+})
+
+async function checkScheduleNoJump(): Promise<void> {
   // День с парами: ближайший к сегодняшнему из пн, вт, ср — у них в основном наборе не меньше двух пар. От дня запуска не зависит.
   let busyDay = today
   for (let i = 0; i < 7 && !['пн', 'вт', 'ср'].includes(weekdayShort(busyDay)); i += 1) busyDay = addDays(busyDay, 1)
@@ -569,4 +581,4 @@ test('переключатель «День / Неделя» и полоса д�
     () => other.click(),
     () => expect(page).not.toHaveURL(`${BASE_URL}/schedule?day=${busyDay}`),
   )
-})
+}

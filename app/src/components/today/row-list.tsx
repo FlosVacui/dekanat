@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 // Карточка без внутреннего отступа, строки разделены линией; рамка фокуса внутри строки с отступом −3 px (раздел 5, «Общие правила»).
 export function RowList({ children }: { children: ReactNode }) {
   return (
-    <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-surface border border-border bg-card shadow-card">
+    <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-surface border border-border bg-card">
       {children}
     </ul>
   )
@@ -19,12 +19,15 @@ export function RowList({ children }: { children: ReactNode }) {
 export function RowLink({
   href,
   chip,
+  trailing,
   title,
   meta,
 }: {
   href: string
   /** Плашка над жирной строкой; у объявления её нет. */
   chip?: ReactNode
+  /** Плашка справа, перед стрелкой: статус заявки. */
+  trailing?: ReactNode
   title: string
   /** Мелкие строки под жирной. */
   meta?: ReactNode
@@ -40,6 +43,7 @@ export function RowLink({
           <b className="text-[length:var(--fs-md)] font-bold leading-[1.3] [overflow-wrap:anywhere]">{title}</b>
           {meta}
         </span>
+        {trailing ? <span className="flex-none self-start">{trailing}</span> : null}
         <GradeIcon name="chevron" className="size-5 flex-none text-primary" />
       </Link>
     </li>
@@ -59,7 +63,7 @@ export function TodayBlock({ id, title, aside, children }: { id: string; title: 
     <section aria-labelledby={id} className="flex flex-col">
       <h2
         id={id}
-        className="mb-[var(--sp-2)] flex flex-wrap items-center gap-[var(--sp-2)] text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)] before:size-2.5 before:flex-none before:rounded-full before:bg-accent before:content-['']"
+        className="mb-[var(--sp-2)] flex flex-wrap items-center gap-[var(--sp-2)] text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)]"
       >
         <span>{title}</span>
         {aside}
@@ -70,25 +74,19 @@ export function TodayBlock({ id, title, aside, children }: { id: string; title: 
 }
 
 /**
- * Блок изменений расписания на «Сегодня» (макет М1-Б): жёлтая подложка, внутри плитки. Нужен, когда изменения есть;
- * пустой блок «На сегодня и завтра изменений нет» рисуется обычным `TodayBlock`, без тревожной подложки.
+ * Блок изменений расписания на «Сегодня»: обычный блок со строками, без подложки (дизайн-проход 19.11: карточки в карточке нет).
+ * Нужен, когда изменения есть; пустой блок «На сегодня и завтра изменений нет» рисуется `TodayBlock` с `EmptyRow`.
  */
 export function ChangesBlock({ id, title, children }: { id: string; title: string; children: ReactNode }) {
   return (
-    <section aria-labelledby={id} className="flex flex-col rounded-surface bg-warning-bg p-[var(--sp-3)] lg:col-span-2">
-      <h2
-        id={id}
-        className="mb-[var(--sp-2)] flex items-center gap-[var(--sp-2)] text-[length:var(--h2-size)] font-bold leading-tight text-warning before:size-2.5 before:flex-none before:rounded-full before:bg-warning before:content-['']"
-      >
-        {title}
-      </h2>
-      <ul className="grid grid-cols-1 gap-[var(--sp-2)] lg:grid-cols-2">{children}</ul>
-    </section>
+    <TodayBlock id={id} title={title}>
+      <ul className="flex flex-col divide-y divide-border overflow-hidden rounded-surface border border-border bg-card">{children}</ul>
+    </TodayBlock>
   )
 }
 
 /**
- * Плитка изменения: цветная полоса слева, плашка со значком и словом, жирная строка «Завтра, 10:10 · Математический анализ»
+ * Строка изменения: цветная полоса слева, плашка со значком и словом, жирная строка «Завтра, 10:10 · Математический анализ»
  * и одна строка самого изменения. Прежние номер и ФИО названы в этой строке один раз.
  */
 export function ChangeTile({ href, dayWord, entry }: { href: string; dayWord: string; entry: ScheduleEntry }) {
@@ -101,7 +99,7 @@ export function ChangeTile({ href, dayWord, entry }: { href: string; dayWord: st
       <Link
         href={href}
         className={cn(
-          'flex h-full min-h-[var(--tap)] flex-col items-start gap-[3px] rounded-control border-l-[6px] bg-card py-[var(--sp-3)] pl-[var(--sp-4)] pr-[var(--sp-3)] active:bg-primary-soft focus-visible:outline-offset-2',
+          'flex h-full min-h-[var(--tap)] flex-col items-start gap-[3px] border-l-[6px] bg-card py-[var(--sp-3)] pl-[var(--sp-4)] pr-[var(--sp-3)] active:bg-primary-soft focus-visible:-outline-offset-3',
           changeBarClass(kind),
         )}
       >
@@ -128,6 +126,6 @@ export function ChangeTile({ href, dayWord, entry }: { href: string; dayWord: st
 /** Пустая строка блока: нынешние тексты экрана. */
 export function EmptyRow({ children }: { children: string }) {
   return (
-    <p className="rounded-surface border border-border bg-card p-[var(--card-pad)] text-[length:var(--fs-sm)] shadow-card">{children}</p>
+    <p className="rounded-surface border border-border bg-card p-[var(--card-pad)] text-[length:var(--fs-sm)]">{children}</p>
   )
 }

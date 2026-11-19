@@ -5,6 +5,8 @@ import { getConfig } from '@/server/config'
 import { countMyUnreadNotifications, getMyCurrentSemester, getMyProfile } from '@/server/dal/student'
 import type { Actor } from '@/server/auth/session'
 import { StudentFrame, type StudentTab } from '@/components/states/shell-parts'
+import { JuryPanel } from '@/components/jury/jury-panel'
+import { ProcessLink } from '@/components/jury/process-link'
 
 // Каркас экранов студента Э-2…Э-10 (S-2.1, раздел 2): шапка со знаком, группой и неделей, колокольчик и аватар вверху,
 // четыре вкладки внизу. Вид — раздел 6 дизайн-системы (D-2.2-system); знак — раздел 7.
@@ -35,15 +37,19 @@ export async function StudentShell({
   ])
   const week = weekInfo(todayIn(getConfig().timezone))
   return (
-    <StudentFrame
-      active={active}
-      data={{
-        line: headerLine({ groupName: profile?.groupName ?? '', week, semester }),
-        unread,
-        initials: initials(profile?.fullName ?? ''),
-      }}
-    >
-      {children}
-    </StudentFrame>
+    <>
+      <StudentFrame
+        active={active}
+        data={{
+          line: headerLine({ groupName: profile?.groupName ?? '', week, semester }),
+          unread,
+          initials: initials(profile?.fullName ?? ''),
+        }}
+        footer={<ProcessLink />}
+      >
+        {children}
+      </StudentFrame>
+      {getConfig().juryMode ? <JuryPanel withTabBar /> : null}
+    </>
   )
 }

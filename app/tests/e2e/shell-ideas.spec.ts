@@ -70,13 +70,21 @@ async function expectNoHorizontalScroll(page: Page, width: number, where: string
 /** Единственная видимая навигация «Разделы». */
 const sections = (page: Page): Locator => page.getByRole('navigation', { name: 'Разделы' })
 
+/** Блок «Ждёт вас» (components/today/waiting-block.tsx): секция с заголовком и список `data-testid="waiting"` с хотя бы одной строкой. */
+async function expectWaitingBlock(page: Page): Promise<void> {
+  await expect(page.getByRole('heading', { name: 'Ждёт вас', level: 2 })).toBeVisible()
+  const list = page.getByTestId('waiting')
+  await expect(list).toBeVisible()
+  expect(await list.locator('li[data-kind]').count(), 'строк в «Ждёт вас»').toBeGreaterThan(0)
+}
+
 /** Число у колокольчика: нет числа — 0. */
 async function bellNumber(page: Page): Promise<number> {
   const bell = page.getByTestId('bell-count')
   return (await bell.count()) === 0 ? 0 : Number((await bell.textContent())!.trim())
 }
 
-// ---------- 1280: колонка разделов, шапка, плитки ----------
+// ---------- 1280: колонка разделов, шапка, «Ждёт вас» ----------
 
 test('1280: колонка разделов — две группы, шесть ссылок, одна навигация; счётчик «Уведомлений» равен числу у колокольчика', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 1280)
@@ -140,7 +148,7 @@ test('1280: колонка шириной 240 px; на «Уведомления�
   }
 })
 
-test('1024: колонка уже, одна навигация, плитки видны', async ({ browser }) => {
+test('1024: колонка уже, одна навигация, блок «Ждёт вас» виден', async ({ browser }) => {
   const context = await newContext(browser, 1024)
   try {
     const page = await context.newPage()
@@ -149,7 +157,7 @@ test('1024: колонка уже, одна навигация, плитки в�
     const width = (await sections(page).boundingBox())!.width
     // Точная ширина по макету М5: R-4.6-12 (RV-redesign-C-1).
     expect(width, 'ширина колонки на 1024').toBeCloseTo(220, 0)
-    await expect(page.getByTestId('kpis').getByRole('link')).toHaveCount(4)
+    await expectWaitingBlock(page)
     await expectNoHorizontalScroll(page, 1024, '1024 «Сегодня»')
   } finally {
     await context.close()
@@ -180,65 +188,34 @@ test('шапка на всех ширинах: группа · неделя · �
   }
 })
 
-test('1280 «Сегодня»: четыре плитки, адреса, подписи; числа равны числам той же страницы и страниц разделов', async ({ browser }) => {
+test('1280 «Сегодня»: плиток KPI нет; блок «Ждёт вас» — заголовок, строки, в каждой одна ссылка-глагол внутрь кабинета', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 1280)
   try {
-    const tiles = page.getByTestId('kpis').getByRole('link')
-    await expect(tiles).toHaveCount(4)
-    const expected = [
-      ['Пар сегодня', '/schedule'],
-      ['Сдать на этой неделе', '/grades'],
-      ['Заявки в работе', '/requests'],
-      ['Новые уведомления', '/notifications'],
-    ] as const
-    const numbers: number[] = []
+    // Плитки убраны в дизайн-проходе 19.11: их места в странице нет.
+    await expect(page.getByTestId('kpis')).toHaveCount(0)
+    await expectWaitingBlock(page)
+    const rows = page.getByTestId('waiting').locator('li[data-kind]')
+    const total = await rows.count()
+    expect(total, 'строк в «Ждёт вас» у студента в наборе').toBeGreaterThan(0)
     let seen = 0
-    for (const [i, [label, href]] of expected.entries()) {
-      const tile = tiles.nth(i)
-      await expect(tile).toHaveAttribute('href', href)
-      const text = ((await tile.innerText()) ?? '').split('\n').map((s) => s.trim()).filter(Boolean)
-      expect(text.length, `плитка «${label}»: число и подпись`).toBe(2)
-      expect(text[1]).toBe(label)
-      expect(text[0]).toMatch(/^\d+$/)
-      numbers.push(Number(text[0]))
+    for (let i = 0; i < total; i += 1) {
+      const links = rows.nth(i).getByRole('link')
+      await expect(links, `строка ${i + 1}: одна ссылка`).toHaveCount(1)
+      await expect(links.first(), `строка ${i + 1}: адрес внутри кабинета`).toHaveAttribute('href', /^\//)
       seen += 1
     }
-    expect(seen, 'плиток проверено').toBe(4)
-
-    // «Пар сегодня» — число из подзаголовка этой же страницы.
-    const subtitle = ((await page.locator('main p', { hasText: ' · ' }).first().textContent()) ?? '').trim()
-    const m = /· (пар нет|(\d+) пар[аы]?)$/.exec(subtitle)
-    expect(m, `подзаголовок «${subtitle}»`).not.toBeNull()
-    expect(numbers[0], 'пар сегодня: плитка и подзаголовок').toBe(m![2] === undefined ? 0 : Number(m![2]))
-
-    // «Сдать на этой неделе» — число строк блока «Что сдать на этой неделе».
-    const dueRows = await page.getByRole('region', { name: /^Что сдать на этой неделе/ }).getByRole('link').count()
-    expect(numbers[1], 'сдать: плитка и строки блока').toBe(dueRows)
-
-    // «Новые уведомления» — число у колокольчика.
-    expect(numbers[3], 'уведомления: плитка и колокольчик').toBe(await bellNumber(page))
-
-    // «Заявки в работе» — заявки «Подана» и «В работе» на странице заявок.
-    await tiles.nth(2).click()
-    await expect(page).toHaveURL(`${BASE_URL}/requests`)
-    // Адрес меняется раньше, чем приходит содержимое: ждём заголовок экрана, а не только адрес.
-    await expect(page.getByRole('heading', { name: 'Заявки', level: 1 })).toBeVisible()
-    const rows = page.locator('main ul li a[href^="/requests/"]')
-    const total = await rows.count()
-    expect(total, 'заявок у студента в наборе').toBeGreaterThan(0)
-    const inWork = await rows.filter({ hasText: /^\s*(Подана|В работе)/ }).count()
-    expect(numbers[2], 'заявки в работе: плитка и страница заявок').toBe(inWork)
+    expect(seen, 'строк проверено').toBe(total)
   } finally {
     await context.close()
   }
 })
 
-test('1280 «Сегодня»: ниже плиток — «билет», изменения и три блока; плитки стоят над ними', async ({ browser }) => {
+test('1280 «Сегодня»: «Ждёт вас» стоит над «билетом»; изменения и три блока на месте', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 1280)
   try {
-    const kpis = await page.getByTestId('kpis').boundingBox()
+    const waiting = await page.getByRole('region', { name: 'Ждёт вас', exact: true }).boundingBox()
     const ticket = await page.getByRole('region', { name: 'Следующая пара', exact: true }).boundingBox()
-    expect(kpis!.y + kpis!.height, 'плитки над «билетом»').toBeLessThanOrEqual(ticket!.y)
+    expect(waiting!.y + waiting!.height, '«Ждёт вас» над «билетом»').toBeLessThanOrEqual(ticket!.y)
     for (const title of ['Изменения в расписании', 'Что сдать на этой неделе', 'Мои заявки', 'Объявления']) {
       await expect(page.getByRole('heading', { name: new RegExp(`^${title}`), level: 2 })).toBeVisible()
     }
@@ -273,15 +250,12 @@ test('1280 /ideas: заголовок, вступление, три идеи —
   }
 })
 
-test('360: плиток нет, нижняя панель из четырёх вкладок, ссылка «Идеи и планы» внизу ведёт на /ideas; прокрутки вбок нет', async ({ browser }) => {
+test('360: блок «Ждёт вас» виден, нижняя панель из четырёх вкладок, ссылка «Идеи и планы» внизу ведёт на /ideas; прокрутки вбок нет', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 360)
   try {
-    // Плиток нет в дереве доступности: дерево `display: none`.
-    await expect(page.getByTestId('kpis')).toBeHidden()
-    await expect(page.getByTestId('kpis')).toHaveCSS('display', 'none')
-    for (const label of ['Пар сегодня', 'Сдать на этой неделе', 'Заявки в работе', 'Новые уведомления']) {
-      await expect(page.getByRole('link', { name: new RegExp(label) })).toHaveCount(0)
-    }
+    // Плиток KPI нет совсем; на телефоне главное на экране — блок «Ждёт вас».
+    await expect(page.getByTestId('kpis')).toHaveCount(0)
+    await expectWaitingBlock(page)
 
     // Одна навигация «Разделы» — нижняя панель, в ней четыре вкладки.
     const nav = sections(page)

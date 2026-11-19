@@ -7,9 +7,19 @@
 // - следующая пара — первая по порядку записей с сегодняшнего дня: сегодняшняя, если ещё не кончилась, иначе ближайшая другого дня.
 //   Отменённая пара и старое место перенесённой пары следующими не бывают;
 // - изменения — записи с изменением на сегодня и завтра;
-// - сроки «что сдать» — разница в днях от сегодня и плашка.
+// - сроки «что сдать» — разница в днях от сегодня и плашка;
+// - «Ждёт вас» (`buildWaiting`) — строки по важности: долг, нет допуска, готовая справка, ответ деканата. Пусто — пустой список.
 
 import { addDays, formatDayMonth, weekdayShort } from './dates'
+import {
+  describeDiscipline,
+  pointsWord,
+  sortForSemester,
+  STIPEND_DEBT_LINE,
+  type FirstActionInput,
+} from './grades'
+import { topicLabel } from './questions'
+import { isRequestKind, isRequestStatus, REQUEST_KIND_INFO, statusText } from './requests'
 import { buildSchedule, type ScheduleDay, type ScheduleEntry, type ScheduleLesson } from './schedule'
 
 const WEEKDAYS_FULL = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']
@@ -112,6 +122,12 @@ export function lessonCountText(n: number): string {
   if (mod10 === 1) return `${n} пара`
   if (mod10 >= 2 && mod10 <= 4) return `${n} пары`
   return `${n} пар`
+}
+
+/** Заголовок экрана: «Четверг, 19 ноября». */
+export function dateHeading(today: string): string {
+  const weekday = WEEKDAYS_FULL[new Date(`${today}T00:00:00Z`).getUTCDay()] ?? ''
+  return `${weekday}, ${formatDayMonth(today)}`
 }
 
 /** Подзаголовок: день недели с большой буквы, дата, число пар. */
@@ -219,4 +235,154 @@ export function buildToday(
     .sort((a, b) => a.dueDate.localeCompare(b.dueDate) || a.title.localeCompare(b.title, 'ru'))
 
   return { todayCount, todayFinished, next, changes, due: dueRows, subtitle: subtitleText(today, todayCount) }
+}
+
+// ---------- «Ждёт вас» ----------
+
+/** Дисциплина для блока «Ждёт вас»: поля `GradeItem` слоя доступа, нужные сборке. */
+export interface WaitingGradeInput extends FirstActionInput {
+  nextDue: { title: string; dueDate: string } | null
+}
+
+/** Заявка для блока «Ждёт вас»: поля `RequestItem` слоя доступа. */
+export interface WaitingRequestInput {
+  id: string
+  kind: string
+  status: string
+  dueDate: string | null
+  pickupUntil: string | null
+  issuedOn: string | null
+  rejectReason: string | null
+}
+
+/** Вопрос для блока «Ждёт вас»: поля `QuestionItem`; список приходит новыми сверху. */
+export interface WaitingQuestionInput {
+  id: string
+  topic: string
+  status: string
+  /** День ответа деканата (ГГГГ-ММ-ДД в часовом поясе приложения); `null` — не известен. Старше 7 дней ответ в «Ждёт вас» не стоит. */
+  answeredOn?: string | null
+}
+
+/** Сколько дней ответ деканата висит в «Ждёт вас»: признака «прочитан» в базе нет, строка не должна оставаться навсегда. */
+export const ANSWER_WAITING_DAYS = 7
+
+export type WaitingKind = 'debt' | 'no_admission' | 'ready' | 'answer'
+
+/** Цвет метки: красная — долг, жёлтая — нет допуска, зелёная — готово и ответ. Совпадает с тонами `Chip`. */
+export type WaitingTone = 'err' | 'warn' | 'ok'
+
+export interface WaitingRow {
+  key: string
+  kind: WaitingKind
+  tone: WaitingTone
+  /** Слово метки: «Долг», «Нет допуска», «Готово», «Ответ». */
+  label: string
+  /** Дисциплина или название заявки. */
+  title: string
+  /** Главная пояснительная строка; `null` — пояснения нет. */
+  detail: string | null
+  /** Вторая мелкая строка: стипендия у первого долга, ближайшая работа у дисциплины без допуска. */
+  note: string | null
+  /** Единственная ссылка строки. */
+  href: string
+  /** Глагол ссылки: «Подготовиться к пересдаче», «Открыть работы», «Забрать справку», «Прочитать ответ». */
+  action: string
+}
+
+export const WAITING_EMPTY_TEXT = 'Всё в порядке: долгов и ответов от вас не ждут'
+
+function retakeText(examDate: string | null, today: string): string {
+  if (!examDate) return 'Дата пересдачи не назначена'
+  if (examDate < today) return `Пересдача была ${formatDayMonth(examDate)}, новая дата не назначена`
+  return `Пересдача ${formatDayMonth(examDate)}`
+}
+
+/**
+ * Что ждёт студента, по важности: долги (по дате пересдачи), дисциплины без допуска, готовые заявки, ответ деканата на вопрос.
+ * Из ответов берётся один, самый новый и не старше 7 дней: признака «прочитан» в базе нет. Чистая функция: данные и «сегодня» приходят аргументами,
+ * владельца выбрал слой доступа (всё это — записи самого студента из сессии).
+ */
+export function buildWaiting(input: {
+  grades: readonly WaitingGradeInput[]
+  requests: readonly WaitingRequestInput[]
+  questions: readonly WaitingQuestionInput[]
+  today: string
+}): WaitingRow[] {
+  const { today } = input
+  const rows: WaitingRow[] = []
+  const ordered = sortForSemester([...input.grades])
+
+  let firstDebt = true
+  for (const g of ordered) {
+    if (describeDiscipline(g).kind !== 'debt') continue
+    rows.push({
+      key: `debt-${g.disciplineId}`,
+      kind: 'debt',
+      tone: 'err',
+      label: 'Долг',
+      title: g.name,
+      detail: retakeText(g.examDate, today),
+      note: firstDebt ? STIPEND_DEBT_LINE : null,
+      href: `/grades/${g.disciplineId}`,
+      action: 'Подготовиться к пересдаче',
+    })
+    firstDebt = false
+  }
+
+  for (const g of ordered) {
+    const state = describeDiscipline(g)
+    if (state.kind !== 'ahead_no_admission') continue
+    rows.push({
+      key: `adm-${g.disciplineId}`,
+      kind: 'no_admission',
+      tone: 'warn',
+      label: 'Нет допуска',
+      title: g.name,
+      detail: state.missing !== null ? `До допуска не хватает ${state.missing} ${pointsWord(state.missing)}` : 'Допуска пока нет',
+      note: g.nextDue ? `Ближайшая работа: ${g.nextDue.title}, до ${formatDayMonth(g.nextDue.dueDate)}` : null,
+      href: '/grades',
+      action: 'Открыть работы',
+    })
+  }
+
+  for (const r of input.requests) {
+    if (r.status !== 'ready' || !isRequestKind(r.kind) || !isRequestStatus(r.status)) continue
+    rows.push({
+      key: `req-${r.id}`,
+      kind: 'ready',
+      tone: 'ok',
+      label: 'Готово',
+      title: REQUEST_KIND_INFO[r.kind].title,
+      detail: statusText({
+        kind: r.kind,
+        status: r.status,
+        dueDate: r.dueDate,
+        pickupUntil: r.pickupUntil,
+        issuedOn: r.issuedOn,
+        rejectReason: r.rejectReason,
+      }),
+      note: null,
+      href: `/requests/${r.id}`,
+      action: r.kind === 'financial_aid' ? 'Открыть заявку' : 'Забрать справку',
+    })
+  }
+
+  const oldest = addDays(input.today, -ANSWER_WAITING_DAYS)
+  const answered = input.questions.find((q) => q.status === 'answered' && (!q.answeredOn || q.answeredOn >= oldest))
+  if (answered) {
+    rows.push({
+      key: `q-${answered.id}`,
+      kind: 'answer',
+      tone: 'ok',
+      label: 'Ответ',
+      title: 'Деканат ответил на ваш вопрос',
+      detail: topicLabel(answered.topic),
+      note: null,
+      href: `/questions/${answered.id}`,
+      action: 'Прочитать ответ',
+    })
+  }
+
+  return rows
 }

@@ -140,20 +140,22 @@ test('«Успеваемость» на 360 px: «Все работы (N)» ра
       // Максимумы набора — 10, 15, 20, 25: везде «баллов».
       else await expect(item).toContainText(`максимум ${w.maxPoints} баллов`)
     }
-    // Ссылка на страницу предмета — одна, с номером дисциплины; зона касания не меньше 44 px.
-    const link = c.getByRole('link', { name: 'Страница предмета' })
+    // Вся строка предмета — одна ссылка на страницу предмета (кнопки «Страница предмета» больше нет); зона касания не меньше 44 px.
+    const link = c.getByRole('link')
+    await expect(link).toHaveCount(1)
     await expect(link).toHaveAttribute('href', `/grades/${disciplineId(student1.login, name)}`)
-    await expectTap(link, `${name}: «Страница предмета»`)
+    await expect(c.getByRole('link', { name: 'Страница предмета' })).toHaveCount(0)
+    await expectTap(link, `${name}: строка-ссылка`)
   }
   // Все карточки раскрыты, на 360 px прокрутки вбок нет.
   await expectNoHorizontalScroll('«Успеваемость», все работы раскрыты', page, 360)
   // Таблица в разметке есть, но на 360 px скрыта.
   await expect(page.locator('table:visible')).toHaveCount(0)
   expect(await page.locator('table').count()).toBeGreaterThan(0)
-  // Дисциплина без работ: кнопки «Все работы» нет, ссылка на страницу предмета есть.
+  // Дисциплина без работ: раскрытия «Все работы» нет, строка-ссылка на страницу предмета есть.
   const past = card(page, 'Статистика')
   await expect(past.locator('summary')).toHaveCount(0)
-  await expect(past.getByRole('link', { name: 'Страница предмета' })).toHaveCount(1)
+  await expect(past.getByRole('link')).toHaveCount(1)
 })
 
 test('сумма сданных работ на карточке сходится с баллами за семестр: у экзамена «из 60», у зачёта «из 100»', async () => {
@@ -294,15 +296,28 @@ test('чужие баллы и чужие дисциплины: студент 2
   }
 })
 
-test('компьютер 1280 px: «Все работы» раскрывает таблицу «Работа, Срок, Статус, Баллы»; страница предмета — таблица и две колонки', async () => {
+test('компьютер 1280 px: карточка раскрывает список (блок уже 560 px), страница предмета — таблица «Работа, Срок, Статус, Баллы» и две колонки', async () => {
   const p = await login(desktop, student1)
   await p.goto('/grades')
   const name = 'Корпоративные финансы'
   const works = worksOf(student1.login, name)
   const c = card(p, name)
-  await expect(c.locator('table')).toBeHidden()
+  await expect(c.getByTestId('works-list')).toBeHidden()
   await c.locator('summary').click()
-  const table = c.locator('table')
+  // Таблица работ включается по ширине самого блока: от 560 px (контейнерный запрос, дизайн-проход 19.11). Блок внутри карточки
+  // на «Успеваемости» и на 1280 px уже 560 px, поэтому там остаётся список; таблица — на странице предмета ниже.
+  const blockWidth = await c.getByTestId('works-list').evaluate((el) => el.parentElement!.getBoundingClientRect().width)
+  expect(blockWidth, 'ширина блока работ в карточке').toBeLessThan(560)
+  await expect(c.getByTestId('works-list')).toBeVisible()
+  await expect(c.locator('table')).toBeHidden()
+  await expect(c.getByTestId('works-list').locator('> li')).toHaveCount(works.length)
+  await expect(c.getByTestId('works-summary')).toHaveText(summaryText(works))
+  await expectNoHorizontalScroll('1280, «Успеваемость»', p, 1280)
+
+  await p.goto(`/grades/${disciplineId(student1.login, name)}`)
+  await expect(p.locator('table:visible')).toHaveCount(1)
+  await expect(p.getByTestId('works-list')).toBeHidden()
+  const table = p.getByTestId('works-table')
   await expect(table).toBeVisible()
   await expect(table.locator('thead th')).toHaveText(['Работа', 'Срок', 'Статус', 'Баллы'])
   const rows = table.locator('tbody tr')
@@ -311,17 +326,10 @@ test('компьютер 1280 px: «Все работы» раскрывает �
     const cells = rows.nth(i).locator('td')
     await expect(cells.nth(0)).toHaveText(w.title)
     await expect(cells.nth(1)).toHaveText(`${formatDayMonth(w.dueDate)}, ${weekdayShort(w.dueDate)}`)
-    // Статус в таблице — короткое слово; полная фраза — только на телефоне.
+    // Статус в таблице — короткое слово; полная фраза — только в списке.
     await expect(cells.nth(2)).toHaveText(SHORT_WORD[w.status])
     await expect(cells.nth(3)).toContainText(w.status === 'done' ? `${w.points} из ${w.maxPoints}` : `максимум ${w.maxPoints}`)
   }
-  await expect(c.getByTestId('works-list')).toBeHidden()
-  await expect(c.getByTestId('works-summary')).toHaveText(summaryText(works))
-  await expectNoHorizontalScroll('1280, «Успеваемость»', p, 1280)
-
-  await p.goto(`/grades/${disciplineId(student1.login, name)}`)
-  await expect(p.locator('table:visible')).toHaveCount(1)
-  await expect(p.getByTestId('works-list')).toBeHidden()
   // «Преподаватели» и «Форма контроля» слева, «Правила рейтинга» справа, работы и материалы — на всю ширину под ними.
   const box = async (loc: Locator) => (await loc.boundingBox())!
   const teachers = await box(p.getByRole('heading', { level: 2, name: 'Преподаватели' }))

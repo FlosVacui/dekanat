@@ -1,11 +1,14 @@
 // Запуск и остановка сервера приложения для сквозного теста и снимков. Сервер — собранное приложение: npm run build.
 import { execFileSync, spawn, type ChildProcess } from 'node:child_process'
+import { randomBytes } from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { IP_HEADER } from './address'
 
 export const PORT = Number(process.env.E2E_PORT ?? 3100)
 export const BASE_URL = `http://localhost:${PORT}`
 const APP_DIR = fileURLToPath(new URL('../../../', import.meta.url))
+/** Тестовый секрет подписи справки — на случай, когда в окружении его нет. Случайный на каждый запуск тестов. */
+const TEST_CERTIFICATE_SECRET = randomBytes(24).toString('hex')
 
 export interface RunningServer {
   child: ChildProcess
@@ -36,13 +39,21 @@ async function waitFor(predicate: () => Promise<boolean>, what: string, ms: numb
  * Запускает `next start` с файлом окружения из корня репозитория (scripts/with-env.mjs). Порт должен быть свободен.
  * Своему процессу стенд задаёт CLIENT_IP_HEADER: адрес посетителя берётся из заголовка, как за обратным прокси.
  * Значение из окружения процесса главнее значения в файле, поэтому файл `.env` стенд не меняет.
+ * Секрет подписи справки стенд задаёт сам, если в окружении его нет: без него «Получить сразу» и /verify выключены,
+ * и тесты справки падали на любой машине без секрета в `.env`. Значение случайное на каждый запуск, нигде не печатается.
  */
-export async function startServer(): Promise<RunningServer> {
+export async function startServer(opts: { juryMode?: boolean } = {}): Promise<RunningServer> {
   if (await isUp()) throw new Error(`Порт ${PORT} уже занят работающим сервером. Остановите его или задайте E2E_PORT`)
+  const certificateSecret = (process.env.CERTIFICATE_SECRET ?? '').trim().length >= 16 ? process.env.CERTIFICATE_SECRET : TEST_CERTIFICATE_SECRET
   const child = spawn(
     process.execPath,
     ['scripts/with-env.mjs', './node_modules/next/dist/bin/next', 'start', '-p', String(PORT)],
-    { cwd: APP_DIR, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: { ...process.env, CLIENT_IP_HEADER: IP_HEADER } },
+    {
+      cwd: APP_DIR,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true,
+      env: { ...process.env, CLIENT_IP_HEADER: IP_HEADER, JURY_MODE: opts.juryMode ? 'on' : 'off', CERTIFICATE_SECRET: certificateSecret },
+    },
   )
   if (!child.pid) throw new Error('Сервер не запустился')
   const pid = child.pid

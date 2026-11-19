@@ -7,6 +7,7 @@ import { StudentShell } from '@/components/student-shell'
 import { SubmitButton } from '@/components/submit-button'
 import { QUESTION_TOPICS, QUESTION_TOPIC_LABELS } from '@/lib/questions'
 import { requireStudentActor } from '@/server/auth/page-guards'
+import { aiEnabled } from '@/server/ai'
 import type { Actor } from '@/server/auth/session'
 import { createQuestionAction } from './actions'
 
@@ -65,6 +66,11 @@ async function NewQuestionContent({ actor, limit }: { actor: Actor; limit: strin
               />
             </div>
           </Card>
+          {aiEnabled() ? (
+            <p data-testid="question-ai-note" className="m-0 text-[length:var(--fs-xs)] leading-[1.35] text-muted">
+              Если в деканате включён ИИ-помощник, текст вопроса может уйти в облачную модель для черновика ответа
+            </p>
+          ) : null}
           <SubmitButton>Отправить</SubmitButton>
         </form>
       </div>

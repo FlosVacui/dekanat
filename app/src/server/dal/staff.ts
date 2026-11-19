@@ -32,12 +32,13 @@ export interface StaffRequestItem {
   updatedAt: Date
   studentName: string
   groupName: string
+  /** Срок изготовления: записывается, когда заявку взяли в работу; до этого пусто. */
+  dueDate: string | null
 }
 
 export interface StaffRequestDetail extends StaffRequestItem {
   purpose: string | null
   paymentYear: number | null
-  dueDate: string | null
   pickupUntil: string | null
   issuedOn: string | null
   rejectReason: string | null
@@ -52,6 +53,7 @@ const listColumns = {
   updatedAt: requests.updatedAt,
   studentName: students.fullName,
   groupName: groups.name,
+  dueDate: requests.dueDate,
 }
 
 /** Заявки студентов своего набора. Набор — из сессии. */
@@ -77,7 +79,6 @@ export async function getCohortRequest(actor: Actor, requestId: string): Promise
       ...listColumns,
       purpose: requests.purpose,
       paymentYear: requests.paymentYear,
-      dueDate: requests.dueDate,
       pickupUntil: requests.pickupUntil,
       issuedOn: requests.issuedOn,
       rejectReason: requests.rejectReason,

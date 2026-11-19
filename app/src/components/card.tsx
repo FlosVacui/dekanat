@@ -10,10 +10,10 @@ export function Card({ className, children }: { className?: string; children: Re
   )
 }
 
-// Оранжевая точка 10 px перед текстом (::before): украшение, в дерево доступности не попадает.
+// Заголовок раздела: оранжевой точки перед текстом больше нет (дизайн-проход 19.11).
 export function CardTitle({ children }: { children: ReactNode }) {
   return (
-    <h2 className="mb-[var(--sp-2)] flex items-center gap-[var(--sp-2)] text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)] before:size-2.5 before:flex-none before:rounded-full before:bg-accent before:content-['']">
+    <h2 className="mb-[var(--sp-2)] text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)]">
       {children}
     </h2>
   )
