@@ -36,6 +36,13 @@
       "when": 1794989053350,
       "tag": "0004_strong_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1795037024021,
+      "tag": "0005_wise_guardian",
+      "breakpoints": true
     }
   ]
 }

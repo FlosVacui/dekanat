@@ -20,6 +20,8 @@ const GRANTS = [
   'GRANT INSERT ON request_events TO {role}',
   'GRANT INSERT, UPDATE ON notifications TO {role}',
   'GRANT INSERT ON announcement_reads TO {role}',
+  // Вопросы в деканат (пакет 4.1): студент создаёт вопрос, сотрудник отвечает. Удаляет вопросы посетителей только освежение под владельцем.
+  'GRANT INSERT, UPDATE ON questions TO {role}',
   // Счётчики входа (пакет 3.1): приложение пишет в них одной атомарной операцией и чистит строки по давности.
   'GRANT INSERT, UPDATE, DELETE ON login_attempts, login_ip_windows, login_streaks TO {role}',
 ]

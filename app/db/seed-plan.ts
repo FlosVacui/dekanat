@@ -3,6 +3,7 @@
 // Источник данных — docs/data/draft.md, версия 2. Все люди, названия и даты придуманы (ТР-5).
 import { createHash } from 'node:crypto'
 import { addDays, formatDate, SEMESTER_START, weekInfo } from '../src/lib/dates'
+import { normalizeQuestionText, isQuestionTopic, type QuestionTopic } from '../src/lib/questions'
 import {
   computeDueDate,
   computePickupUntil,
@@ -133,6 +134,18 @@ export interface RequestSpec {
   rejectReason?: RejectReason
 }
 
+/** Вопрос студента в деканат (пакет 4.1). Есть `answer` — вопрос с ответом, иначе «Отправлен». */
+export interface QuestionSpec {
+  /** Ключ вопроса: из него считается номер, а в ссылке уведомления он стоит как `{id.<ключ>}`. Не совпадает с ключами заявок. */
+  key: string
+  topic: QuestionTopic
+  text: string
+  /** День вопроса: сдвиг от Д (≤ 0). */
+  dayOffset: number
+  /** Ответ деканата: текст и день ответа — сдвиг от Д, не раньше дня вопроса и не позже Д. */
+  answer?: { text: string; dayOffset: number }
+}
+
 /** В заголовке и тексте можно писать `{d+N}` (день Д+N как дд.мм.гггг) и значения из `PlanVars`: `{wd.ключ}` и другие. */
 export interface NotificationSpec {
   key: string
@@ -156,8 +169,10 @@ export interface StudentSpec {
   workResults?: WorkResultSpec[]
   requests: RequestSpec[]
   notifications: NotificationSpec[]
-  /** Что тест ищет в чужих ответах: у каждого студента своя метка в профиле, расписании, оценках, заявках и уведомлениях. */
-  markers: { profile: string; schedule: string; grades: string; requests: string; notifications: string }
+  /** Вопросы в деканат. Нет поля — вопросов у студента нет (резервные наборы и тестовые наборы). */
+  questions?: QuestionSpec[]
+  /** Что тест ищет в чужих ответах: у каждого студента своя метка в профиле, расписании, оценках, заявках, уведомлениях и вопросах. */
+  markers: { profile: string; schedule: string; grades: string; requests: string; notifications: string; questions?: string }
 }
 
 export interface AnnouncementSpec {
@@ -364,6 +379,20 @@ export interface PlannedNotification {
   time: string
 }
 
+export interface PlannedQuestion {
+  id: string
+  key: string
+  topic: QuestionTopic
+  body: string
+  status: 'sent' | 'answered'
+  answer: string | null
+  /** День и время вопроса «ЧЧ:ММ» по часовому поясу вуза; на день Д — минуты после полуночи, чтобы запись не стояла в будущем. */
+  createdDate: string
+  createdTime: string
+  answeredDate: string | null
+  answeredTime: string | null
+}
+
 export interface PlannedGrade {
   id: string
   disciplineId: string
@@ -380,6 +409,7 @@ export interface PlannedStudent {
   grades: PlannedGrade[]
   workResults: PlannedWorkResult[]
   requests: PlannedRequest[]
+  questions: PlannedQuestion[]
   notifications: PlannedNotification[]
 }
 
@@ -654,6 +684,43 @@ function planRequest(spec: RequestSpec, userId: string, today: string, vars: Map
   return planned
 }
 
+/** Вопрос набора: тема и тексты проверяются теми же правилами, что в слое доступа; ответ не раньше вопроса. */
+function planQuestion(spec: QuestionSpec, userId: string, today: string, vars: Map<string, string>): PlannedQuestion {
+  const id = detId('question', userId, spec.key)
+  if (!isQuestionTopic(spec.topic)) throw new Error(`Вопрос ${spec.key}: тема «${spec.topic}» не из списка`)
+  const body = normalizeQuestionText(spec.text)
+  if (body === null || body !== spec.text) throw new Error(`Вопрос ${spec.key}: текст пуст, длиннее предела или с лишними пробелами по краям`)
+  if (spec.dayOffset > 0) throw new Error(`Вопрос ${spec.key}: день вопроса не позже Д`)
+  if (vars.has(`id.${spec.key}`)) throw new Error(`Вопрос ${spec.key}: ключ уже занят`)
+  const createdDate = addDays(today, spec.dayOffset)
+  const createdTime = createdDate === today ? '00:20' : '10:00'
+  let answer: string | null = null
+  let answeredDate: string | null = null
+  let answeredTime: string | null = null
+  if (spec.answer) {
+    answer = normalizeQuestionText(spec.answer.text)
+    if (answer === null || answer !== spec.answer.text) throw new Error(`Вопрос ${spec.key}: ответ пуст, длиннее предела или с лишними пробелами по краям`)
+    if (spec.answer.dayOffset < spec.dayOffset || spec.answer.dayOffset > 0) {
+      throw new Error(`Вопрос ${spec.key}: день ответа не раньше дня вопроса и не позже Д`)
+    }
+    answeredDate = addDays(today, spec.answer.dayOffset)
+    answeredTime = answeredDate === today ? '00:30' : '15:00'
+  }
+  vars.set(`id.${spec.key}`, id)
+  return {
+    id,
+    key: spec.key,
+    topic: spec.topic,
+    body,
+    status: answer === null ? 'sent' : 'answered',
+    answer,
+    createdDate,
+    createdTime,
+    answeredDate,
+    answeredTime,
+  }
+}
+
 /** Строки набора на день Д. Одинаковый вход даёт одинаковые строки: повторное заполнение в тот же день ничего не меняет. */
 export function buildCohortPlan(spec: CohortSpec, today: string): CohortPlan {
   const vars = new Map<string, string>()
@@ -696,7 +763,8 @@ export function buildCohortPlan(spec: CohortSpec, today: string): CohortPlan {
       }
     })
     const requests = s.requests.map((r) => planRequest(r, userId, today, vars))
-    return { userId, spec: s, groupId: gId, grades, workResults, requests, notifications: [] }
+    const questions = (s.questions ?? []).map((qs) => planQuestion(qs, userId, today, vars))
+    return { userId, spec: s, groupId: gId, grades, workResults, requests, questions, notifications: [] }
   })
 
   // Тексты — после того как посчитаны все значения подстановок.

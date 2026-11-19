@@ -367,6 +367,32 @@ export const MAIN_COHORT: CohortSpec = {
           link: '/notifications',
           unread: false,
         },
+        {
+          key: 'q-resit-answer',
+          kind: 'reminder',
+          title: 'Деканат ответил на вопрос',
+          body: 'Пересдачи и долги',
+          link: '/questions/{id.q-resit}',
+          unread: false,
+        },
+      ],
+      questions: [
+        {
+          key: 'q-resit',
+          topic: 'resits',
+          text: 'Здравствуйте! Подскажите, как оформить пересдачу по эконометрике: нужно ли заявление? Номер обращения на кафедре — «Берёзовая-12»',
+          dayOffset: -3,
+          answer: {
+            text: 'Заявление не нужно. Кафедра назначила пересдачу, дата и аудитория указаны в уведомлении. Возьмите с собой студенческий билет',
+            dayOffset: -2,
+          },
+        },
+        {
+          key: 'q-stipend',
+          topic: 'stipend',
+          text: 'Добрый день! До какого числа нужно принести документы для социальной стипендии и можно ли отправить их по почте?',
+          dayOffset: -1,
+        },
       ],
       markers: {
         profile: 'Белозёров',
@@ -374,6 +400,7 @@ export const MAIN_COHORT: CohortSpec = {
         grades: 'Маркетинг',
         requests: 'Северный-7',
         notifications: 'Расчётная работа №3',
+        questions: 'Берёзовая-12',
       },
     },
     {
@@ -473,6 +500,32 @@ export const MAIN_COHORT: CohortSpec = {
           link: '/notifications',
           unread: true,
         },
+        {
+          key: 'q-schedule-answer',
+          kind: 'reminder',
+          title: 'Деканат ответил на вопрос',
+          body: 'Расписание и занятия',
+          link: '/questions/{id.q-schedule}',
+          unread: false,
+        },
+      ],
+      questions: [
+        {
+          key: 'q-schedule',
+          topic: 'schedule',
+          text: 'Здравствуйте! В расписании появилась лабораторная по физике, которой раньше не было. Это не ошибка? Номер допуска к лаборатории — «Сосновая-5»',
+          dayOffset: -4,
+          answer: {
+            text: 'Это не ошибка: лабораторную добавили вместо отменённой лекции. Время и аудитория указаны в расписании',
+            dayOffset: -3,
+          },
+        },
+        {
+          key: 'q-documents',
+          topic: 'documents',
+          text: 'Добрый день! Можно ли получить справку об обучении без заявления, если нужна только копия?',
+          dayOffset: -1,
+        },
       ],
       markers: {
         profile: 'Нестерова',
@@ -480,6 +533,7 @@ export const MAIN_COHORT: CohortSpec = {
         grades: 'Линейная алгебра',
         requests: 'Зелёная-3',
         notifications: 'Отчёт по лабораторной №4',
+        questions: 'Сосновая-5',
       },
     },
   ],

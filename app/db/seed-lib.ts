@@ -76,6 +76,7 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
     // Заявки и уведомления.
     const keptRequestIds: string[] = []
     const keptNotificationIds: string[] = []
+    const keptQuestionIds: string[] = []
     for (const student of plan.students) {
       for (const r of student.requests) {
         keptRequestIds.push(r.id)
@@ -107,6 +108,22 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
           )
         }
       }
+      // Вопросы набора (пакет 4.1): вставляются и освежаются по датам в обоих режимах, как заявки набора. Время ответа
+      // у вопроса без ответа — NULL: пустая дата и пустое время дают пустую метку.
+      for (const qn of student.questions) {
+        keptQuestionIds.push(qn.id)
+        await q(
+          `INSERT INTO questions (id, student_id, topic, body, status, answer, answered_by, answered_at, ip, answer_ip, created_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, ${AT('$8', '$9', '$10')}, 'seed', $11, ${AT('$12', '$13', '$10')})
+           ON CONFLICT (id) DO UPDATE SET topic = EXCLUDED.topic, body = EXCLUDED.body, status = EXCLUDED.status,
+             answer = EXCLUDED.answer, answered_by = EXCLUDED.answered_by, answered_at = EXCLUDED.answered_at,
+             ip = EXCLUDED.ip, answer_ip = EXCLUDED.answer_ip, created_at = EXCLUDED.created_at`,
+          [
+            qn.id, student.userId, qn.topic, qn.body, qn.status, qn.answer, qn.answer === null ? null : plan.staffId,
+            qn.answeredDate, qn.answeredTime, tz, qn.answer === null ? null : 'seed', qn.createdDate, qn.createdTime,
+          ],
+        )
+      }
       for (const n of student.notifications) {
         keptNotificationIds.push(n.id)
         // full: прочитанность возвращается к набору (прочитанное остаётся прочитанным, дата не гуляет). refresh: не трогается.
@@ -119,6 +136,22 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
           [n.id, student.userId, n.kind, n.title, n.body, n.link, n.date, n.time, tz],
         )
       }
+    }
+
+    // Вопросы посетителей (пакет 4.1), оба режима: у студентов ЭТОГО набора удаляются вопросы, которых нет в наборе данных,
+    // вместе с ответами (они в той же строке), и только те уведомления этих студентов, чья ссылка ведёт на удалённый вопрос.
+    // Заявки, их история и прочие уведомления здесь не трогаются. Удаляемые номера берутся из самого `DELETE … RETURNING`.
+    const removedQuestions = await q(
+      `DELETE FROM questions WHERE student_id IN (SELECT id FROM users WHERE cohort = $1 AND role = 'student')
+         AND id <> ALL($2::uuid[]) RETURNING id`,
+      [spec.cohort, keptQuestionIds],
+    )
+    if (removedQuestions.rows.length > 0) {
+      await q(
+        `DELETE FROM notifications WHERE student_id IN (SELECT id FROM users WHERE cohort = $1 AND role = 'student')
+           AND link = ANY($2::text[])`,
+        [spec.cohort, removedQuestions.rows.map((row) => `/questions/${row.id as string}`)],
+      )
     }
 
     // Возврат в исходное состояние (только full): лишнее у студентов этого набора удаляется.

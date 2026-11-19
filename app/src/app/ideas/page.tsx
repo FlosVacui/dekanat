@@ -41,16 +41,6 @@ const IDEAS: { icon: ReactNode; title: string; text: string }[] = [
     title: 'Напоминания по времени',
     text: 'За день до срока работы и утром в день экзамена — в ленте и на телефоне',
   },
-  {
-    icon: (
-      <>
-        <circle cx="12" cy="12" r="9" />
-        <path d="M9.5 9.5a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1 .9-1 1.7M12 17v.01" />
-      </>
-    ),
-    title: 'Спросить деканат',
-    text: 'Вопрос сотруднику по теме и ответ в том же кабинете',
-  },
 ]
 
 export default async function IdeasPage() {

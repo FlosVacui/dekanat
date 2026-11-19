@@ -111,9 +111,9 @@ describe('основной набор: состав по черновику', ()
     expect(weekKindOf('2026-08-17')).toBe('upper')
   })
 
-  it('шесть заявок, девять объявлений (15 строк), десять уведомлений', () => {
+  it('шесть заявок, девять объявлений (15 строк), двенадцать уведомлений', () => {
     expect(plan.students.map((s) => s.requests.length)).toEqual([3, 3])
-    expect(plan.students.map((s) => s.notifications.length)).toEqual([6, 4])
+    expect(plan.students.map((s) => s.notifications.length)).toEqual([7, 5])
     expect(new Set(plan.announcements.map((a) => a.key)).size).toBe(9)
     expect(plan.announcements).toHaveLength(15)
     // «Оба факультета» — две строки, у каждой свой адресат-факультет.
@@ -484,12 +484,14 @@ describe('объявления и уведомления', () => {
       ['reminder', 'Пара перенесена: Микроэкономика, среда, 5 пара', true],
       ['reminder', 'Пара отменена: Логистика цепей поставок, пятница', true],
       ['news', 'Пересдача по эконометрике', false],
+      ['reminder', 'Деканат ответил на вопрос', false],
     ])
     expect(plan.students[1]!.notifications.map((n) => [n.kind, n.title, n.unread])).toEqual([
       ['reminder', 'Заявка отклонена: справка о периоде обучения', true],
       ['reminder', 'Аудитория изменена: Математический анализ, вторник', true],
       ['reminder', 'Срок через 3 дня: Отчёт по лабораторной №4', false],
       ['news', 'Олимпиада по программированию', true],
+      ['reminder', 'Деканат ответил на вопрос', false],
     ])
   })
 
@@ -513,9 +515,12 @@ describe('объявления и уведомления', () => {
   it('ссылки уведомлений — на существующие экраны', () => {
     const plan = buildCohortPlan(MAIN_COHORT, MONDAY)
     const ownRequests = (s: (typeof plan.students)[number]) => new Set(s.requests.map((r) => `/requests/${r.id}`))
+    const ownQuestions = (s: (typeof plan.students)[number]) => new Set(s.questions.map((q) => `/questions/${q.id}`))
     for (const s of plan.students) {
       for (const n of s.notifications) {
-        const ok = n.link !== null && (['/grades', '/schedule', '/notifications', '/requests'].includes(n.link) || ownRequests(s).has(n.link))
+        const ok =
+          n.link !== null &&
+          (['/grades', '/schedule', '/notifications', '/requests'].includes(n.link) || ownRequests(s).has(n.link) || ownQuestions(s).has(n.link))
         expect(ok, `${n.key}: ${n.link}`).toBe(true)
       }
     }
@@ -545,6 +550,7 @@ describe('метки для тестов', () => {
       disciplines: plan.disciplines.filter((d) => d.groupName === groupName),
       grades: s.grades,
       requests: s.requests,
+      questions: s.questions,
       notifications: s.notifications,
       announcements: plan.announcements.filter((a) => a.groupId === groupId || a.faculty === s.spec.faculty),
     })
@@ -574,6 +580,7 @@ describe('метки для тестов', () => {
       grades: 'Маркетинг',
       requests: 'Северный-7',
       notifications: 'Расчётная работа №3',
+      questions: 'Берёзовая-12',
     })
     expect(student2.markers).toEqual({
       profile: 'Нестерова',
@@ -581,6 +588,7 @@ describe('метки для тестов', () => {
       grades: 'Линейная алгебра',
       requests: 'Зелёная-3',
       notifications: 'Отчёт по лабораторной №4',
+      questions: 'Сосновая-5',
     })
   })
 

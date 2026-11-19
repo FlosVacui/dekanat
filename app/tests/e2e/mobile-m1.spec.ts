@@ -453,6 +453,12 @@ for (const vp of VIEWPORTS) {
         rec('skip', vp.width, 'grades-discipline-from-today', 'блока «Что сдать» сегодня нет (зависит от дня)')
         return
       }
+      // После редизайна блок есть всегда; пустой — строка без ссылок (смена 37: 19.11, четверг — сдавать нечего).
+      if ((await todo.getByText('На этой неделе сдавать нечего', { exact: true }).count()) > 0) {
+        await expect(todo.getByRole('link')).toHaveCount(0)
+        rec('skip', vp.width, 'grades-discipline-from-today', 'на этой неделе сдавать нечего (зависит от дня)')
+        return
+      }
       const link = todo.getByRole('link').first()
       await expect(link).toBeVisible()
       await link.click()

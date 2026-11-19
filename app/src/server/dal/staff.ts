@@ -1,6 +1,7 @@
 import 'server-only'
 import { and, asc, desc, eq, inArray, sql } from 'drizzle-orm'
 import { todayIn } from '@/lib/dates'
+import { normalizeQuestionText, topicLabel } from '@/lib/questions'
 import {
   ALLOWED_FROM,
   REQUEST_KIND_INFO,
@@ -17,7 +18,7 @@ import type { Actor } from '../auth/session'
 import { getConfig } from '../config'
 import { getDb } from './client'
 import { isUuid, requireStaff } from './guards'
-import { groups, notifications, requestEvents, requests, students, users } from './schema'
+import { groups, notifications, questions, requestEvents, requests, students, users } from './schema'
 
 // Функции сотрудника (ADR-0002, «Область сотрудника»). Лежат отдельно от функций студента.
 // Первым делом проверяется роль. Граница — набор: сотрудник видит и меняет только заявки студентов своего набора.
@@ -192,5 +193,119 @@ export async function changeRequestStatus(
       link: `/requests/${changed.id}`,
     })
     return { ok: true, status: target } as const
+  })
+}
+
+// ---------- Вопросы студентов (пакет 4.1) ----------
+
+export interface StaffQuestionItem {
+  id: string
+  topic: string
+  status: string
+  createdAt: Date
+  studentName: string
+  groupName: string
+}
+
+export interface StaffQuestionDetail extends StaffQuestionItem {
+  body: string
+  /** Ответ деканата и время ответа: пусты, пока вопрос в статусе «Отправлен». */
+  answer: string | null
+  answeredAt: Date | null
+}
+
+const questionListColumns = {
+  id: questions.id,
+  topic: questions.topic,
+  status: questions.status,
+  createdAt: questions.createdAt,
+  studentName: students.fullName,
+  groupName: groups.name,
+}
+
+/** Вопросы студентов своего набора, новые сверху. Набор — из сессии. */
+export async function listCohortQuestions(actor: Actor): Promise<StaffQuestionItem[]> {
+  const { cohort } = requireStaff(actor)
+  return getDb()
+    .select(questionListColumns)
+    .from(questions)
+    .innerJoin(students, eq(students.userId, questions.studentId))
+    .innerJoin(users, eq(users.id, students.userId))
+    .innerJoin(groups, eq(groups.id, students.groupId))
+    .where(eq(users.cohort, cohort))
+    .orderBy(desc(questions.createdAt))
+}
+
+/** Вопрос по номеру вместе с набором сотрудника в одном запросе. Чужой набор и несуществующий — одинаково null. */
+export async function getCohortQuestion(actor: Actor, questionId: string): Promise<StaffQuestionDetail | null> {
+  const { cohort } = requireStaff(actor)
+  if (!isUuid(questionId)) return null
+  const rows = await getDb()
+    .select({ ...questionListColumns, body: questions.body, answer: questions.answer, answeredAt: questions.answeredAt })
+    .from(questions)
+    .innerJoin(students, eq(students.userId, questions.studentId))
+    .innerJoin(users, eq(users.id, students.userId))
+    .innerJoin(groups, eq(groups.id, students.groupId))
+    .where(and(eq(questions.id, questionId), eq(users.cohort, cohort)))
+    .limit(1)
+  return rows[0] ?? null
+}
+
+export type AnswerQuestionResult =
+  | { ok: true }
+  | { ok: false; reason: 'not_found' | 'already_answered' | 'invalid_input' | 'rate_limited' }
+
+/** Лимит ответов (ADR-0002, ADR-0003): не больше 30 в минуту на пару «аккаунт сотрудника и адрес», как у смены статуса. */
+export const ANSWERS_PER_MINUTE = 30
+
+/**
+ * Ответ на вопрос — один раз. Один запрос `UPDATE … WHERE` с номером, набором сотрудника и статусом «Отправлен»; ноль строк —
+ * отказ, причину («нет такой записи» или «уже отвечен») отдельным чтением, тоже с набором. Ответ — от 1 до 1000 знаков после
+ * обрезки пробелов. Уведомление владельцу пишется в той же транзакции: вид `reminder`, заголовок «Деканат ответил на вопрос»,
+ * текст — подпись темы, ссылка на вопрос. Лимит считается по ответам этой пары, уже данным за минуту (адрес ответа записан
+ * в вопросе, поле `answer_ip`); проверка и ответ — одна транзакция под замком на пару. Адрес не передан — «unknown».
+ */
+export async function answerQuestion(actor: Actor, questionId: string, text: string, ip = 'unknown'): Promise<AnswerQuestionResult> {
+  const { staffId, cohort } = requireStaff(actor)
+  const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
+  if (!isUuid(questionId)) return { ok: false, reason: 'not_found' }
+  const answer = normalizeQuestionText(text)
+  if (answer === null) return { ok: false, reason: 'invalid_input' }
+
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`answer:${staffId}:${safeIp}`}, 0))`)
+    const recent = await tx.execute(sql`
+      select count(*)::int as n from questions
+      where answered_by = ${staffId} and answer_ip = ${safeIp} and answered_at > clock_timestamp() - interval '1 minute'
+    `)
+    if (Number(recent.rows[0]?.n ?? 0) >= ANSWERS_PER_MINUTE) return { ok: false, reason: 'rate_limited' } as const
+
+    const cohortStudents = tx.select({ id: users.id }).from(users).where(and(eq(users.cohort, cohort), eq(users.role, 'student')))
+    const updated = await tx
+      .update(questions)
+      .set({ status: 'answered', answer, answeredBy: staffId, answeredAt: sql`clock_timestamp()`, answerIp: safeIp })
+      .where(and(eq(questions.id, questionId), eq(questions.status, 'sent'), inArray(questions.studentId, cohortStudents)))
+      .returning({ id: questions.id, studentId: questions.studentId, topic: questions.topic })
+
+    const changed = updated[0]
+    if (!changed) {
+      // Различаем «нет такой записи» и «уже отвечен» отдельным чтением, тоже с набором.
+      const exists = await tx
+        .select({ id: questions.id })
+        .from(questions)
+        .innerJoin(users, eq(users.id, questions.studentId))
+        .where(and(eq(questions.id, questionId), eq(users.cohort, cohort)))
+        .limit(1)
+      return { ok: false, reason: exists.length ? 'already_answered' : 'not_found' } as const
+    }
+
+    await tx.insert(notifications).values({
+      studentId: changed.studentId,
+      kind: 'reminder',
+      title: 'Деканат ответил на вопрос',
+      body: topicLabel(changed.topic),
+      link: `/questions/${changed.id}`,
+    })
+    return { ok: true } as const
   })
 }

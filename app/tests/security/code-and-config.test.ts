@@ -159,7 +159,7 @@ describe('Д-03, Д-04: версия Next.js и файл блокировки', 
 // ---------- Аудит ворот 3, пакет 3.10 (SEC-3.10): Т-01, Ж-04 — раньше без теста (IMP-018, пункт 3) ----------
 
 describe('Т-01: тестовый аккаунт не может испортить доступ — действий над учётной записью нет', () => {
-  it('серверных действий ровно шесть: вход, выход, подача, смена статуса, две отметки ленты; обработчиков маршрутов нет', () => {
+  it('серверных действий ровно восемь: вход, выход, подача, смена статуса, две отметки ленты, вопрос и ответ на него (пакет 4.1); обработчиков маршрутов нет', () => {
     // Новое действие (смена пароля, почты, удаление аккаунта) делает этот тест красным: его надо разобрать в аудите.
     const actions = src
       .filter((f) => /^['"]use server['"]/m.test(f.text))
@@ -171,7 +171,9 @@ describe('Т-01: тестовый аккаунт не может испорти�
         'app/login/actions.ts:logoutAction',
         'app/notifications/actions.ts:markAllFeedReadAction',
         'app/notifications/actions.ts:openFeedItemAction',
+        'app/questions/new/actions.ts:createQuestionAction',
         'app/requests/new/actions.ts:createRequestAction',
+        'app/staff/questions/[id]/actions.ts:answerQuestionAction',
         'app/staff/requests/[id]/actions.ts:changeStatusAction',
       ].sort(),
     )

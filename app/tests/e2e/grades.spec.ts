@@ -510,9 +510,17 @@ async function expectNoJumpToTop(
   expect(before, `${where}: страница должна быть прокручена до нажатия`).toBeGreaterThan(0)
   await click()
   await arrived()
-  const after = await p.evaluate(() => window.scrollY)
-  expect(after, `${where}: после перехода страница не должна оказаться наверху (было ${before}, стало ${after})`).toBeGreaterThan(0)
-  expect(Math.abs(after - before), `${where}: сдвиг ${before} → ${after} больше высоты шапки ${headerHeight}`).toBeLessThanOrEqual(headerHeight)
+  const { after, max } = await p.evaluate(() => ({ after: window.scrollY, max: document.documentElement.scrollHeight - window.innerHeight }))
+  // Новая страница может быть короче прокрутки до нажатия (смена 37: дни расписания с одной парой в четверг и на
+  // следующей неделе) — тогда ждём наибольшую прокрутку, какую она позволяет. На длинной странице проверка прежняя.
+  const expected = Math.min(before, Math.max(0, max))
+  if (expected === before) {
+    expect(after, `${where}: после перехода страница не должна оказаться наверху (было ${before}, стало ${after})`).toBeGreaterThan(0)
+  }
+  expect(
+    Math.abs(after - expected),
+    `${where}: сдвиг ${before} → ${after} (ожидалось ${expected}, наибольшая прокрутка ${max}) больше высоты шапки ${headerHeight}`,
+  ).toBeLessThanOrEqual(headerHeight)
 }
 
 test('переключатель «Семестр / Сессия» не прыгает наверх', async () => {
@@ -541,6 +549,8 @@ test('переключатель «День / Неделя» и полоса д�
     () => group.getByRole('link', { name: 'Неделя', exact: true }).click(),
     () => expect(group.getByRole('link', { name: 'Неделя', exact: true })).toHaveAttribute('aria-current', 'true'),
   )
+  // «День» в виде недели ведёт на сегодняшний день, а не на busyDay: в чт–вс его страница бывает короче прокрутки до нажатия —
+  // это учитывает expectNoJumpToTop (смена 37).
   await expectNoJumpToTop(
     'Неделя → День',
     () => group.getByRole('link', { name: 'День', exact: true }).click(),
