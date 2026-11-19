@@ -1149,6 +1149,13 @@ history:
     commit: "9b9593a"
     rounds: 1
     tokens: 146379
+  - date: 2026-11-19
+    item: "4.1"
+    what: "Смена 37: доделка пакета 4.1 — правки тестов по решениям участника А, ревью RV-4.1-1, общая проверка 12 «ок»"
+    who: "Opus 5.5 (оркестратор); reviewer Sonnet 5.5 / high"
+    commit: "f0eb6ff"
+    rounds: 1
+    tokens: 233276
 
 reviews:
   - id: "R-0.3-1"
@@ -3765,6 +3772,60 @@ reviews:
     by: "Sonnet 5.5 / high (reviewer)"
     status: "отклонено"
     comment: "Задание запретило новые токены"
+  - id: "R-4.1-1"
+    item: "4.1"
+    round: 1
+    severity: "незначительное"
+    text: "Освежение возвращает вопрос набора к «Отправлен», а уведомление об ответе посетителя-сотрудника остаётся"
+    repro: "RV-4.1-1, проба rv41-refresh-probe и db:refresh"
+    by: "Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "IMP-045, смена 37"
+  - id: "R-4.1-2"
+    item: "4.1"
+    round: 1
+    severity: "незначительное"
+    text: "Шапка seed-refresh.ts неточна: refresh удаляет не только вопросы посетителей"
+    repro: "RV-4.1-1, seed-lib.ts:100, 178, 184, 237-238"
+    by: "Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "IMP-045, смена 37"
+  - id: "R-4.1-3"
+    item: "4.1"
+    round: 1
+    severity: "предложение"
+    text: "У /questions/new и /questions/[id] нет своего состояния загрузки и страниц ошибки"
+    repro: "RV-4.1-1, чтение кода"
+    by: "Sonnet 5.5 / high"
+    status: "отклонено"
+    comment: "Принято как есть по совету ревьюера, смена 37"
+  - id: "R-4.1-4"
+    item: "4.1"
+    round: 1
+    severity: "предложение"
+    text: "Отказы в вопросах без слов: пустой вопрос, ответ из пробелов, длиннее 1000, уже отвечен, предел"
+    repro: "RV-4.1-1, проба rv41-http-probe"
+    by: "Sonnet 5.5 / high"
+    status: "отложено"
+    comment: "IMP-046, ответ участника А 19.11"
+  - id: "R-4.1-5"
+    item: "4.1"
+    round: 1
+    severity: "предложение"
+    text: "expectNoJumpToTop не ловит прыжок наверх, если наибольшая прокрутка новой страницы не выше шапки"
+    repro: "RV-4.1-1, diff grades.spec.ts"
+    by: "Sonnet 5.5 / high"
+    status: "отклонено"
+    comment: "Принято по совету ревьюера, смена 37"
+  - id: "R-4.1-6"
+    item: "4.1"
+    round: 1
+    severity: "предложение"
+    text: "В чт–вс «Что сдать на этой неделе» у основного студента пуст: сроки набора на рабочих днях"
+    repro: "RV-4.1-1, проба rv41-due-probe"
+    by: "Sonnet 5.5 / high"
+    status: "открыто"
+    comment: "Набор — малый заход до заморозки, ответ участника А 19.11"
 
 decisions:
   - id: "Р-0"
