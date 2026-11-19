@@ -25,7 +25,9 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
   if (!request) return denyRecord(actor)
   if (!isRequestKind(request.kind) || !isRequestStatus(request.status)) notFound()
   const { kind, status } = request
-  const timezone = getConfig().timezone
+  const { timezone, certificateSecret } = getConfig()
+  // Печатная справка с QR есть у справки об обучении в статусе «Готова» или «Выдана», если на сервере задан секрет подписи.
+  const hasCertificate = Boolean(certificateSecret) && kind === 'dean_certificate' && (status === 'ready' || status === 'issued')
   const rejected = status === 'rejected'
   const fieldLine = requestFieldLine(kind, request)
   const steps = buildRequestSteps({
@@ -75,6 +77,7 @@ export default async function RequestPage({ params }: { params: Promise<{ id: st
         <RequestSteps steps={steps} />
 
         <div className="flex flex-col gap-[var(--sp-2)]">
+          {hasCertificate ? <LinkButton href={`/requests/${request.id}/certificate`}>Открыть справку с QR</LinkButton> : null}
           {rejected ? <LinkButton href={`/requests/new?type=${kind}&from=${request.id}`}>Подать снова</LinkButton> : null}
           <LinkButton href="/requests" variant="ghost">
             К списку заявок

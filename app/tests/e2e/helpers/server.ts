@@ -37,12 +37,12 @@ async function waitFor(predicate: () => Promise<boolean>, what: string, ms: numb
  * Своему процессу стенд задаёт CLIENT_IP_HEADER: адрес посетителя берётся из заголовка, как за обратным прокси.
  * Значение из окружения процесса главнее значения в файле, поэтому файл `.env` стенд не меняет.
  */
-export async function startServer(): Promise<RunningServer> {
+export async function startServer(opts: { juryMode?: boolean } = {}): Promise<RunningServer> {
   if (await isUp()) throw new Error(`Порт ${PORT} уже занят работающим сервером. Остановите его или задайте E2E_PORT`)
   const child = spawn(
     process.execPath,
     ['scripts/with-env.mjs', './node_modules/next/dist/bin/next', 'start', '-p', String(PORT)],
-    { cwd: APP_DIR, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: { ...process.env, CLIENT_IP_HEADER: IP_HEADER } },
+    { cwd: APP_DIR, stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: { ...process.env, CLIENT_IP_HEADER: IP_HEADER, JURY_MODE: opts.juryMode ? 'on' : 'off' } },
   )
   if (!child.pid) throw new Error('Сервер не запустился')
   const pid = child.pid

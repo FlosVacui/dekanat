@@ -6,6 +6,7 @@
 # Без аргумента: создаёт .env, если его нет; имя сайта — временное, вида «адрес-через-дефисы.nip.io».
 # С аргументом: меняет в готовом .env только имя сайта, например: bash -s -- "moy-dekanat.ru, www.moy-dekanat.ru".
 # Пароли базы повторный запуск не меняет: они уже записаны в том базы при первом запуске.
+# Секрет подписи справок (CERTIFICATE_SECRET) повторный запуск дописывает, только если его нет.
 set -euo pipefail
 
 main() {
@@ -52,6 +53,7 @@ main() {
       {
         printf 'POSTGRES_OWNER_PASSWORD=%s\n' "$(openssl rand -hex 24)"
         printf 'POSTGRES_APP_PASSWORD=%s\n' "$(openssl rand -hex 24)"
+        printf 'CERTIFICATE_SECRET=%s\n' "$(openssl rand -hex 24)"
         printf 'CLIENT_IP_HEADER=x-real-ip\n'
         printf 'SITE_ADDRESS=%s\n' "$site"
         printf 'COMPOSE_FILE=compose.yaml:compose.proxy.yaml\n'
@@ -59,6 +61,15 @@ main() {
       } >.env
     )
     echo "env: created"
+  fi
+
+  # Секрет подписи справок: в уже созданный .env дописывается, если его там нет или он короче 16 знаков (приложение
+  # тогда выключает «Получить сразу»). Значение создаётся на сервере и не печатается; существующий секрет не меняется.
+  if ! grep -qE '^CERTIFICATE_SECRET=.{16,}' .env; then
+    sed -i '/^CERTIFICATE_SECRET=/d' .env
+    [[ -z "$(tail -c1 .env)" ]] || echo >>.env
+    (umask 077 && printf 'CERTIFICATE_SECRET=%s\n' "$(openssl rand -hex 24)" >>.env)
+    echo "env: CERTIFICATE_SECRET added"
   fi
 
   if [[ -n "$new_site" ]]; then

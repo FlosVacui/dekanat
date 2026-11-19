@@ -5,7 +5,8 @@ import { isRequestKind } from '@/lib/requests'
 import { getClientIp } from '@/server/auth/cookie'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import { RequestLimitError } from '@/server/dal/guards'
-import { createMyRequest } from '@/server/dal/student'
+import { getConfig } from '@/server/config'
+import { createMyReadyCertificate, createMyRequest } from '@/server/dal/student'
 import { logSecurityEvent } from '@/server/security-log'
 
 /** Значение поля из формы: нет поля — undefined (слой подставит значение по умолчанию); не строка — пустая строка (слой откажет). */
@@ -37,4 +38,24 @@ export async function createRequestAction(formData: FormData): Promise<void> {
   }
   if (!createdId) redirect('/requests')
   redirect(`/requests/${createdId}`)
+}
+
+/**
+ * «Получить сразу»: справка об обучении («По месту требования») сразу в статусе «Готова», затем печатная страница с QR.
+ * Без секрета подписи в окружении кнопки нет, и действие ничего не создаёт. Лимит записи — как у обычной подачи.
+ */
+export async function createReadyCertificateAction(): Promise<void> {
+  const actor = await requireStudentActor()
+  if (!getConfig().certificateSecret) redirect('/requests')
+  const ip = await getClientIp()
+  let createdId: string | null
+  try {
+    createdId = (await createMyReadyCertificate(actor, ip))?.id ?? null
+  } catch (error) {
+    if (!(error instanceof RequestLimitError)) throw error
+    logSecurityEvent('request_limit', { userId: actor.userId, ip })
+    redirect(`/requests/new?type=dean_certificate&limit=${error.scope}`)
+  }
+  if (!createdId) redirect('/requests')
+  redirect(`/requests/${createdId}/certificate`)
 }

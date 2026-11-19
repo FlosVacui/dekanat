@@ -9,7 +9,17 @@ import { StaffShell } from '@/components/staff-shell'
 import { LoadingCard } from '@/components/states/loading-card'
 import { formatDate, todayIn } from '@/lib/dates'
 import { topicLabel } from '@/lib/questions'
-import { REQUEST_KIND_INFO, REQUEST_STATUSES, STATUS_LABELS, isRequestKind, isRequestStatus, type RequestStatus } from '@/lib/requests'
+import {
+  REQUEST_KIND_INFO,
+  REQUEST_STATUSES,
+  STATUS_LABELS,
+  isRequestKind,
+  isRequestStatus,
+  overdueDays,
+  overdueLabel,
+  sortOverdueFirst,
+  type RequestStatus,
+} from '@/lib/requests'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { requireStaffActor } from '@/server/auth/page-guards'
@@ -32,7 +42,7 @@ export default async function StaffRequestsPage({ searchParams }: { searchParams
   return (
     <Suspense
       fallback={
-        <StaffShell>
+        <StaffShell juryMode={getConfig().juryMode}>
           <LoadingCard label="Загружаем заявки…" />
         </StaffShell>
       }
@@ -69,14 +79,22 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
   const found = needle ? all.filter((r) => r.studentName.toLocaleLowerCase('ru').includes(needle)) : all
   const foundQuestions = needle ? allQuestions.filter((r) => r.studentName.toLocaleLowerCase('ru').includes(needle)) : allQuestions
   const counts = new Map<RequestStatus, number>(REQUEST_STATUSES.map((s) => [s, found.filter((r) => r.status === s).length]))
-  const items = status ? found.filter((r) => r.status === status) : found
+  const filtered = status ? found.filter((r) => r.status === status) : found
+  // Просрочка: у заявки «В работе» срок записан при взятии в работу (`dueDate`). Просроченные идут первыми.
+  const today = todayIn(tz)
+  const overdueById = new Map<string, number>()
+  for (const r of filtered) {
+    const days = overdueDays(r.dueDate, r.status, today)
+    if (days > 0) overdueById.set(r.id, days)
+  }
+  const items = sortOverdueFirst(filtered, overdueById)
   const chips: { status: RequestStatus | 'questions' | null; label: string; count: number }[] = [
     { status: null, label: 'Все', count: found.length },
     ...REQUEST_STATUSES.map((s) => ({ status: s, label: STATUS_LABELS[s], count: counts.get(s) ?? 0 })),
     { status: 'questions', label: 'Вопросы', count: foundQuestions.length },
   ]
   return (
-    <StaffShell>
+    <StaffShell juryMode={getConfig().juryMode}>
       <PageTitle>Заявки студентов</PageTitle>
       {all.length === 0 && allQuestions.length === 0 ? (
         <EmptyState title="Заявок пока нет" text="Когда студенты подадут заявки, они появятся здесь" />
@@ -166,6 +184,14 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
                   <span className="text-[length:var(--fs-sm)] text-muted">Группа {r.groupName}</span>
                   <span className="text-[length:var(--fs-sm)]">{isRequestKind(r.kind) ? REQUEST_KIND_INFO[r.kind].title : 'Заявка'}</span>
                   <span className="text-[length:var(--fs-sm)] text-muted">Подана {formatDate(todayIn(tz, r.createdAt))}</span>
+                  {overdueById.has(r.id) ? (
+                    <span
+                      data-testid="overdue-mark"
+                      className="inline-flex w-fit items-center rounded-pill bg-error-bg px-[var(--sp-3)] py-1 text-[length:var(--fs-sm)] font-extrabold text-error"
+                    >
+                      {overdueLabel(overdueById.get(r.id) ?? 0)}
+                    </span>
+                  ) : null}
                   {isRequestStatus(r.status) ? (
                     <RequestStatusChip status={r.status} label={`Статус: ${STATUS_LABELS[r.status]}`} />
                   ) : (

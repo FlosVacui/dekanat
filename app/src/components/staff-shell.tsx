@@ -2,10 +2,13 @@ import Image from 'next/image'
 import type { ReactNode } from 'react'
 import { logoutAction } from '@/app/login/actions'
 import { SubmitButton } from '@/components/submit-button'
+import { JuryPanel } from '@/components/jury/jury-panel'
+import { ProcessLink } from '@/components/jury/process-link'
 
 // Каркас экранов сотрудника: знак, название и «Выйти». Вкладок у сотрудника нет (S-2.1, раздел 2).
 // Шапка — по разделу 6 дизайн-системы (D-2.2-system), знак — по разделу 7.
-export function StaffShell({ children }: { children: ReactNode }) {
+// juryMode приходит от серверной страницы: оболочку рисует и клиентский error.tsx, где config недоступен.
+export function StaffShell({ children, juryMode = false }: { children: ReactNode; juryMode?: boolean }) {
   return (
     <div className="mx-auto w-full max-w-3xl lg:max-w-[1200px]">
       <header className="flex items-center gap-1 bg-header-bg px-[var(--pad-x)] pb-[var(--sp-3)] pt-[var(--sp-4)] text-on-header">
@@ -22,6 +25,8 @@ export function StaffShell({ children }: { children: ReactNode }) {
         </form>
       </header>
       <main className="px-[var(--pad-x)] py-[var(--sp-4)]">{children}</main>
+      <ProcessLink />
+      {juryMode ? <JuryPanel /> : null}
     </div>
   )
 }

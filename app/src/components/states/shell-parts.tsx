@@ -243,7 +243,18 @@ export function StudentSideNav({ active, unread = 0 }: { active: StudentTab | nu
  * `data` — то, что шапка знает о студенте; `null` — каркас без данных (состояния «загрузка» и «ошибка»).
  * Ниже 1024 px после середины стоит ссылка «Идеи и планы» (макет М6): она вне навигации «Разделы» и над общим подвалом.
  */
-export function StudentFrame({ data, active, children }: { data: HeaderData | null; active: StudentTab | null; children: ReactNode }) {
+export function StudentFrame({
+  data,
+  active,
+  children,
+  footer,
+}: {
+  data: HeaderData | null
+  active: StudentTab | null
+  children: ReactNode
+  /** Строка под содержимым и ссылкой «Идеи и планы» (ссылка «Как это сделано»). Стоит в разметке до нижней панели вкладок: порядок фокуса — содержимое, ссылки, вкладки. */
+  footer?: ReactNode
+}) {
   const ideasActive = active === 'ideas'
   return (
     <div className="mx-auto w-full max-w-3xl lg:grid lg:max-w-[1200px] lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
@@ -265,6 +276,7 @@ export function StudentFrame({ data, active, children }: { data: HeaderData | nu
           {ITEMS.ideas.label}
         </Link>
       </div>
+      {footer ? <div className="lg:col-span-2">{footer}</div> : null}
       <StudentTabBar active={active} />
     </div>
   )

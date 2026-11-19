@@ -118,9 +118,15 @@ export async function requestIdWithMarker(token: string, marker: string): Promis
   throw new Error(`Заявки с меткой «${marker}» нет`)
 }
 
-/** Идентификатор серверного действия из формы без JavaScript: скрытое поле $ACTION_ID_<id>. */
-export function actionIdFromHtml(html: string): string {
-  const match = html.match(/name="\$ACTION_ID_([0-9a-f]+)"/)
+/**
+ * Идентификатор серверного действия из формы без JavaScript: скрытое поле $ACTION_ID_<id>.
+ * `formHas` — часть разметки, которая есть только в нужной форме. На странице новой заявки две формы: «Получить сразу» и обычная
+ * подача; без уточнения берётся первая, и тест подавал бы не ту заявку.
+ */
+export function actionIdFromHtml(html: string, formHas?: string): string {
+  const forms = [...html.matchAll(/<form\b[\s\S]*?<\/form>/g)].map((m) => m[0])
+  const scope = formHas ? forms.find((f) => f.includes(formHas)) : html
+  const match = scope?.match(/name="\$ACTION_ID_([0-9a-f]+)"/)
   if (!match?.[1]) throw new Error('В странице нет формы с серверным действием')
   return match[1]
 }
@@ -136,7 +142,8 @@ export async function submitRequestRaw(
   headers: Record<string, string> = {},
 ): Promise<RawResponse> {
   const page = await raw(`/requests/new?type=${kind}`, { token })
-  const actionId = actionIdFromHtml(page.text)
+  // Обычная подача — форма с полем `kind`; кнопка «Получить сразу» — другое действие, оно тут не нужно.
+  const actionId = actionIdFromHtml(page.text, 'name="kind"')
   const form = new FormData()
   form.set(`$ACTION_ID_${actionId}`, '')
   form.set('kind', kind)
@@ -147,6 +154,19 @@ export async function submitRequestRaw(
     headers: { origin: BASE_URL, ...headers },
     body: form,
   })
+}
+
+/**
+ * «Получить сразу» «сырым» запросом: форма без своих полей, как её отправляет браузер без скриптов. `extra` — лишние поля,
+ * которых в форме нет (подмена владельца, статуса, назначения).
+ */
+export async function submitReadyCertificateRaw(token: string, extra: Record<string, string> = {}): Promise<RawResponse> {
+  const page = await raw('/requests/new?type=dean_certificate', { token })
+  const actionId = actionIdFromHtml(page.text, 'Получить сразу')
+  const form = new FormData()
+  form.set(`$ACTION_ID_${actionId}`, '')
+  for (const [key, value] of Object.entries(extra)) form.append(key, value)
+  return raw('/requests/new?type=dean_certificate', { token, method: 'POST', headers: { origin: BASE_URL }, body: form })
 }
 
 /** Номер новой заявки из ответа на подачу: перенаправление на /requests/<id>. */

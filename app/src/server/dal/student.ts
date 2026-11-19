@@ -1,6 +1,6 @@
 import 'server-only'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
-import { isIsoDate } from '@/lib/dates'
+import { isIsoDate, todayIn } from '@/lib/dates'
 import { isQuestionTopic, normalizeQuestionText, type QuestionTopic } from '@/lib/questions'
 import { currentYearIn, isRequestKind, normalizeFields, type RequestKind } from '@/lib/requests'
 import { normalizeIp } from '../auth/ip'
@@ -481,6 +481,90 @@ export async function createMyRequest(
   })
 }
 
+/**
+ * Справка об обучении «Получить сразу»: своя заявка `dean_certificate` с назначением «По месту требования» сразу в статусе
+ * «Выдана»: документ у студента на экране, забирать в деканате нечего. История — «Подана», «Готова», «Выдана», одной
+ * транзакцией. Владелец — из сессии. Лимит записи тот же, что у подачи. Секрет и код проверки — забота вызывающего:
+ * слой их не знает.
+ */
+export async function createMyReadyCertificate(actor: Actor, ip: string): Promise<{ id: string } | null> {
+  const { studentId } = requireStudent(actor)
+  const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
+  const today = todayIn(getConfig().timezone)
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`requests:${studentId}`}, 0))`)
+    const counted = await tx.execute(sql`
+      select count(*) filter (where ip = ${safeIp})::int as pair, count(*)::int as account
+      from requests where student_id = ${studentId} and created_at > clock_timestamp() - interval '1 day'
+    `)
+    const pair = Number(counted.rows[0]?.pair ?? 0)
+    const account = Number(counted.rows[0]?.account ?? 0)
+    if (pair >= REQUESTS_PER_DAY_PAIR) throw new RequestLimitError('pair')
+    if (account >= REQUESTS_PER_DAY_ACCOUNT) throw new RequestLimitError('account')
+    const inserted = await tx
+      .insert(requests)
+      .values({
+        studentId,
+        kind: 'dean_certificate',
+        status: 'issued',
+        ip: safeIp,
+        purpose: 'on_demand',
+        paymentYear: null,
+        dueDate: today,
+        issuedOn: today,
+      })
+      .returning({ id: requests.id })
+    const created = inserted[0]
+    if (!created) return null
+    await tx.insert(requestEvents).values({ requestId: created.id, status: 'submitted', byUserId: studentId, ip: safeIp })
+    await tx
+      .insert(requestEvents)
+      .values({ requestId: created.id, status: 'ready', byUserId: studentId, ip: safeIp, createdAt: sql`clock_timestamp()` })
+    await tx
+      .insert(requestEvents)
+      .values({ requestId: created.id, status: 'issued', byUserId: studentId, ip: safeIp, createdAt: sql`clock_timestamp()` })
+    return { id: created.id }
+  })
+}
+
+/** Что публичная страница проверки вправе показать о справке: ничего сверх этих полей. */
+export interface CertificateCheck {
+  kind: string
+  fullName: string
+  course: number
+  groupName: string
+  /** Момент, когда справка стала готова. */
+  issuedAt: Date
+}
+
+/**
+ * Публичное чтение для `/verify` — единственная функция слоя без действующего лица. Вызывается только после успешной проверки
+ * подписи кода (`verifyCertificateCode`): номер приходит из подписанного кода, не из запроса посетителя. Отдаёт только
+ * справку из деканата в статусе «Готова» или «Выдана»; номер заявки, адрес, примечание и прочее наружу не идут.
+ */
+export async function getCertificateForVerification(requestId: string): Promise<CertificateCheck | null> {
+  if (!isUuid(requestId)) return null
+  const db = getDb()
+  const rows = await db
+    .select({ kind: requests.kind, fullName: students.fullName, course: students.course, groupName: groups.name })
+    .from(requests)
+    .innerJoin(students, eq(students.userId, requests.studentId))
+    .innerJoin(groups, eq(groups.id, students.groupId))
+    .where(and(eq(requests.id, requestId), eq(requests.kind, 'dean_certificate'), inArray(requests.status, ['ready', 'issued'])))
+    .limit(1)
+  const row = rows[0]
+  if (!row) return null
+  const ready = await db
+    .select({ at: requestEvents.createdAt })
+    .from(requestEvents)
+    .where(and(eq(requestEvents.requestId, requestId), eq(requestEvents.status, 'ready')))
+    .orderBy(asc(requestEvents.createdAt))
+    .limit(1)
+  const issuedAt = ready[0]?.at
+  if (!issuedAt) return null
+  return { ...row, issuedAt }
+}
+
 // ---------- Вопросы в деканат (пакет 4.1) ----------
 
 /** Вопрос студента. Адреса подачи и ответа наружу не отдаются; кто из сотрудников ответил — тоже. */
@@ -489,20 +573,21 @@ export interface QuestionItem {
   topic: string
   status: string
   createdAt: Date
+  /** Время ответа деканата; пусто, пока вопрос в статусе «Отправлен». */
+  answeredAt: Date | null
 }
 
 export interface QuestionDetail extends QuestionItem {
   body: string
-  /** Ответ деканата и время ответа: пусты, пока вопрос в статусе «Отправлен». */
+  /** Ответ деканата: пуст, пока вопрос в статусе «Отправлен». */
   answer: string | null
-  answeredAt: Date | null
 }
 
 /** Свои вопросы, новые сверху. Владелец — из сессии. */
 export async function listMyQuestions(actor: Actor): Promise<QuestionItem[]> {
   const { studentId } = requireStudent(actor)
   return getDb()
-    .select({ id: questions.id, topic: questions.topic, status: questions.status, createdAt: questions.createdAt })
+    .select({ id: questions.id, topic: questions.topic, status: questions.status, createdAt: questions.createdAt, answeredAt: questions.answeredAt })
     .from(questions)
     .where(eq(questions.studentId, studentId))
     .orderBy(desc(questions.createdAt))

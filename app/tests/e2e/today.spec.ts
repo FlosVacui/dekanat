@@ -62,28 +62,19 @@ const block = (page: Page, name: string) => page.getByRole('region', { name: new
 /** Строки экрана, которые ведут в разделы: ссылки внутри блоков под заголовками уровня 2 и кнопка блока «следующая пара». */
 const mainLinks = (page: Page) => page.locator('main').getByRole('link')
 
-/** Число пар сегодня по плану набора: без отменённых и без пар, перенесённых на другой день; перенесённые на сегодня считаются. */
-function plannedCountToday(): number {
-  return plan.lessons.filter((l) => {
-    if (l.change?.kind === 'cancelled') return false
-    const date = l.change?.kind === 'moved' ? (l.change.newDate ?? l.date) : l.date
-    return date === today
-  }).length
-}
-
-test('Э-2 на 360 px: подзаголовок, пять блоков, уровни заголовков, число строк по данным, прокрутки вбок нет', async ({ browser }) => {
+test('Э-2 на 360 px: заголовок-дата, шесть блоков, уровни заголовков, число строк по данным, прокрутки вбок нет', async ({ browser }) => {
   const { context, page } = await openToday(browser)
   try {
-    // Подзаголовок: день недели, дата, число пар.
-    const subtitle = page.locator('main p', { hasText: ` · ` }).first()
-    const text = ((await subtitle.textContent()) ?? '').trim()
-    const match = new RegExp(`^[А-ЯЁ][а-яё]+, ${formatDayMonth(today)} · (пар нет|(\\d+) пар[аы]?)$`).exec(text)
-    expect(match, `подзаголовок «${text}»`).not.toBeNull()
-    expect(match![2] === undefined ? 0 : Number(match![2]), 'число пар в подзаголовке').toBe(plannedCountToday())
+    // Заголовок — дата: день недели и число («Четверг, 19 ноября»); слово «Сегодня» в нём только для экранного чтеца.
+    const heading = ((await page.getByRole('heading', { level: 1 }).textContent()) ?? '').trim()
+    expect(heading, `заголовок «${heading}»`).toMatch(new RegExp(`^(Сегодня: )?[А-ЯЁ][а-яё]+, ${formatDayMonth(today)}$`))
+    // Подпись — группа и неделя: «ИТ-23-04 · 11 неделя, верхняя».
+    const subtitle = ((await page.locator('main p', { hasText: ' неделя, ' }).first().textContent()) ?? '').trim()
+    expect(subtitle, `подпись «${subtitle}»`).toMatch(/ · \d+ неделя, (верхняя|нижняя)$/)
 
-    // Пять блоков: блок «следующая пара» и четыре с заголовками уровня 2.
+    // Шесть блоков: блок «следующая пара» и пять с заголовками уровня 2 («Ждёт вас» первым).
     await expect(page.getByRole('region', { name: 'Следующая пара', exact: true })).toBeVisible()
-    const titles = ['Изменения в расписании', 'Что сдать на этой неделе', 'Мои заявки', 'Объявления']
+    const titles = ['Ждёт вас', 'Изменения в расписании', 'Что сдать на этой неделе', 'Мои заявки', 'Объявления']
     for (const title of titles) await expect(page.getByRole('heading', { name: title, level: 2 })).toBeVisible()
 
     // Уровни заголовков без пропусков.
@@ -212,58 +203,47 @@ test('строка «что сдать» ведёт на экран своей �
   }
 })
 
-test('кнопка блока «следующая пара» ведёт на день этой пары', async ({ browser }) => {
+test('блок «следующая пара»: время и «до …», подпись; ссылка «Расписание на неделю» ведёт в недельный вид', async ({ browser }) => {
   const { context, page } = await openToday(browser)
   try {
     const hero = page.getByRole('region', { name: 'Следующая пара', exact: true })
     await expect(hero).toBeVisible()
     if (plan.totalEntries === 0) {
-      // В семи днях от сегодня у группы нет записей: блок говорит, что пар нет, кнопки нет.
+      // В семи днях от сегодня у группы нет записей: блок говорит, что пар нет, ссылки нет.
       await expect(hero).toContainText('В ближайшие 7 дней пар нет')
-      await expect(hero.getByRole('link')).toHaveCount(0)
+      await expect(page.getByRole('link', { name: 'Расписание на неделю' })).toHaveCount(0)
       return
     }
-    // Записи в семи днях есть. Какая из них «следующая», решают день и час запуска; тест читает ответ с экрана и сверяет с днём из семи.
-    // Подпись — «Идёт сейчас» или «Следующая пара»; заголовок даты — «Сегодня», «Завтра, ср 18 ноября» или «Пт 20 ноября».
+    // Подпись — «Идёт сейчас» или «Следующая пара»; у пары другого дня над названием стоит заголовок даты («Завтра, ср 18 ноября», «Пт 20 ноября»),
+    // у сегодняшней его нет: заголовок экрана и так дата.
     const caption = ((await hero.getByTestId('next-caption').textContent()) ?? '').trim()
     expect(['Идёт сейчас', 'Следующая пара'], `подпись «${caption}»`).toContain(caption)
-    const dateTitle = ((await hero.getByTestId('next-date').textContent()) ?? '').trim()
-    const titleOf = (d: string): string =>
-      d === today
-        ? 'Сегодня'
-        : d === tomorrow
-          ? `Завтра, ${weekdayShort(d)} ${formatDayMonth(d)}`
-          : `${weekdayShort(d).charAt(0).toUpperCase()}${weekdayShort(d).slice(1)} ${formatDayMonth(d)}`
-    const date = plan.window.find((d) => dateTitle === titleOf(d))
-    expect(date, `день из заголовка «${dateTitle}» не найден среди семи дней`).toBeDefined()
-    const expectedDate = date!
-    const expectedHref = expectedDate === today ? '/schedule' : `/schedule?day=${expectedDate}`
-    if (expectedDate === today) {
-      // Пара сегодня: «Идёт сейчас» или «Следующая пара»; плашки «пары закончились» нет.
+    const dateTitles = hero.getByTestId('next-date')
+    if ((await dateTitles.count()) === 0) {
       await expect(page.getByTestId('day-status')).toHaveCount(0)
     } else {
-      expect(expectedDate > today, 'другой день позже сегодняшнего').toBe(true)
+      const dateTitle = ((await dateTitles.textContent()) ?? '').trim()
+      const titleOf = (d: string): string =>
+        d === tomorrow
+          ? `Завтра, ${weekdayShort(d)} ${formatDayMonth(d)}`
+          : `${weekdayShort(d).charAt(0).toUpperCase()}${weekdayShort(d).slice(1)} ${formatDayMonth(d)}`
+      const date = plan.window.find((d) => d !== today && dateTitle === titleOf(d))
+      expect(date, `день из заголовка «${dateTitle}» не найден среди семи дней`).toBeDefined()
       expect(caption, 'у пары другого дня «Идёт сейчас» не бывает').toBe('Следующая пара')
     }
-    // Время «следующей пары» стоит отдельной строкой: «10:10 – 11:40».
-    await expect(hero.locator('.hero-time')).toHaveText(/^\d{2}:\d{2}\s–\s\d{2}:\d{2}$/)
+    // Время — крупно, под ним «до 11:40»; аудитория названа.
+    await expect(hero.locator('.hero-time')).toHaveText(/^\d{2}:\d{2} до \d{2}:\d{2}$/)
     const name = ((await hero.getByTestId('next-discipline').textContent()) ?? '').trim()
     expect(name.length, 'название пары').toBeGreaterThan(0)
+    await expect(hero.getByTestId('next-room')).toContainText('Аудитория')
 
-    const button = hero.getByRole('link', { name: /^Расписание на / })
-    await expect(button).toHaveCount(1)
-    await expect(button).toHaveText(expectedDate === today ? 'Расписание на сегодня' : `Расписание на ${formatDayMonth(expectedDate)}`)
-    await expect(button).toHaveAttribute('href', expectedHref)
-    const box = await button.boundingBox()
-    expect(box!.height, 'высота кнопки').toBeGreaterThanOrEqual(44)
-    await button.click()
-    await expect(page).toHaveURL(`${BASE_URL}${expectedHref}`)
-    await expect(
-      page.getByRole('heading', { name: expectedDate === today ? /Расписание на сегодня/ : `Расписание на ${formatDayMonth(expectedDate)}`, level: 1 }),
-    ).toBeVisible()
-    // Эта пара стоит на этом дне расписания.
-    await expect(page.getByRole('heading', { name }).first()).toBeVisible()
-    expect(addDays(today, 6) >= expectedDate).toBe(true)
+    const link = page.getByRole('link', { name: 'Расписание на неделю', exact: true })
+    await expect(link).toHaveCount(1)
+    await expect(link).toHaveAttribute('href', '/schedule?view=week')
+    const box = await link.boundingBox()
+    expect(box!.height, 'высота ссылки').toBeGreaterThanOrEqual(44)
+    await link.click()
+    await expect(page).toHaveURL(`${BASE_URL}/schedule?view=week`)
   } finally {
     await context.close()
   }

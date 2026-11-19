@@ -23,6 +23,7 @@ import {
   replayStatusAction,
   requestIdWithMarker,
   studentSeesStatus,
+  submitReadyCertificateRaw,
   submitRequestRaw,
   submitRequestUi,
   type CapturedAction,
@@ -217,6 +218,34 @@ test.describe('П-04: владелец берётся из сессии, а не
     // Сотрудник видит заявку как заявку А.
     const staffView = await raw(`/staff/requests/${id}`, { token: staff.token })
     expect(staffView.text).toContain(A.fullName)
+  })
+})
+
+test.describe('П-04: «Получить сразу» тоже берёт владельца из сессии', () => {
+  test('лишние поля в теле не принимаются: справка у А, статус «Выдана», у Б её нет, чужой номер печатной страницы — отказ', async () => {
+    const res = await submitReadyCertificateRaw(a.token, {
+      studentId: bSeedId,
+      userId: bSeedId,
+      role: 'staff',
+      status: 'submitted',
+      purpose: 'military',
+      kind: 'financial_aid',
+      cohort: 'test-alt',
+    })
+    const id = createdRequestId(res)
+    expect(id, `код ${res.status}`).not.toBeNull()
+    expect(res.location ?? res.headers.get('x-action-redirect')).toContain(`/requests/${id}/certificate`)
+    expect(await studentSeesStatus(a.token, id!)).toBe('Выдана')
+    expect(await myRequestIds(a.token)).toContain(id)
+    expect(await myRequestIds(b.token)).not.toContain(id)
+    expect((await raw(`/requests/${id}`, { token: b.token })).status).toBe(404)
+    expect((await raw(`/requests/${id}/certificate`, { token: b.token })).status).toBe(404)
+    expect((await raw(`/requests/${id}/certificate`, { token: staff.token })).status).toBe(403)
+    // Вид и назначение — свои, а не из тела: справка об обучении, «по месту требования».
+    const staffView = await raw(`/staff/requests/${id}`, { token: staff.token })
+    expect(staffView.text).toContain(A.fullName)
+    expect(staffView.text).toContain('Справка из деканата')
+    expect(staffView.text).not.toContain('материальную помощь')
   })
 })
 

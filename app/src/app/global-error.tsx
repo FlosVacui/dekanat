@@ -4,7 +4,7 @@
 // Карточка та же, что в error.tsx. Каркас без данных, вкладки не отмечены. Текста ошибки на экране нет.
 // Подвал с пометкой «Концепт для конкурса, не официальный сервис вуза» — та же разметка, что в app/layout.tsx: макет заменён этим файлом,
 // и без своего подвала пометка на экране ошибки пропала бы (R-3.7-15, пункт а).
-import '@fontsource-variable/nunito'
+import '@fontsource-variable/golos-text'
 import './globals.css'
 import { ErrorCard } from '@/components/states/error-card'
 import { StudentFrame } from '@/components/states/shell-parts'

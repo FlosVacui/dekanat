@@ -31,10 +31,45 @@ html {
   }
 }
 
-/* Время «следующей пары»: цифры одной ширины, чтобы блок не дёргался (D-2.2-system, раздел 3).
-   Класса в продукте пока нет: его возьмёт экран «Сегодня» (пакет 3.6). */
+/* Время ближайшей пары: цифры одной ширины, чтобы блок не дёргался (D-2.2-system, раздел 3). */
 .hero-time {
   font-variant-numeric: tabular-nums;
+}
+
+/* Цифры оценок, баллов, времени и сроков — одной ширины: столбцы и строки не «пляшут» (дизайн-проход 19.11).
+   Таблицы и элементы <time> получают это правилом; в остальных местах стоит класс tabular-nums у самого числа. */
+table,
+time {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Заголовки уровней 1–3 переносятся ровными строками: не остаётся одного слова на последней (дизайн-проход 19.11). */
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+/* Раскрытие <details>: высота содержимого плавно растёт и сжимается за 200 мс (дизайн-проход 19.11).
+   interpolate-size разрешает анимировать высоту до значения auto; ::details-content — контейнер содержимого.
+   В браузере без этих возможностей раскрытие мгновенное, как раньше. Следующий блок ниже выключает всё движение. */
+:root {
+  interpolate-size: allow-keywords;
+}
+details::details-content {
+  block-size: 0;
+  overflow: clip;
+  transition:
+    block-size 200ms ease-out,
+    content-visibility 200ms ease-out allow-discrete;
+}
+details[open]::details-content {
+  block-size: auto;
+}
+@media (prefers-reduced-motion: reduce) {
+  details::details-content {
+    transition: none;
+  }
 }
 
 /* Состояние «загрузка» (D-2.2-system, 5.7; R-1.3, Н7.1 и Н7.2): первую секунду карточки не видно, до десятой секунды не видно

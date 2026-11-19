@@ -98,7 +98,10 @@ describe('R-2.3-35: выключателя проверок по окружен�
   it('конфигурация — только четыре значения, без флагов отключения', () => {
     const config = src.find((f) => f.rel === 'server/config.ts')!.text
     const names = [...config.matchAll(/process\.env(?:\.(\w+)|\[\s*name\s*\])/g)].map((m) => m[1] ?? '(required)')
-    expect(new Set(names)).toEqual(new Set(['DB_POOL_MAX', 'CLIENT_IP_HEADER', 'APP_TIMEZONE', '(required)']))
+    // 19.11, ИИ-функции: четыре переменные модели (getAiConfig). Остальные имена прежние.
+    expect(new Set(names)).toEqual(
+      new Set(['DB_POOL_MAX', 'CLIENT_IP_HEADER', 'APP_TIMEZONE', 'CERTIFICATE_SECRET', 'JURY_MODE', 'AI_BASE_URL', 'AI_API_KEY', 'AI_MODEL', 'AI_FOLDER_ID', '(required)']),
+    )
     expect(config.match(/required\('(\w+)'\)/g)).toEqual(["required('DATABASE_URL')"])
   })
 
@@ -110,7 +113,8 @@ describe('R-2.3-35: выключателя проверок по окружен�
     })
     expect(switches.map((f) => f.rel)).toEqual([])
     const headerReaders = src.filter((f) => /\bheaders\(\)/.test(f.text)).map((f) => f.rel)
-    expect(headerReaders).toEqual(['server/auth/cookie.ts'])
+    // Печатная справка читает Host, чтобы собрать адрес проверки для QR (19.11, идея №8).
+    expect(headerReaders).toEqual(['app/requests/[id]/certificate/page.tsx', 'server/auth/cookie.ts'])
     // R-3.10-10: заголовок можно прочитать и у объекта запроса — request.headers.get(...).
     // Так читает только посредник, и только Origin; любое другое такое чтение — повод для ревью.
     // Проверка грубая (RV-3.10-9-3): не видит headers?.get, headers['…'], деструктуризацию и обход [...headers];
@@ -159,7 +163,7 @@ describe('Д-03, Д-04: версия Next.js и файл блокировки', 
 // ---------- Аудит ворот 3, пакет 3.10 (SEC-3.10): Т-01, Ж-04 — раньше без теста (IMP-018, пункт 3) ----------
 
 describe('Т-01: тестовый аккаунт не может испортить доступ — действий над учётной записью нет', () => {
-  it('серверных действий ровно восемь: вход, выход, подача, смена статуса, две отметки ленты, вопрос и ответ на него (пакет 4.1); обработчиков маршрутов нет', () => {
+  it('серверных действий ровно десять: вход, выход, подача, «Получить сразу», смена статуса, две отметки ленты, вопрос, ответ на него (пакет 4.1) и черновик ответа ИИ (19.11); обработчиков маршрутов нет', () => {
     // Новое действие (смена пароля, почты, удаление аккаунта) делает этот тест красным: его надо разобрать в аудите.
     const actions = src
       .filter((f) => /^['"]use server['"]/m.test(f.text))
@@ -172,8 +176,11 @@ describe('Т-01: тестовый аккаунт не может испорти�
         'app/notifications/actions.ts:markAllFeedReadAction',
         'app/notifications/actions.ts:openFeedItemAction',
         'app/questions/new/actions.ts:createQuestionAction',
+        'app/requests/new/actions.ts:createReadyCertificateAction',
         'app/requests/new/actions.ts:createRequestAction',
         'app/staff/questions/[id]/actions.ts:answerQuestionAction',
+        // 19.11, ИИ-функции: «Черновик ИИ» ничего не пишет в базу и не отправляет, только возвращает текст форме.
+        'app/staff/questions/[id]/actions.ts:draftAnswerAction',
         'app/staff/requests/[id]/actions.ts:changeStatusAction',
       ].sort(),
     )
