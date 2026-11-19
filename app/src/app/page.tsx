@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { Chip } from '@/components/grades/chip'
 import { PageTitle } from '@/components/card'
+import { LinkButton } from '@/components/link-button'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { dayHref } from '@/components/schedule/hrefs'
 import { StudentShell } from '@/components/student-shell'
@@ -120,6 +121,9 @@ export default async function TodayPage() {
               ))}
             </RowList>
           )}
+          <LinkButton href="/questions/new" variant="ghost" className="mt-[var(--sp-2)] justify-start">
+            Спросить деканат
+          </LinkButton>
         </TodayBlock>
 
         <TodayBlock

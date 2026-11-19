@@ -107,9 +107,13 @@ test('Э-2 на 360 px: подзаголовок, пять блоков, уро�
     // Заявки: строки — по базе; у каждой плашка статуса.
     const news = await requestNewsCount(student1.login)
     const requests = block(page, 'Мои заявки')
+    // Пакет 4.1: в блоке ещё ссылка «Спросить деканат» на /questions/new — ровно одна; остальные ссылки — строки заявок.
+    await expect(requests.getByRole('link', { name: 'Спросить деканат', exact: true })).toHaveAttribute('href', '/questions/new')
+    const rows = requests.getByRole('link').filter({ hasNotText: /^Спросить деканат$/ })
+    await expect(requests.getByRole('link')).toHaveCount(news + 1)
     if (news > 0) {
-      await expect(requests.getByRole('link')).toHaveCount(news)
-      for (const link of await requests.getByRole('link').all()) await expect(link).toHaveAttribute('href', /^\/requests\/[0-9a-f-]{36}$/)
+      await expect(rows).toHaveCount(news)
+      for (const link of await rows.all()) await expect(link).toHaveAttribute('href', /^\/requests\/[0-9a-f-]{36}$/)
     } else {
       await expect(requests).toContainText('Новостей по заявкам нет')
     }

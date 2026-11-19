@@ -1,6 +1,7 @@
 import 'server-only'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { isIsoDate } from '@/lib/dates'
+import { isQuestionTopic, normalizeQuestionText, type QuestionTopic } from '@/lib/questions'
 import { currentYearIn, isRequestKind, normalizeFields, type RequestKind } from '@/lib/requests'
 import { normalizeIp } from '../auth/ip'
 import type { Actor } from '../auth/session'
@@ -19,6 +20,7 @@ import {
   lessonChanges,
   lessons,
   notifications,
+  questions,
   requestEvents,
   requests,
   students,
@@ -476,6 +478,92 @@ export async function createMyRequest(
     if (!created) return null
     await tx.insert(requestEvents).values({ requestId: created.id, status: 'submitted', byUserId: studentId, ip: safeIp })
     return { id: created.id }
+  })
+}
+
+// ---------- Вопросы в деканат (пакет 4.1) ----------
+
+/** Вопрос студента. Адреса подачи и ответа наружу не отдаются; кто из сотрудников ответил — тоже. */
+export interface QuestionItem {
+  id: string
+  topic: string
+  status: string
+  createdAt: Date
+}
+
+export interface QuestionDetail extends QuestionItem {
+  body: string
+  /** Ответ деканата и время ответа: пусты, пока вопрос в статусе «Отправлен». */
+  answer: string | null
+  answeredAt: Date | null
+}
+
+/** Свои вопросы, новые сверху. Владелец — из сессии. */
+export async function listMyQuestions(actor: Actor): Promise<QuestionItem[]> {
+  const { studentId } = requireStudent(actor)
+  return getDb()
+    .select({ id: questions.id, topic: questions.topic, status: questions.status, createdAt: questions.createdAt })
+    .from(questions)
+    .where(eq(questions.studentId, studentId))
+    .orderBy(desc(questions.createdAt))
+}
+
+/** Вопрос по номеру: «номер и владелец» в одном запросе. Чужой и несуществующий — одинаково null. */
+export async function getMyQuestion(actor: Actor, questionId: string): Promise<QuestionDetail | null> {
+  const { studentId } = requireStudent(actor)
+  if (!isUuid(questionId)) return null
+  const rows = await getDb()
+    .select({
+      id: questions.id,
+      topic: questions.topic,
+      status: questions.status,
+      createdAt: questions.createdAt,
+      body: questions.body,
+      answer: questions.answer,
+      answeredAt: questions.answeredAt,
+    })
+    .from(questions)
+    .where(and(eq(questions.id, questionId), eq(questions.studentId, studentId)))
+    .limit(1)
+  return rows[0] ?? null
+}
+
+/** Лимит записи (ADR-0003): вопросов в сутки на пару «аккаунт и адрес» и на аккаунт. Числа — как у заявок. */
+export const QUESTIONS_PER_DAY_PAIR = 10
+export const QUESTIONS_PER_DAY_ACCOUNT = 200
+
+/**
+ * Вопрос в деканат. Студент передаёт тему и текст; владельца и статус «Отправлен» ставит слой. Тема не из списка, текст
+ * пустой после обрезки пробелов или длиннее 1000 знаков — вопрос не создаётся (null). Проверка здесь, в слое, а не только
+ * в форме. Адрес подачи записывается в вопрос; значение «unknown» — заголовка нет.
+ * Предел — как у заявок: не больше 10 вопросов в сутки на пару «аккаунт и адрес» и 200 на аккаунт. Проверка и вставка — одна
+ * транзакция под замком на аккаунт. Исчерпан предел — `RequestLimitError`, вопрос не создаётся.
+ */
+export async function createMyQuestion(
+  actor: Actor,
+  input: { topic: QuestionTopic | string; text: string },
+  ip: string,
+): Promise<{ id: string } | null> {
+  const { studentId } = requireStudent(actor)
+  if (!isQuestionTopic(input?.topic)) return null
+  const text = normalizeQuestionText(input.text)
+  if (text === null) return null
+  const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
+  return getDb().transaction(async (tx) => {
+    await tx.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`questions:${studentId}`}, 0))`)
+    const counted = await tx.execute(sql`
+      select count(*) filter (where ip = ${safeIp})::int as pair, count(*)::int as account
+      from questions where student_id = ${studentId} and created_at > clock_timestamp() - interval '1 day'
+    `)
+    const pair = Number(counted.rows[0]?.pair ?? 0)
+    const account = Number(counted.rows[0]?.account ?? 0)
+    if (pair >= QUESTIONS_PER_DAY_PAIR) throw new RequestLimitError('pair')
+    if (account >= QUESTIONS_PER_DAY_ACCOUNT) throw new RequestLimitError('account')
+    const inserted = await tx
+      .insert(questions)
+      .values({ studentId, topic: input.topic, body: text, status: 'sent', ip: safeIp })
+      .returning({ id: questions.id })
+    return inserted[0] ? { id: inserted[0].id } : null
   })
 }
 

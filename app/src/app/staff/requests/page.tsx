@@ -2,25 +2,28 @@ import Link from 'next/link'
 import { Suspense } from 'react'
 import { PageTitle } from '@/components/card'
 import { EmptyState } from '@/components/grades/empty-state'
+import { QuestionStatusChip } from '@/components/questions/status-chip'
 import { RequestIcon } from '@/components/requests/icons'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { StaffShell } from '@/components/staff-shell'
 import { LoadingCard } from '@/components/states/loading-card'
 import { formatDate, todayIn } from '@/lib/dates'
+import { topicLabel } from '@/lib/questions'
 import { REQUEST_KIND_INFO, REQUEST_STATUSES, STATUS_LABELS, isRequestKind, isRequestStatus, type RequestStatus } from '@/lib/requests'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { requireStaffActor } from '@/server/auth/page-guards'
 import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
-import { listCohortRequests } from '@/server/dal/staff'
+import { listCohortQuestions, listCohortRequests } from '@/server/dal/staff'
 
 // Э-11 «Заявки — сотрудник»: заявки студентов своего набора. Фильтр по статусу со счётчиками и поиск по ФИО студента —
 // параметрами адреса `?status=` и `?q=`, обычные ссылки и форма GET: работают и без скриптов (шаг 2 JURY-3.10).
 // Набор и так ограничен слоем доступа; фильтр отбирает из уже разрешённого списка.
+// Пакет 4.1: фишка «Вопросы» (`?view=questions`) показывает вопросы студентов набора вместо заявок; поиск `?q=` работает и там.
 export const dynamic = 'force-dynamic'
 
-type Params = { status?: string | string[]; q?: string | string[] }
+type Params = { status?: string | string[]; q?: string | string[]; view?: string | string[] }
 
 export default async function StaffRequestsPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
@@ -45,37 +48,43 @@ function one(value: string | string[] | undefined): string {
   return (Array.isArray(value) ? value[0] : value)?.trim() ?? ''
 }
 
-function hrefFor(status: RequestStatus | null, q: string): string {
+/** Адрес вида: статус заявок или `view=questions`; поиск `q` переносится в любую фишку. */
+function hrefFor(status: RequestStatus | 'questions' | null, q: string): string {
   const params = new URLSearchParams()
-  if (status) params.set('status', status)
+  if (status === 'questions') params.set('view', 'questions')
+  else if (status) params.set('status', status)
   if (q) params.set('q', q)
   const query = params.toString()
   return query ? `/staff/requests?${query}` : '/staff/requests'
 }
 
 async function StaffRequestsContent({ actor, params }: { actor: Actor; params: Params }) {
-  const all = await listCohortRequests(actor)
+  const [all, allQuestions] = await Promise.all([listCohortRequests(actor), listCohortQuestions(actor)])
   const tz = getConfig().timezone
+  const questionsView = one(params.view) === 'questions'
   const rawStatus = one(params.status)
-  const status = isRequestStatus(rawStatus) ? rawStatus : null
+  const status = !questionsView && isRequestStatus(rawStatus) ? rawStatus : null
   const q = one(params.q).slice(0, 100)
   const needle = q.toLocaleLowerCase('ru')
   const found = needle ? all.filter((r) => r.studentName.toLocaleLowerCase('ru').includes(needle)) : all
+  const foundQuestions = needle ? allQuestions.filter((r) => r.studentName.toLocaleLowerCase('ru').includes(needle)) : allQuestions
   const counts = new Map<RequestStatus, number>(REQUEST_STATUSES.map((s) => [s, found.filter((r) => r.status === s).length]))
   const items = status ? found.filter((r) => r.status === status) : found
-  const chips: { status: RequestStatus | null; label: string; count: number }[] = [
+  const chips: { status: RequestStatus | 'questions' | null; label: string; count: number }[] = [
     { status: null, label: 'Все', count: found.length },
     ...REQUEST_STATUSES.map((s) => ({ status: s, label: STATUS_LABELS[s], count: counts.get(s) ?? 0 })),
+    { status: 'questions', label: 'Вопросы', count: foundQuestions.length },
   ]
   return (
     <StaffShell>
       <PageTitle>Заявки студентов</PageTitle>
-      {all.length === 0 ? (
+      {all.length === 0 && allQuestions.length === 0 ? (
         <EmptyState title="Заявок пока нет" text="Когда студенты подадут заявки, они появятся здесь" />
       ) : (
         <div className="flex flex-col gap-[var(--gap)]">
           <form action="/staff/requests" method="get" role="search" className="flex flex-col gap-[var(--sp-2)] sm:flex-row sm:items-end">
             {status ? <input type="hidden" name="status" value={status} /> : null}
+            {questionsView ? <input type="hidden" name="view" value="questions" /> : null}
             <label className="flex flex-1 flex-col gap-1.5 text-[length:var(--fs-sm)] font-bold">
               Поиск по ФИО студента
               <input
@@ -92,7 +101,7 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
           <nav aria-label="Фильтр по статусу">
             <ul className="flex flex-wrap gap-[var(--sp-2)]">
               {chips.map((c) => {
-                const active = c.status === status
+                const active = c.status === 'questions' ? questionsView : !questionsView && c.status === status
                 return (
                   <li key={c.status ?? 'all'}>
                     <Link
@@ -113,7 +122,32 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
               })}
             </ul>
           </nav>
-          {items.length === 0 ? (
+          {questionsView ? (
+            foundQuestions.length === 0 ? (
+              <EmptyState title={allQuestions.length === 0 ? 'Вопросов пока нет' : 'Ничего не найдено'} />
+            ) : (
+              <ul className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2">
+                {foundQuestions.map((r) => (
+                  <li key={r.id}>
+                    {/* Карточка-ссылка, как у заявки: рамка фокуса внутри карточки, отступ −3 px. */}
+                    <Link
+                      href={`/staff/questions/${r.id}`}
+                      className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card active:bg-primary-soft focus-visible:-outline-offset-3"
+                    >
+                      <span className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
+                        <span className="text-[length:var(--fs-md)] font-bold leading-[1.3]">{r.studentName}</span>
+                        <span className="text-[length:var(--fs-sm)] text-muted">Группа {r.groupName}</span>
+                        <span className="text-[length:var(--fs-sm)]">{topicLabel(r.topic)}</span>
+                        <span className="text-[length:var(--fs-sm)] text-muted">Отправлен {formatDate(todayIn(tz, r.createdAt))}</span>
+                        <QuestionStatusChip status={r.status} />
+                      </span>
+                      <RequestIcon name="chevron" className="mt-1 size-4 flex-none text-primary" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : items.length === 0 ? (
             <EmptyState
               title="Ничего не найдено"
               text={q ? `Нет заявок студентов, в ФИО которых есть «${q}»${status ? `, со статусом «${STATUS_LABELS[status]}»` : ''}` : 'Заявок с таким статусом нет'}

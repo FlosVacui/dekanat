@@ -3,12 +3,14 @@ import { Suspense } from 'react'
 import { PageTitle } from '@/components/card'
 import { EmptyState } from '@/components/grades/empty-state'
 import { LinkButton } from '@/components/link-button'
+import { QuestionStatusChip } from '@/components/questions/status-chip'
 import { RequestIcon } from '@/components/requests/icons'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { LoadingCard } from '@/components/states/loading-card'
 import { StudentFrame } from '@/components/states/shell-parts'
 import { StudentShell } from '@/components/student-shell'
 import { formatDate, todayIn } from '@/lib/dates'
+import { topicLabel } from '@/lib/questions'
 import {
   REQUEST_KINDS,
   REQUEST_KIND_INFO,
@@ -20,7 +22,7 @@ import {
 import { requireStudentActor } from '@/server/auth/page-guards'
 import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
-import { listMyRequests } from '@/server/dal/student'
+import { listMyQuestions, listMyRequests } from '@/server/dal/student'
 
 // Э-6 «Заявки»: сверху по кнопке на каждый вид (видов три, кнопки «Все виды» нет), ниже — мои заявки (S-2.1, раздел 3).
 export const dynamic = 'force-dynamic'
@@ -44,7 +46,7 @@ export default async function RequestsPage() {
 
 // Читает данные экрана и рисует его. Внутри границы нет redirect(), notFound(), forbidden() и denyRecord().
 async function RequestsContent({ actor }: { actor: Actor }) {
-  const items = await listMyRequests(actor)
+  const [items, questionItems] = await Promise.all([listMyRequests(actor), listMyQuestions(actor)])
   return (
     <StudentShell actor={actor} active="requests">
       <PageTitle>Заявки</PageTitle>
@@ -55,6 +57,9 @@ async function RequestsContent({ actor }: { actor: Actor }) {
               {REQUEST_KIND_INFO[kind].title}
             </LinkButton>
           ))}
+          <LinkButton href="/questions/new" variant="ghost" className="justify-start">
+            Спросить деканат
+          </LinkButton>
         </section>
         <h2 className="text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)]">Мои заявки</h2>
         {items.length === 0 ? (
@@ -95,6 +100,29 @@ async function RequestsContent({ actor }: { actor: Actor }) {
                 </li>
               )
             })}
+          </ul>
+        )}
+        <h2 className="text-[length:var(--h2-size)] font-bold leading-tight text-[color:var(--h2-color)]">Мои вопросы</h2>
+        {questionItems.length === 0 ? (
+          <EmptyState level={3} title="Вопросов пока нет" text="Спросите деканат — ответ придёт сюда и в уведомления" />
+        ) : (
+          <ul className="flex flex-col gap-[var(--gap)]">
+            {questionItems.map((q) => (
+              <li key={q.id}>
+                {/* Карточка целиком — ссылка на экран вопроса; вид — как у карточки заявки. */}
+                <Link
+                  href={`/questions/${q.id}`}
+                  className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card active:bg-primary-soft focus-visible:-outline-offset-3"
+                >
+                  <span className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
+                    <QuestionStatusChip status={q.status} />
+                    <span className="text-[length:var(--fs-md)] font-bold leading-[1.3]">{topicLabel(q.topic)}</span>
+                    <span className="text-[length:var(--fs-sm)] text-muted">Отправлен {formatDate(todayIn(getConfig().timezone, q.createdAt))}</span>
+                  </span>
+                  <RequestIcon name="chevron" className="mt-1 size-4 flex-none text-primary" />
+                </Link>
+              </li>
+            ))}
           </ul>
         )}
       </div>

@@ -343,3 +343,43 @@ export const notifications = pgTable(
     check('notifications_kind_check', sql`${t.kind} in ('reminder', 'news')`),
   ],
 )
+
+/**
+ * Вопросы студентов в деканат (пакет 4.1) и один ответ сотрудника. Адрес подачи записан в вопросе, адрес ответа — в ответе:
+ * по ним считаются лимиты записи (ADR-0003). Вопросы посетителей `db:refresh` удаляет ночью вместе с ответами.
+ */
+export const questions = pgTable(
+  'questions',
+  {
+    id: id(),
+    studentId: uuid('student_id')
+      .notNull()
+      .references(() => students.userId, { onDelete: 'cascade' }),
+    topic: text('topic').notNull(),
+    body: text('body').notNull(),
+    status: text('status').notNull().default('sent'),
+    answer: text('answer'),
+    answeredBy: uuid('answered_by').references(() => users.id, { onDelete: 'set null' }),
+    answeredAt: timestamp('answered_at', { withTimezone: true }),
+    ip: text('ip').notNull(),
+    answerIp: text('answer_ip'),
+    createdAt: createdAt(),
+  },
+  (t) => [
+    index('questions_student_idx').on(t.studentId, t.createdAt),
+    index('questions_ip_created_idx').on(t.ip, t.createdAt),
+    index('questions_answered_by_idx').on(t.answeredBy, t.answeredAt),
+    // Список тем — тот же, что QUESTION_TOPICS в src/lib/questions.ts; совпадение проверяет тест (dal-questions.test.ts).
+    check('questions_topic_check', sql`${t.topic} in ('schedule', 'resits', 'documents', 'stipend', 'other')`),
+    // Длина — QUESTION_MAX_LENGTH в src/lib/questions.ts.
+    check('questions_body_check', sql`char_length(${t.body}) between 1 and 1000 and btrim(${t.body}) <> ''`),
+    check('questions_status_check', sql`${t.status} in ('sent', 'answered')`),
+    check('questions_answer_check', sql`${t.answer} is null or (char_length(${t.answer}) between 1 and 1000 and btrim(${t.answer}) <> '')`),
+    // Ответ пуст только у отправленного вопроса; у отвеченного есть и ответ, и время ответа.
+    check(
+      'questions_answered_check',
+      sql`(${t.status} = 'sent' and ${t.answer} is null and ${t.answeredAt} is null)
+        or (${t.status} = 'answered' and ${t.answer} is not null and ${t.answeredAt} is not null)`,
+    ),
+  ],
+)
