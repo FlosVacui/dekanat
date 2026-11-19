@@ -107,7 +107,7 @@ const GROUP_1: GroupSpec = {
       controlKind: 'exam',
       semester: 5,
       exam: { date: '2026-12-29', time: '10:00', room: '1-412' },
-      // Работы: сданные, долг и впереди. Срок долга — не позже Д-3 (суббота и воскресенье уходят на понедельник, не позже Д-1),
+      // Работы: сданные, долг и впереди. Срок долга — не позже Д-3 (воскресенье уходит на понедельник, не позже Д-1),
       // срок «впереди» — не раньше Д+2: статус не зависит от дня запуска. Сумма максимумов экзамена — не больше 60.
       assignments: [
         { key: 'rz1', title: 'Расчётная работа №1', dayOffset: -35, maxPoints: 15 },
@@ -152,7 +152,8 @@ const GROUP_1: GroupSpec = {
         { key: 'request-letter', title: 'Письмо-запрос', dayOffset: -27, maxPoints: 15 },
         { key: 'lexis-test', title: 'Тест по лексике', dayOffset: -13, maxPoints: 15 },
         { key: 'correspondence', title: 'Деловая переписка', dayOffset: -7, maxPoints: 20 },
-        { key: 'presentation', title: 'Презентация на английском', dayOffset: 8, maxPoints: 20 },
+        // Д+1 (было Д+8): с субботним сроком блок «Что сдать на этой неделе» не пустует с пн по пт — решение пользователя 19.11.2026.
+        { key: 'presentation', title: 'Презентация на английском', dayOffset: 1, maxPoints: 20 },
       ],
       materials: MATERIALS_CREDIT,
     },

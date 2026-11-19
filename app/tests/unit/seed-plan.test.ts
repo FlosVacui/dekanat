@@ -18,7 +18,7 @@ import {
   type DisciplineSpec,
   type PlannedLesson,
 } from '../../db/seed-plan'
-import { addDays, addWorkingDays, formatDate, weekInfo } from '../../src/lib/dates'
+import { addDays, addWorkingDays, endOfWeek, formatDate, weekInfo } from '../../src/lib/dates'
 import { workStatus } from '../../src/lib/grades'
 import { REQUEST_KIND_INFO, computeDueDate, computePickupUntil } from '../../src/lib/requests'
 
@@ -247,7 +247,8 @@ describe('дисциплины, работы, оценки', () => {
     const donePairs = new Set(plan.students.flatMap((s) => s.workResults.map((r) => r.assignmentId)))
     const byStatus = { done: [] as string[], debt: [] as string[], upcoming: [] as string[] }
     for (const w of works) {
-      expect([0, 6], `${w.title}: ${w.dueDate}`).not.toContain(weekdayOf(w.dueDate))
+      // Срок не в воскресенье; суббота разрешена — решение пользователя 19.11.2026 (было: ни суббота, ни воскресенье).
+      expect(weekdayOf(w.dueDate), `${w.title}: ${w.dueDate}`).not.toBe(0)
       byStatus[workStatus({ dueDate: w.dueDate, points: donePairs.has(w.id) ? 1 : null }, today)].push(w.title)
     }
     expect(byStatus.done).toHaveLength(23)
@@ -264,22 +265,33 @@ describe('дисциплины, работы, оценки', () => {
     )
   })
 
-  it('сроки работ при Д-понедельнике: «впереди» — Д+2, Д+7, Д+9, Д+8, Д+3, Д+4 (прежние), прошлые — по набору', () => {
+  it('сроки работ при Д-понедельнике: «впереди» — Д+2, Д+7, Д+9, Д+1, Д+3, Д+4 (прежние), прошлые — по набору', () => {
     const plan = buildCohortPlan(MAIN_COHORT, MONDAY)
     const due = Object.fromEntries(plan.disciplines.flatMap((d) => d.assignments.map((w) => [`${d.name} / ${w.key}`, w.dueDate])))
     expect(due).toMatchObject({
       'Микроэкономика / rz3': addDays(MONDAY, 2),
       'Корпоративные финансы / case': addDays(MONDAY, 7),
       'Логистика цепей поставок / abstract': addDays(MONDAY, 9),
-      'Деловой английский / presentation': addDays(MONDAY, 8),
+      'Деловой английский / presentation': addDays(MONDAY, 1),
       'Физика / lab4': addDays(MONDAY, 3),
       'Инженерная графика / drawing': addDays(MONDAY, 4),
-      // Долги: срок позади, суббота и воскресенье уходят на понедельник, но не дальше Д-1.
+      // Долги: срок позади, воскресенье уходит на понедельник, но не дальше Д-1.
       'Корпоративные финансы / discount-hw': toWorkday(addDays(MONDAY, -6)),
       'Логистика цепей поставок / stock-test': toWorkday(addDays(MONDAY, -5)),
     })
     // Максимум «Расчётной работы №3» — 15 вместо прежних 20 (DECISIONS, смена 35, часть 3, третье окно).
     expect(plan.disciplines.flatMap((d) => d.assignments).find((w) => w.key === 'rz3')!.maxPoints).toBe(15)
+  })
+
+  // R-4.1-6, решение пользователя 19.11.2026: «Что сдать на этой неделе» (окно Д…воскресенье, `listMyAssignmentsDue`) у студента 1
+  // не пустует с понедельника по пятницу; в субботу и воскресенье пустой блок допустим.
+  it.each(TWO_WEEKS)('Д = %s: у студента 1 в пн–пт есть работа со сроком до воскресенья', (today) => {
+    const plan = buildCohortPlan(MAIN_COHORT, today)
+    const week = plan.disciplines
+      .filter((d) => d.groupName === group1.name)
+      .flatMap((d) => d.assignments)
+      .filter((w) => w.dueDate >= today && w.dueDate <= endOfWeek(today))
+    if (weekdayOf(today) >= 1 && weekdayOf(today) <= 5) expect(week.map((w) => w.title), today).not.toEqual([])
   })
 
   it.each(TWO_WEEKS)('Д = %s: контроль не в воскресенье, у группы не больше одного в день, порядок и пересдача прежние (R-3.8-18)', (today) => {
@@ -350,8 +362,8 @@ describe('дисциплины, работы, оценки', () => {
     expect(dates([{ name: 'Сдано', controlKind: 'exam', semester: 1, assignments: [] }, spec('Воскр', 6)])).toEqual({ Воскр: '2026-11-30' })
   })
 
-  it('выходные сдвигаются на понедельник', () => {
-    expect(toWorkday('2026-11-28')).toBe('2026-11-30')
+  it('воскресенье сдвигается на понедельник, суббота остаётся (решение пользователя 19.11.2026)', () => {
+    expect(toWorkday('2026-11-28')).toBe('2026-11-28')
     expect(toWorkday('2026-11-29')).toBe('2026-11-30')
     expect(toWorkday('2026-11-27')).toBe('2026-11-27')
   })

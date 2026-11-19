@@ -58,7 +58,7 @@ export type ChangeSpec = ChangeBase &
 export interface AssignmentSpec {
   key: string
   title: string
-  /** Срок сдвигом от Д; выпавший на субботу или воскресенье переносится на понедельник. */
+  /** Срок сдвигом от Д; выпавший на воскресенье переносится на понедельник, суббота остаётся (решение пользователя 19.11.2026). */
   dayOffset: number
   maxPoints: number
 }
@@ -256,10 +256,12 @@ export function weekKindOf(iso: string): 'upper' | 'lower' {
   return Math.abs(Math.floor(days / 7)) % 2 === 0 ? 'upper' : 'lower'
 }
 
-/** Срок работы, выпавший на субботу или воскресенье, — на ближайший понедельник. */
+/**
+ * Срок работы, выпавший на воскресенье, — на понедельник. Суббота остаётся: по субботам есть пары, так же стоит контроль.
+ * Решение пользователя 19.11.2026, смена 37: «Что сдать на этой неделе» не пустует с понедельника по пятницу.
+ */
 export function toWorkday(iso: string): string {
-  const dow = weekdayOf(iso)
-  return dow === 6 ? addDays(iso, 2) : dow === 0 ? addDays(iso, 1) : iso
+  return weekdayOf(iso) === 0 ? addDays(iso, 1) : iso
 }
 
 function plural(n: number, one: string, few: string, many: string): string {
