@@ -20,6 +20,19 @@ describe('certificateCode', () => {
     expect(verifyCertificateCode(`${idPart}.${flipped}`, SECRET)).toBeNull()
   })
 
+  it('другое написание того же кода — биты заполнения в последнем знаке — не проходит', () => {
+    // Последний знак 16 байт в base64url: 2 бита данных и 4 бита заполнения. Знак с тем же значением данных
+    // и другим заполнением декодируется в те же байты: A и B, Q и R. Принимается только каноническое написание.
+    const neighbour = (c: string) => String.fromCharCode(c.charCodeAt(0) + 1)
+    const [idPart, macPart] = certificateCode(ID, SECRET).split('.') as [string, string]
+    const macAlt = `${macPart.slice(0, -1)}${neighbour(macPart.slice(-1))}`
+    const idAlt = `${idPart.slice(0, -1)}${neighbour(idPart.slice(-1))}`
+    expect(Buffer.from(macAlt, 'base64url')).toEqual(Buffer.from(macPart, 'base64url'))
+    expect(Buffer.from(idAlt, 'base64url')).toEqual(Buffer.from(idPart, 'base64url'))
+    expect(verifyCertificateCode(`${idPart}.${macAlt}`, SECRET)).toBeNull()
+    expect(verifyCertificateCode(`${idAlt}.${macPart}`, SECRET)).toBeNull()
+  })
+
   it('подмена номера при прежней подписи не проходит', () => {
     const other = certificateCode('3f2b8c1e-9a47-4d6b-b1f0-5c8e2a7d9e11', SECRET)
     const mac = certificateCode(ID, SECRET).split('.')[1]

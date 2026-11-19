@@ -126,7 +126,11 @@ test('«Получить сразу» → печатная страница с Q
     await expect(anon.getByText('Прототип. Данные вымышленные')).toBeVisible()
     // Сокращённое ФИО: «Фамилия И. О.», полного имени нет.
     await expect(anon.getByText(student1.fullName)).toHaveCount(0)
-    const tampered = new URL(verifyUrl).pathname.replace(/.$/, (c) => (c === 'A' ? 'B' : 'A'))
+    // Портится знак в середине подписи: последний знак наполовину состоит из битов заполнения, и замена A↔B
+    // давала тот же код примерно в каждом четвёртом прогоне — 20.11.2026, смена 39.
+    const verifyPath = new URL(verifyUrl).pathname
+    const at = verifyPath.length - 10
+    const tampered = `${verifyPath.slice(0, at)}${verifyPath[at] === 'A' ? 'B' : 'A'}${verifyPath.slice(at + 1)}`
     const response = await anon.goto(tampered)
     expect(response?.status()).toBe(404)
     await expect(anon.getByTestId('verify-result')).toHaveText('Справка не найдена')

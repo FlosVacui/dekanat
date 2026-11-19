@@ -22,7 +22,12 @@ export function certificateCode(requestId: string, secret: string): string {
   return `${idPart}.${mac(requestId, secret).toString('base64url')}`
 }
 
-/** Номер заявки из верного кода; неверный, изменённый и мусор — null. Подписи сравниваются за постоянное время. */
+/**
+ * Номер заявки из верного кода; неверный, изменённый и мусор — null. Подписи сравниваются за постоянное время.
+ * Принимается только каноническое написание base64url. Последний знак 16 байт несёт 2 бита данных и 4 бита
+ * заполнения, а `Buffer.from` заполнение не проверяет. Без сверки один код имел бы четыре написания, и «изменённый»
+ * последний знак иногда проходил бы проверку: 20.11.2026, смена 39.
+ */
 export function verifyCertificateCode(code: unknown, secret: string): string | null {
   if (typeof code !== 'string' || !secret || code.length > 100) return null
   const parts = code.split('.')
@@ -30,7 +35,8 @@ export function verifyCertificateCode(code: unknown, secret: string): string | n
   const [idPart, macPart] = parts as [string, string]
   if (!/^[A-Za-z0-9_-]+$/.test(idPart) || !/^[A-Za-z0-9_-]+$/.test(macPart)) return null
   const idBytes = Buffer.from(idPart, 'base64url')
-  if (idBytes.length !== 16) return null
+  if (idBytes.length !== 16 || idBytes.toString('base64url') !== idPart) return null
+  if (Buffer.from(macPart, 'base64url').toString('base64url') !== macPart) return null
   const hex = idBytes.toString('hex')
   const requestId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
   const given = Buffer.from(macPart, 'base64url')
