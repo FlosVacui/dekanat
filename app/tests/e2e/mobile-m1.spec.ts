@@ -638,7 +638,9 @@ for (const vp of VIEWPORTS) {
       const walk = await tabWalk(sp, 20)
       rec('focus', vp.width, 'staff-request', walk)
       expect(walk[0]!.label, 'первым в заявке сотрудника — «Выйти»').toContain('Выйти')
-      expect(walk[1]!.label, 'вторым — ссылка к списку').toContain('К списку заявок')
+      // 20.11, блиц: от 1024 px после «Выйти» идут пять пунктов меню сотрудника в шапке, затем ссылка к списку.
+      const afterMenu = vp.width >= 1024 ? 6 : 1
+      expect(walk[afterMenu]!.label, 'после «Выйти» и меню — ссылка к списку').toContain('К списку заявок')
       expect(walk.filter((f) => !f.ring).map((f) => f.label), `${vp.width}: у элементов нет видимой рамки фокуса`).toEqual([])
       await sp.close()
     })

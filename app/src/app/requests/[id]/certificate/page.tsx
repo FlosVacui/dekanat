@@ -33,7 +33,8 @@ export default async function CertificatePage({ params }: { params: Promise<{ id
   if (!profile) notFound()
 
   const h = await headers()
-  const base = baseUrlFrom(h.get('host'), h.get('x-forwarded-proto'))
+  // QR ведёт на публичный адрес сайта: за прокси заголовок Host мог прийти как localhost (20.11, телефон не открывал ссылку).
+  const base = getConfig().publicBaseUrl ?? baseUrlFrom(h.get('host'), h.get('x-forwarded-proto'))
   if (!base) notFound()
   const url = `${base}/verify/${certificateCode(request.id, certificateSecret)}`
   const qr = qrPath(url)

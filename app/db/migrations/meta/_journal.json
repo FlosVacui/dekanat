@@ -43,6 +43,13 @@
       "when": 1795037024021,
       "tag": "0005_wise_guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1795130662322,
+      "tag": "0006_third_cammi",
+      "breakpoints": true
     }
   ]
 }

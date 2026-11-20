@@ -1,8 +1,11 @@
 import type { Metadata, Viewport } from 'next'
+import { cookies } from 'next/headers'
 // Шрифт Golos Text: файлы лежат в пакете npm и отдаются своим сервером, внешних адресов нет (D-2.2-system, раздел 3).
 // Пакет объявляет семейство «Golos Text Variable»; браузер грузит файл набора знаков только когда в тексте есть такие знаки.
 import '@fontsource-variable/golos-text'
 import './globals.css'
+import { ThemeSync } from './profile/theme-sync'
+import { TEXT_SIZE_CSS, THEME_SCRIPT, UI_COOKIE, htmlClassName, parseUi } from './profile/ui-settings'
 
 export const metadata: Metadata = {
   title: 'Деканат в кармане',
@@ -18,10 +21,19 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = { width: 'device-width', initialScale: 1 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  // 20.11, блиц: настройки отображения лежат в куке `ui`; сервер ставит класс на <html> сам, поэтому страница не мигает.
+  const ui = parseUi((await cookies()).get(UI_COOKIE)?.value)
+  const className = htmlClassName(ui)
   return (
-    <html lang="ru">
+    // suppressHydrationWarning: при «Как в системе» скрипт в голове добавляет класс dark до загрузки React.
+    <html lang="ru" className={className || undefined} data-theme={ui.theme} suppressHydrationWarning>
+      <head>
+        <style>{TEXT_SIZE_CSS}</style>
+        <script>{THEME_SCRIPT}</script>
+      </head>
       <body>
+        <ThemeSync theme={ui.theme} classKey={className} />
         {/* Нижняя панель вкладок не перекрывает подвал: у страницы с панелью внизу оставлен отступ высотой с панель. */}
         <div className="flex min-h-dvh flex-col has-[[data-tabbar]]:pb-[var(--nav-h)] lg:has-[[data-tabbar]]:pb-0">
           <div className="flex-1">{children}</div>

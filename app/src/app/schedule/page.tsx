@@ -6,10 +6,12 @@ import { LessonCard } from '@/components/schedule/lesson-card'
 import { ViewSwitch } from '@/components/schedule/view-switch'
 import { WeekList } from '@/components/schedule/week-list'
 import { StudentShell } from '@/components/student-shell'
+import { buttonVariants } from '@/components/ui/button'
 import { LoadingCard } from '@/components/states/loading-card'
 import { StudentFrame } from '@/components/states/shell-parts'
 import { todayIn, weekInfo } from '@/lib/dates'
 import { buildSchedule, pickDay, pickView, scheduleRange } from '@/lib/schedule'
+import { cn } from '@/lib/utils'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
@@ -96,6 +98,15 @@ async function ScheduleContent({ actor, today, view, selected }: { actor: Actor;
             )}
           </>
         )}
+        {/* 20.11, блиц: файл календаря на 14 дней; обычная ссылка, а не Link: это скачивание, а не переход между экранами. */}
+        <a
+          href="/schedule/calendar.ics"
+          download
+          data-testid="calendar-link"
+          className={cn(buttonVariants({ variant: 'ghost' }), 'w-full text-center')}
+        >
+          Добавить в календарь
+        </a>
       </div>
     </StudentShell>
   )

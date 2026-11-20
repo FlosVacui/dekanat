@@ -78,6 +78,8 @@ export interface HeaderData {
   line: string
   unread: number
   initials: string
+  /** Есть своё фото профиля (блиц 20.11): в шапке фото вместо инициалов. */
+  hasAvatar?: boolean
 }
 
 export function StudentHeader({ data }: { data: HeaderData | null }) {
@@ -115,9 +117,13 @@ export function StudentHeader({ data }: { data: HeaderData | null }) {
         aria-label="Профиль"
         className={cn('grid size-11 flex-none place-items-center rounded-full', HEADER_FOCUS)}
       >
-        <span className="grid size-9 place-items-center rounded-full bg-avatar-bg text-[length:var(--fs-sm)] font-extrabold text-avatar-fg">
-          {data?.initials ?? ''}
-        </span>
+        {data?.hasAvatar ? (
+          <Image src="/profile/avatar" alt="" width={36} height={36} unoptimized className="size-9 rounded-full bg-avatar-bg object-cover" />
+        ) : (
+          <span className="grid size-9 place-items-center rounded-full bg-avatar-bg text-[length:var(--fs-sm)] font-extrabold text-avatar-fg">
+            {data?.initials ?? ''}
+          </span>
+        )}
       </Link>
     </header>
   )

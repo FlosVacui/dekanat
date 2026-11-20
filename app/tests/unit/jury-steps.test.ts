@@ -46,6 +46,10 @@ describe('currentJuryStep: шаг по адресу', () => {
     ['/requests', 4],
     ['/staff/requests', 5],
     ['/staff/questions', 5],
+    ['/staff', 5],
+    ['/staff/students', 5],
+    ['/staff/students/9f2c', 5],
+    ['/staff/announcements', 5],
   ])('адрес шага %s — шаг %i', (path, n) => {
     expect(stepOf(path)).toBe(n)
   })
@@ -79,7 +83,10 @@ describe('currentJuryStep: шаг по адресу', () => {
     expect(stepOf('/gradesheet')).toBeNull()
     expect(stepOf('/requests-archive')).toBeNull()
     expect(stepOf('/processing')).toBeNull()
-    expect(stepOf('/staff')).toBeNull()
+    // 20.11, блиц: шаг 5 охватывает весь кабинет сотрудника (`also: ['/staff']`); было — `/staff` вне сценария.
+    expect(stepOf('/staff')).toBe(5)
+    expect(stepOf('/staffing')).toBeNull()
+    expect(stepOf('/stafford/requests')).toBeNull()
     expect(stepOf('/staff/questions/1')).toBe(5)
     expect(stepOf('/process')).toBeNull()
   })

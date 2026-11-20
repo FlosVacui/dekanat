@@ -537,7 +537,8 @@ test.describe('П-09: после выхода «Назад» не показыв
     const s = await login(browser, A)
     try {
       await s.page.goto('/profile')
-      await expect(s.page.getByText(A.fullName)).toBeVisible()
+      // С 20.11 ФИО в профиле дважды: в данных и в студенческом билете.
+      await expect(s.page.getByText(A.fullName).first()).toBeVisible()
       await s.page.getByRole('button', { name: 'Выйти' }).click()
       await s.page.waitForURL('**/login')
       await s.page.goBack()

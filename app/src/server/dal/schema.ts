@@ -4,6 +4,7 @@ import { sql } from 'drizzle-orm'
 import {
   boolean,
   check,
+  customType,
   date,
   index,
   integer,
@@ -381,5 +382,28 @@ export const questions = pgTable(
       sql`(${t.status} = 'sent' and ${t.answer} is null and ${t.answeredAt} is null)
         or (${t.status} = 'answered' and ${t.answer} is not null and ${t.answeredAt} is not null)`,
     ),
+  ],
+)
+
+const bytea = customType<{ data: Buffer; driverData: Buffer }>({ dataType: () => 'bytea' })
+
+/**
+ * Фото профиля студента (20.11, блиц): одна строка на пользователя, картинка лежит в самой строке. Размер и тип проверяются
+ * при записи в слое доступа (по сигнатуре файла) и ещё раз проверкой базы. Предел 150 КБ — AVATAR_MAX_BYTES в
+ * src/app/profile/avatar-rules.ts; совпадение проверяет тест (dal-avatar.test.ts).
+ */
+export const userAvatars = pgTable(
+  'user_avatars',
+  {
+    userId: uuid('user_id')
+      .primaryKey()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    mime: text('mime').notNull(),
+    data: bytea('data').notNull(),
+    updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    check('user_avatars_mime_check', sql`${t.mime} in ('image/jpeg', 'image/png', 'image/webp')`),
+    check('user_avatars_size_check', sql`octet_length(${t.data}) between 1 and 153600`),
   ],
 )

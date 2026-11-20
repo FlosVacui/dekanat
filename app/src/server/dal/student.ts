@@ -1,5 +1,6 @@
 import 'server-only'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
+import { checkAvatar, type AvatarCheck, type AvatarMime } from '@/app/profile/avatar-rules'
 import { isIsoDate, todayIn } from '@/lib/dates'
 import { isQuestionTopic, normalizeQuestionText, type QuestionTopic } from '@/lib/questions'
 import { currentYearIn, isRequestKind, normalizeFields, type RequestKind } from '@/lib/requests'
@@ -24,6 +25,7 @@ import {
   requestEvents,
   requests,
   students,
+  userAvatars,
 } from './schema'
 
 // Функции студента (ADR-0002). Первый аргумент — действующее лицо из сессии; первым делом проверяется роль.
@@ -898,4 +900,71 @@ export async function markAllMyFeedRead(actor: Actor): Promise<void> {
         .onConflictDoNothing()
     }
   })
+}
+
+// ---------- Фото профиля и студенческий билет (20.11, блиц) ----------
+
+/** Есть ли у студента фото. Владелец — из сессии. */
+export async function hasMyAvatar(actor: Actor): Promise<boolean> {
+  const { studentId } = requireStudent(actor)
+  const rows = await getDb().select({ userId: userAvatars.userId }).from(userAvatars).where(eq(userAvatars.userId, studentId)).limit(1)
+  return rows.length > 0
+}
+
+/** Своё фото целиком: для маршрута `/profile/avatar`. Чужого фото запросить нельзя: номера в параметрах нет. */
+export async function getMyAvatar(actor: Actor): Promise<{ mime: AvatarMime; data: Buffer } | null> {
+  const { studentId } = requireStudent(actor)
+  const rows = await getDb()
+    .select({ mime: userAvatars.mime, data: userAvatars.data })
+    .from(userAvatars)
+    .where(eq(userAvatars.userId, studentId))
+    .limit(1)
+  const row = rows[0]
+  if (!row) return null
+  return { mime: row.mime as AvatarMime, data: row.data }
+}
+
+/**
+ * Сохраняет своё фото (заменяет прежнее). Проверка — здесь, в слое, а не только в действии: пустой файл, больше 150 КБ,
+ * тип не из списка или чужая сигнатура — отказ, в базу ничего не идёт. Тип в базу записывается по сигнатуре.
+ */
+export async function setMyAvatar(actor: Actor, bytes: Uint8Array, declaredType: string): Promise<AvatarCheck> {
+  const { studentId } = requireStudent(actor)
+  const checked = checkAvatar(bytes, declaredType)
+  if (!checked.ok) return checked
+  const data = Buffer.from(bytes)
+  await getDb()
+    .insert(userAvatars)
+    .values({ userId: studentId, mime: checked.mime, data })
+    .onConflictDoUpdate({ target: userAvatars.userId, set: { mime: checked.mime, data, updatedAt: sql`now()` } })
+  return checked
+}
+
+/** Удаляет своё фото. Нет фото — ничего не происходит. */
+export async function deleteMyAvatar(actor: Actor): Promise<void> {
+  const { studentId } = requireStudent(actor)
+  await getDb().delete(userAvatars).where(eq(userAvatars.userId, studentId))
+}
+
+/** Что публичная страница проверки билета вправе показать: ничего сверх этих полей. */
+export interface StudentTicketCheck {
+  fullName: string
+  course: number
+  groupName: string
+}
+
+/**
+ * Публичное чтение для `/verify/student/<код>` — вторая функция слоя без действующего лица, после `getCertificateForVerification`.
+ * Вызывается только после успешной проверки подписи кода (`verifyStudentTicketCode`): номер приходит из подписанного кода,
+ * не из запроса посетителя. Нет такого студента — null. Логин, набор, факультет и фото наружу не идут.
+ */
+export async function getStudentForTicketVerification(studentId: string): Promise<StudentTicketCheck | null> {
+  if (!isUuid(studentId)) return null
+  const rows = await getDb()
+    .select({ fullName: students.fullName, course: students.course, groupName: groups.name })
+    .from(students)
+    .innerJoin(groups, eq(groups.id, students.groupId))
+    .where(eq(students.userId, studentId))
+    .limit(1)
+  return rows[0] ?? null
 }

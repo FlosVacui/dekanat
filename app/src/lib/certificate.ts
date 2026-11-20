@@ -7,8 +7,12 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 /** Длина подписи в байтах: 16 из 32 — 128 бит, перебор невозможен. */
 const MAC_BYTES = 16
 
-function mac(requestId: string, secret: string): Buffer {
-  return createHmac('sha256', secret).update(`certificate:${requestId.toLowerCase()}`).digest().subarray(0, MAC_BYTES)
+/**
+ * Подпись с меткой назначения: код справки и код студенческого билета подписаны одним секретом, но разными метками,
+ * поэтому код одного назначения не проходит проверку другого (20.11, блиц).
+ */
+function mac(id: string, secret: string, purpose: string): Buffer {
+  return createHmac('sha256', secret).update(`${purpose}:${id.toLowerCase()}`).digest().subarray(0, MAC_BYTES)
 }
 
 /**
@@ -16,10 +20,14 @@ function mac(requestId: string, secret: string): Buffer {
  * найти заявку; подделать подпись без секрета нельзя. Страница проверки номер не показывает.
  */
 export function certificateCode(requestId: string, secret: string): string {
-  if (!UUID.test(requestId)) throw new Error('Номер заявки не похож на UUID')
+  return signedCode(requestId, secret, 'certificate')
+}
+
+function signedCode(id: string, secret: string, purpose: string): string {
+  if (!UUID.test(id)) throw new Error('Номер не похож на UUID')
   if (!secret) throw new Error('Секрет пуст')
-  const idPart = Buffer.from(requestId.replaceAll('-', ''), 'hex').toString('base64url')
-  return `${idPart}.${mac(requestId, secret).toString('base64url')}`
+  const idPart = Buffer.from(id.replaceAll('-', ''), 'hex').toString('base64url')
+  return `${idPart}.${mac(id, secret, purpose).toString('base64url')}`
 }
 
 /**
@@ -29,6 +37,10 @@ export function certificateCode(requestId: string, secret: string): string {
  * последний знак иногда проходил бы проверку: 20.11.2026, смена 39.
  */
 export function verifyCertificateCode(code: unknown, secret: string): string | null {
+  return verifySignedCode(code, secret, 'certificate')
+}
+
+function verifySignedCode(code: unknown, secret: string, purpose: string): string | null {
   if (typeof code !== 'string' || !secret || code.length > 100) return null
   const parts = code.split('.')
   if (parts.length !== 2) return null
@@ -38,11 +50,21 @@ export function verifyCertificateCode(code: unknown, secret: string): string | n
   if (idBytes.length !== 16 || idBytes.toString('base64url') !== idPart) return null
   if (Buffer.from(macPart, 'base64url').toString('base64url') !== macPart) return null
   const hex = idBytes.toString('hex')
-  const requestId = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+  const id = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
   const given = Buffer.from(macPart, 'base64url')
-  const expected = mac(requestId, secret)
+  const expected = mac(id, secret, purpose)
   if (given.length !== expected.length || !timingSafeEqual(given, expected)) return null
-  return requestId
+  return id
+}
+
+/** Код проверки студенческого билета: тот же вид, что у справки, но другая метка назначения. Номер в коде — номер студента. */
+export function studentTicketCode(studentId: string, secret: string): string {
+  return signedCode(studentId, secret, 'student-ticket')
+}
+
+/** Номер студента из верного кода билета; код справки, изменённый код и мусор — null. */
+export function verifyStudentTicketCode(code: unknown, secret: string): string | null {
+  return verifySignedCode(code, secret, 'student-ticket')
 }
 
 /** «Иванов Иван Иванович» -> «Иванов И. И.»; без отчества — «Иванов И.». Пустое имя — пустая строка. */
