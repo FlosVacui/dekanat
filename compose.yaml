@@ -79,6 +79,8 @@ services:
       APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Moscow}
       # Подпись кода справки с QR. Пусто — «Получить сразу» и /verify выключены.
       CERTIFICATE_SECRET: ${CERTIFICATE_SECRET:-}
+      # Домен сайта (тот же, что у Caddy): из него собирается адрес в QR-кодах.
+      SITE_ADDRESS: ${SITE_ADDRESS:-}
       # ИИ: OpenAI-совместимый API (Yandex AI Studio, Cloud.ru). Пусто — запасной путь без модели.
       AI_BASE_URL: ${AI_BASE_URL:-}
       AI_API_KEY: ${AI_API_KEY:-}

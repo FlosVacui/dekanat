@@ -156,11 +156,20 @@ describe('прежний набор не оставляет следов (db:see
       // Студенты в новых группах.
       const groups = await client.query(
         `SELECT u.login, g.name FROM students s JOIN users u ON u.id = s.user_id JOIN groups g ON g.id = s.group_id
-         WHERE u.cohort = 'main' ORDER BY u.login`,
+         WHERE u.cohort = 'main' AND u.login NOT LIKE 'arhiv-%' ORDER BY u.login`,
       )
       expect(groups.rows).toEqual([
         { login: 'belozerov', name: 'ЦЭ-24-03' },
         { login: 'nesterova', name: 'ЦИ-25-01' },
+      ])
+      // Одногруппники без входа (20.11): по 20 в каждой из двух групп.
+      const mates = await client.query(
+        `SELECT g.name, count(*)::int AS n FROM students s JOIN users u ON u.id = s.user_id JOIN groups g ON g.id = s.group_id
+         WHERE u.cohort = 'main' AND u.login LIKE 'arhiv-%' GROUP BY g.name ORDER BY g.name`,
+      )
+      expect(mates.rows).toEqual([
+        { name: 'ЦИ-25-01', n: 20 },
+        { name: 'ЦЭ-24-03', n: 20 },
       ])
       expect(await fingerprint(client, 'test-alt')).toEqual(altBefore)
     })
@@ -421,9 +430,15 @@ describe('резервные наборы', () => {
         RESERVES.flatMap((r) => r.groups),
       ])
       expect(groups.rows).toHaveLength(4)
-      const users = await client.query(`SELECT cohort, role, password_published FROM users WHERE cohort LIKE 'reserve-%' ORDER BY cohort, role`)
+      // Аккаунты с входом: сотрудник и два студента на набор. Одногруппники без входа (20.11, `arhiv-…`) — отдельно: по 40 на набор.
+      const users = await client.query(
+        `SELECT cohort, role, password_published FROM users WHERE cohort LIKE 'reserve-%' AND login NOT LIKE 'arhiv-%' ORDER BY cohort, role`,
+      )
       expect(users.rows).toHaveLength(6)
       expect(users.rows.every((u) => u.password_published === false)).toBe(true)
+      const mates = await client.query(`SELECT password_published FROM users WHERE cohort LIKE 'reserve-%' AND login LIKE 'arhiv-%'`)
+      expect(mates.rows).toHaveLength(80)
+      expect(mates.rows.every((u) => u.password_published === false)).toBe(true)
       // Состав тот же: шесть заявок, пары, оценки, девять объявлений (15 строк) на набор.
       for (const { def } of sets) {
         const plan = buildCohortPlan(buildReserveCohort(MAIN_COHORT, def, sets.find((s) => s.def === def)!.accounts), today)

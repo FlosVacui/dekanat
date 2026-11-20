@@ -497,9 +497,13 @@ for (const vp of VIEWPORTS) {
       // Редизайн, заход В: в колонке после четырёх разделов ещё «Уведомления» и «Идеи и планы».
       if (desktop) {
         expect(walk[6]!.label, 'в колонке после разделов — «Уведомления»').toContain('Уведомления')
-        expect(walk[7]!.label, 'в колонке последняя — «Идеи и планы»').toContain('Идеи и планы')
+        // 20.11: в группе «Деканат» после «Уведомлений» — «Помощник по правилам».
+        expect(walk[7]!.label, 'в колонке — «Помощник по правилам»').toContain('Помощник по правилам')
+        // 20.11, поддержка: за «Помощником по правилам» — «Поддержка», индексы дальше сдвинуты на один.
+        expect(walk[8]!.label, 'в колонке — «Поддержка»').toContain('Поддержка')
+        expect(walk[9]!.label, 'в колонке последняя — «Идеи и планы»').toContain('Идеи и планы')
       }
-      expect(walk[desktop ? 8 : 2]!.label, 'следом — ссылка «Все заявки»').toContain('Все заявки')
+      expect(walk[desktop ? 10 : 2]!.label, 'следом — ссылка «Все заявки»').toContain('Все заявки')
       expect(sections.map((f) => f.label.split(' ').slice(-1)[0]), 'разделы').toEqual(['Сегодня', 'Расписание', 'Успеваемость', 'Заявки'])
     })
 
@@ -638,7 +642,9 @@ for (const vp of VIEWPORTS) {
       const walk = await tabWalk(sp, 20)
       rec('focus', vp.width, 'staff-request', walk)
       expect(walk[0]!.label, 'первым в заявке сотрудника — «Выйти»').toContain('Выйти')
-      expect(walk[1]!.label, 'вторым — ссылка к списку').toContain('К списку заявок')
+      // 20.11, блиц: от 1024 px после «Выйти» идут пять пунктов меню сотрудника в шапке, затем ссылка к списку.
+      const afterMenu = vp.width >= 1024 ? 6 : 1
+      expect(walk[afterMenu]!.label, 'после «Выйти» и меню — ссылка к списку').toContain('К списку заявок')
       expect(walk.filter((f) => !f.ring).map((f) => f.label), `${vp.width}: у элементов нет видимой рамки фокуса`).toEqual([])
       await sp.close()
     })

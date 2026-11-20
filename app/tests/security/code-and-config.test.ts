@@ -83,6 +83,8 @@ describe('R-2.3-34: студент статус не передаёт; сотр�
     // Пакет 3.4, решение пользователя 13.11.2026: поля «Куда справка» и «Год оплаты». Владельца и статуса в форме по-прежнему нет.
     expect(formKeys('app/requests/new/actions.ts')).toEqual(['kind', 'paymentYear', 'purpose'])
     expect(formKeys('app/staff/requests/[id]/actions.ts')).toEqual(['reason', 'requestId', 'target'])
+    // 20.11, блиц: объявление — адресат, заголовок и текст; набора и сотрудника в форме нет.
+    expect(formKeys('app/staff/announcements/actions.ts')).toEqual(['audience', 'body', 'title'])
     expect(formKeys('app/login/actions.ts')).toEqual(['login', 'password'])
   })
 
@@ -100,7 +102,7 @@ describe('R-2.3-35: выключателя проверок по окружен�
     const names = [...config.matchAll(/process\.env(?:\.(\w+)|\[\s*name\s*\])/g)].map((m) => m[1] ?? '(required)')
     // 19.11, ИИ-функции: четыре переменные модели (getAiConfig). Остальные имена прежние.
     expect(new Set(names)).toEqual(
-      new Set(['DB_POOL_MAX', 'CLIENT_IP_HEADER', 'APP_TIMEZONE', 'CERTIFICATE_SECRET', 'JURY_MODE', 'AI_BASE_URL', 'AI_API_KEY', 'AI_MODEL', 'AI_FOLDER_ID', '(required)']),
+      new Set(['DB_POOL_MAX', 'CLIENT_IP_HEADER', 'APP_TIMEZONE', 'CERTIFICATE_SECRET', 'JURY_MODE', 'SITE_ADDRESS', 'AI_BASE_URL', 'AI_API_KEY', 'AI_MODEL', 'AI_FOLDER_ID', '(required)']),
     )
     expect(config.match(/required\('(\w+)'\)/g)).toEqual(["required('DATABASE_URL')"])
   })
@@ -114,7 +116,8 @@ describe('R-2.3-35: выключателя проверок по окружен�
     expect(switches.map((f) => f.rel)).toEqual([])
     const headerReaders = src.filter((f) => /\bheaders\(\)/.test(f.text)).map((f) => f.rel)
     // Печатная справка читает Host, чтобы собрать адрес проверки для QR (19.11, идея №8).
-    expect(headerReaders).toEqual(['app/requests/[id]/certificate/page.tsx', 'server/auth/cookie.ts'])
+    // 20.11, блиц: профиль читает Host по той же причине — адрес проверки студенческого билета для QR.
+    expect(headerReaders).toEqual(['app/profile/page.tsx', 'app/requests/[id]/certificate/page.tsx', 'server/auth/cookie.ts'])
     // R-3.10-10: заголовок можно прочитать и у объекта запроса — request.headers.get(...).
     // Так читает только посредник, и только Origin; любое другое такое чтение — повод для ревью.
     // Проверка грубая (RV-3.10-9-3): не видит headers?.get, headers['…'], деструктуризацию и обход [...headers];
@@ -163,7 +166,7 @@ describe('Д-03, Д-04: версия Next.js и файл блокировки', 
 // ---------- Аудит ворот 3, пакет 3.10 (SEC-3.10): Т-01, Ж-04 — раньше без теста (IMP-018, пункт 3) ----------
 
 describe('Т-01: тестовый аккаунт не может испортить доступ — действий над учётной записью нет', () => {
-  it('серверных действий ровно десять: вход, выход, подача, «Получить сразу», смена статуса, две отметки ленты, вопрос, ответ на него (пакет 4.1) и черновик ответа ИИ (19.11); обработчиков маршрутов нет', () => {
+  it('серверных действий ровно десять: вход, выход, подача, «Получить сразу», смена статуса, две отметки ленты, вопрос, ответ на него (пакет 4.1) и черновик ответа ИИ (19.11), плюс действия блица 20.11 (в списке с пометкой); обработчиков маршрутов нет', () => {
     // Новое действие (смена пароля, почты, удаление аккаунта) делает этот тест красным: его надо разобрать в аудите.
     const actions = src
       .filter((f) => /^['"]use server['"]/m.test(f.text))
@@ -181,11 +184,22 @@ describe('Т-01: тестовый аккаунт не может испорти�
         'app/staff/questions/[id]/actions.ts:answerQuestionAction',
         // 19.11, ИИ-функции: «Черновик ИИ» ничего не пишет в базу и не отправляет, только возвращает текст форме.
         'app/staff/questions/[id]/actions.ts:draftAnswerAction',
+        'app/staff/announcements/actions.ts:createAnnouncementAction', // 20.11, блиц: объявление группе или потоку, набор и предел — в слое доступа
+        'app/staff/(home)/actions.ts:weekSummaryAction', // 20.11, сводка: «Сводка недели от ИИ» — читает числа набора из сессии, ничего не пишет и не принимает из формы
         'app/staff/requests/[id]/actions.ts:changeStatusAction',
+        // 20.11, блиц: фото профиля (только своё, тип и размер проверяет слой доступа) и настройки отображения (кука `ui` из списка значений).
+        'app/profile/actions.ts:deleteAvatarAction',
+        'app/profile/actions.ts:saveUiSettingsAction',
+        'app/profile/actions.ts:uploadAvatarAction',
       ].sort(),
     )
     // Обработчик маршрута — тоже вход для записи. Промежуточный слой (proxy.ts) не запрещён: им можно закрыть R-3.10-1.
-    expect(src.filter((f) => /(^|\/)route\.(ts|js|mjs)$/.test(f.rel)).map((f) => f.rel)).toEqual([])
+    // 20.11, блиц: два обработчика только на чтение (GET) — своё фото и своё расписание файлом календаря. Владелец — из сессии, записи нет.
+    const routes = src.filter((f) => /(^|\/)route\.(ts|js|mjs)$/.test(f.rel))
+    expect(routes.map((f) => f.rel).sort()).toEqual(['app/profile/avatar/route.ts', 'app/schedule/calendar.ics/route.ts'])
+    for (const route of routes) {
+      expect([...route.text.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm)].map((m) => m[1]), route.rel).toEqual(['GET'])
+    }
   })
 
   it('слой доступа не пишет в таблицы users и students: пароль, логин, роль и ФИО приложение не меняет', () => {

@@ -9,12 +9,14 @@ import {
   JURY_STORAGE_KEY,
   JURY_WIDE_MIN_PX,
   currentJuryStep,
+  juryNeighbours,
   parseStoredChoice,
   resolvePanelState,
   type JuryPanelState,
 } from './steps'
 
-// Плавающая панель «Сценарий для жюри» (идея №89): шесть шагов-ссылок, текущий подсвечен по адресу.
+// Плавающая панель «Сценарий для жюри» (идея №89): один шаг за раз — что смотреть на этой странице — и кнопки «Назад» / «Далее».
+// Текущий шаг определяется по адресу; страница вне сценария показывает «Начать».
 // Внизу справа; на телефоне и планшете (до 1024 px) стоит над нижней панелью вкладок и её не закрывает.
 // По умолчанию панель открыта от 1024 px и свёрнута в кнопку уже: на телефоне она занимала бы около 380 px над вкладками.
 // «Скрыть» и кнопка меняют состояние; выбор лежит в localStorage и главнее ширины (в try/catch: в закрытом режиме браузера он
@@ -135,6 +137,10 @@ export function JuryPanel({ withTabBar = false }: { withTabBar?: boolean }) {
     writeState('closed')
   }
 
+  const { prev, next } = juryNeighbours(current)
+  const step = current === null ? null : JURY_STEPS[current]!
+  const nav = 'inline-flex min-h-[var(--tap)] items-center justify-center rounded-pill px-[var(--sp-4)] text-[length:var(--fs-sm)] font-bold'
+
   return (
     <div ref={box} className={position}>
       <aside
@@ -143,51 +149,44 @@ export function JuryPanel({ withTabBar = false }: { withTabBar?: boolean }) {
         onKeyDown={(event) => {
           if (event.key === 'Escape') hide()
         }}
-        className="max-h-[calc(100dvh-var(--nav-h)-var(--sp-5))] w-[min(21rem,calc(100vw-1rem))] overflow-y-auto rounded-surface border-2 border-border-strong bg-card p-[var(--sp-3)]"
+        className="w-[min(21rem,calc(100vw-1rem))] rounded-surface border-2 border-border-strong bg-card p-[var(--sp-3)]"
       >
         <div className="flex items-center gap-[var(--sp-2)]">
-          <div className="min-w-0 flex-1">
-            <h2 className="m-0 text-[length:var(--fs-md)] font-extrabold leading-tight">Сценарий для жюри</h2>
-            <p className="m-0 text-[length:var(--fs-xs)] text-muted">60 секунд, шесть шагов</p>
-          </div>
+          <p className="m-0 min-w-0 flex-1 text-[length:var(--fs-xs)] font-bold text-muted" data-testid="jury-progress">
+            {step ? `Сценарий для жюри · шаг ${step.n} из ${JURY_STEPS.length}` : `Сценарий для жюри · ${JURY_STEPS.length} шагов`}
+          </p>
           <button
             id={HIDE_ID}
             type="button"
             aria-expanded
             onClick={hide}
-            className="inline-flex min-h-[var(--tap)] flex-none items-center rounded-pill bg-primary-soft px-[var(--sp-3)] text-[length:var(--fs-sm)] font-bold text-primary"
+            className="inline-flex min-h-[var(--tap)] flex-none items-center rounded-pill px-[var(--sp-2)] text-[length:var(--fs-sm)] font-bold text-primary"
           >
             Скрыть
           </button>
         </div>
-        <ol role="list" className="m-0 mt-[var(--sp-1)] flex list-none flex-col gap-0.5 p-0">
-          {JURY_STEPS.map((step, index) => {
-            const active = index === current
-            return (
-              <li key={step.href}>
-                <Link
-                  href={step.href}
-                  aria-current={active ? 'step' : undefined}
-                  className={cn(
-                    'flex min-h-[var(--tap)] items-center gap-[var(--sp-2)] rounded-control px-[var(--sp-2)] text-[length:var(--fs-sm)] leading-[1.25]',
-                    active ? 'bg-nav-active-bg font-extrabold text-nav-active' : 'font-semibold text-text hover:bg-nav-active-bg/60',
-                  )}
-                >
-                  <span
-                    aria-hidden="true"
-                    className="grid size-6 flex-none place-items-center rounded-full bg-primary-soft text-[length:var(--fs-xs)] font-extrabold text-primary"
-                  >
-                    {step.n}
-                  </span>
-                  <span className="min-w-0 [overflow-wrap:anywhere]">{step.label}</span>
-                </Link>
-              </li>
-            )
-          })}
-        </ol>
-        <p className="m-0 mt-[var(--sp-1)] text-[length:var(--fs-xs)] leading-[1.35] text-muted">
-          Шаги 1–4 — под студентом, шаг 5 — под сотрудником. Логины — в README.
+        <h2 className="m-0 mt-[var(--sp-1)] text-[length:var(--fs-md)] font-extrabold leading-tight">
+          {step ? step.label : 'Пять шагов за минуту'}
+        </h2>
+        <p className="m-0 mt-[var(--sp-1)] text-[length:var(--fs-sm)] leading-[1.35] text-text">
+          {step ? step.hint : 'Студент, его справка и заявки, затем кабинет сотрудника. Логины — в README.'}
         </p>
+        <div className="mt-[var(--sp-3)] flex gap-[var(--sp-2)]">
+          {prev ? (
+            <Link href={prev.href} className={cn(nav, 'border-2 border-primary text-primary')}>
+              Назад
+            </Link>
+          ) : null}
+          {next ? (
+            <Link href={next.href} className={cn(nav, 'flex-1 bg-primary text-on-primary')}>
+              {step ? 'Далее' : 'Начать'}
+            </Link>
+          ) : (
+            <button type="button" onClick={hide} className={cn(nav, 'flex-1 bg-primary text-on-primary')}>
+              Готово
+            </button>
+          )}
+        </div>
       </aside>
     </div>
   )

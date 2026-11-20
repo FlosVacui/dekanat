@@ -15,6 +15,8 @@ export interface AppConfig {
   timezone: string
   /** Секрет подписи кода проверки справки; пусто — «Получить сразу» и проверка справок выключены. */
   certificateSecret: string
+  /** Публичный адрес сайта для QR-кодов: https://<SITE_ADDRESS>. Пусто — адрес берётся из заголовка Host (локальный запуск). */
+  publicBaseUrl: string | null
   /** Панель «Сценарий для жюри». По умолчанию включена; JURY_MODE=off выключает (e2e). */
   juryMode: boolean
 }
@@ -39,6 +41,10 @@ export function getConfig(): AppConfig {
     clientIpHeader: (process.env.CLIENT_IP_HEADER ?? '').trim().toLowerCase(),
     timezone: process.env.APP_TIMEZONE?.trim() || 'Europe/Moscow',
     // Не обязателен для остального приложения: нужен только функциям справки с QR. Короче 16 знаков — как пусто.
+    publicBaseUrl: (() => {
+      const site = (process.env.SITE_ADDRESS ?? '').trim().toLowerCase()
+      return /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(site) && site.includes('.') ? `https://${site}` : null
+    })(),
     certificateSecret: (process.env.CERTIFICATE_SECRET ?? '').trim().length >= 16 ? (process.env.CERTIFICATE_SECRET ?? '').trim() : '',
     juryMode: (process.env.JURY_MODE ?? 'on').trim().toLowerCase() !== 'off',
   }

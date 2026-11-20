@@ -537,6 +537,7 @@ test.describe('П-09: после выхода «Назад» не показыв
     const s = await login(browser, A)
     try {
       await s.page.goto('/profile')
+      // С 20.11 (шлифовка) данные студента показаны один раз — в студенческом билете.
       await expect(s.page.getByText(A.fullName)).toBeVisible()
       await s.page.getByRole('button', { name: 'Выйти' }).click()
       await s.page.waitForURL('**/login')

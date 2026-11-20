@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 import { todayIn, weekInfo } from '@/lib/dates'
 import { headerLine } from '@/lib/header-line'
 import { getConfig } from '@/server/config'
-import { countMyUnreadNotifications, getMyCurrentSemester, getMyProfile } from '@/server/dal/student'
+import { countMyUnreadNotifications, getMyCurrentSemester, getMyProfile, hasMyAvatar } from '@/server/dal/student'
 import type { Actor } from '@/server/auth/session'
 import { StudentFrame, type StudentTab } from '@/components/states/shell-parts'
 import { JuryPanel } from '@/components/jury/jury-panel'
@@ -30,10 +30,11 @@ export async function StudentShell({
   active: StudentTab | null
   children: ReactNode
 }) {
-  const [profile, unread, semester] = await Promise.all([
+  const [profile, unread, semester, hasAvatar] = await Promise.all([
     getMyProfile(actor),
     countMyUnreadNotifications(actor),
     getMyCurrentSemester(actor),
+    hasMyAvatar(actor),
   ])
   const week = weekInfo(todayIn(getConfig().timezone))
   return (
@@ -44,6 +45,7 @@ export async function StudentShell({
           line: headerLine({ groupName: profile?.groupName ?? '', week, semester }),
           unread,
           initials: initials(profile?.fullName ?? ''),
+          hasAvatar,
         }}
         footer={<ProcessLink />}
       >

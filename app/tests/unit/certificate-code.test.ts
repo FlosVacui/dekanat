@@ -1,6 +1,6 @@
 // Код проверки справки: HMAC от номера заявки. Секрет в тесте — метка, не настоящее значение.
 import { describe, expect, it } from 'vitest'
-import { certificateCode, qrPath, shortName, verifyCertificateCode } from '@/lib/certificate'
+import { certificateCode, qrPath, shortName, studentTicketCode, verifyCertificateCode, verifyStudentTicketCode } from '@/lib/certificate'
 
 const SECRET = 'test-secret-label-not-real'
 const ID = '3f2b8c1e-9a47-4d6b-b1f0-5c8e2a7d9e10'
@@ -80,5 +80,35 @@ describe('qrPath', () => {
   })
   it('один и тот же адрес — один и тот же рисунок', () => {
     expect(qrPath('https://example.test/a').d).toBe(qrPath('https://example.test/a').d)
+  })
+})
+
+// 20.11, блиц: код студенческого билета — тот же вид, другая метка назначения.
+describe('studentTicketCode', () => {
+  it('свой код проходит и возвращает номер студента', () => {
+    expect(verifyStudentTicketCode(studentTicketCode(ID, SECRET), SECRET)).toBe(ID)
+  })
+
+  it('код справки не проходит как код билета, а код билета — как код справки (разделение назначения)', () => {
+    expect(studentTicketCode(ID, SECRET)).not.toBe(certificateCode(ID, SECRET))
+    expect(verifyStudentTicketCode(certificateCode(ID, SECRET), SECRET)).toBeNull()
+    expect(verifyCertificateCode(studentTicketCode(ID, SECRET), SECRET)).toBeNull()
+  })
+
+  it('другой секрет, изменённая подпись, подмена номера и мусор не проходят', () => {
+    const code = studentTicketCode(ID, SECRET)
+    expect(verifyStudentTicketCode(code, 'other-secret-label-not-real')).toBeNull()
+    const [idPart, macPart] = code.split('.') as [string, string]
+    const flipped = `${macPart.startsWith('A') ? 'B' : 'A'}${macPart.slice(1)}`
+    expect(verifyStudentTicketCode(`${idPart}.${flipped}`, SECRET)).toBeNull()
+    const other = studentTicketCode('3f2b8c1e-9a47-4d6b-b1f0-5c8e2a7d9e11', SECRET)
+    expect(verifyStudentTicketCode(`${other.split('.')[0]}.${macPart}`, SECRET)).toBeNull()
+    for (const bad of [undefined, null, 42, '', '.', 'a.b', `${code}.x`, `${code}!`]) expect(verifyStudentTicketCode(bad, SECRET)).toBeNull()
+    expect(verifyStudentTicketCode(code, '')).toBeNull()
+  })
+
+  it('номер не UUID — ошибка при выпуске кода', () => {
+    expect(() => studentTicketCode('1; drop table students', SECRET)).toThrow()
+    expect(() => studentTicketCode(ID, '')).toThrow()
   })
 })

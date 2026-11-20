@@ -175,6 +175,21 @@ export interface StudentSpec {
   markers: { profile: string; schedule: string; grades: string; requests: string; notifications: string; questions?: string }
 }
 
+/**
+ * Одногруппник для рейтинга (20.11): человек из группы без входа в кабинет. Логина и пароля у него нет: в базе он получает
+ * служебный логин `arhiv-…` и хеш пароля, который никто не знает (пароль выбирается случайно при заполнении и нигде не хранится).
+ * Оценки — итоговые за прошедший семестр. Заявок, уведомлений и вопросов у него нет.
+ */
+export interface ClassmateSpec {
+  fullName: string
+  groupName: string
+  course: number
+  programme: string
+  faculty: string
+  /** Итоги по дисциплинам группы: оценки 2–5 и зачёты с баллами за семестр. Зачёты в рейтинг не входят. */
+  grades: { discipline: string; outcome: '5' | '4' | '3' | '2' | 'credit'; points: number }[]
+}
+
 export interface AnnouncementSpec {
   key: string
   /** Адресат — группа или факультеты; «обоим факультетам» — две строки в базе. */
@@ -193,6 +208,8 @@ export interface CohortSpec {
   staff: { login: string; password: string }
   groups: GroupSpec[]
   students: StudentSpec[]
+  /** Одногруппники без входа: нужны только рейтингу в группе. Нет поля — их нет (резервные и тестовые наборы). */
+  classmates?: ClassmateSpec[]
   announcements: AnnouncementSpec[]
 }
 
@@ -415,6 +432,15 @@ export interface PlannedStudent {
   notifications: PlannedNotification[]
 }
 
+export interface PlannedClassmate {
+  userId: string
+  /** Служебный логин `arhiv-<12 знаков хеша>`: вход с ним невозможен, пароля никто не знает. */
+  login: string
+  spec: ClassmateSpec
+  groupId: string
+  grades: PlannedGrade[]
+}
+
 export interface PlannedAnnouncement {
   id: string
   key: string
@@ -434,6 +460,7 @@ export interface CohortPlan {
   lessons: PlannedLesson[]
   disciplines: PlannedDiscipline[]
   students: PlannedStudent[]
+  classmates: PlannedClassmate[]
   announcements: PlannedAnnouncement[]
   /** Значения для подстановок `{имя}` в текстах уведомлений: разбирает тест. */
   vars: ReadonlyMap<string, string>
@@ -769,6 +796,18 @@ export function buildCohortPlan(spec: CohortSpec, today: string): CohortPlan {
     return { userId, spec: s, groupId: gId, grades, workResults, requests, questions, notifications: [] }
   })
 
+  const classmates = (spec.classmates ?? []).map((c): PlannedClassmate => {
+    const gId = groupId.get(c.groupName)
+    if (!gId) throw new Error(`Одногруппник ${c.fullName}: нет группы ${c.groupName} в наборе ${spec.cohort}`)
+    const userId = detId('classmate', spec.cohort, c.groupName, c.fullName)
+    const grades = c.grades.map((g): PlannedGrade => {
+      const discipline = disciplines.find((d) => d.groupName === c.groupName && d.name === g.discipline)
+      if (!discipline) throw new Error(`У одногруппника ${c.fullName} оценка по дисциплине «${g.discipline}», которой нет в группе ${c.groupName}`)
+      return { id: detId('grade', userId, discipline.id), disciplineId: discipline.id, discipline: g.discipline, points: g.points, outcome: g.outcome, admitted: true }
+    })
+    return { userId, login: `arhiv-${userId.replace(/-/g, '').slice(0, 12)}`, spec: c, groupId: gId, grades }
+  })
+
   // Тексты — после того как посчитаны все значения подстановок.
   const announcements: PlannedAnnouncement[] = spec.announcements.flatMap((a, index) => {
     const date = addDays(today, a.dayOffset)
@@ -797,5 +836,5 @@ export function buildCohortPlan(spec: CohortSpec, today: string): CohortPlan {
       time: `00:${String(59 - index).padStart(2, '0')}`,
     }))
   }
-  return { today, cohort: spec.cohort, staffId: detId('user', spec.staff.login), groups, lessons, disciplines, students, announcements, vars }
+  return { today, cohort: spec.cohort, staffId: detId('user', spec.staff.login), groups, lessons, disciplines, students, classmates, announcements, vars }
 }

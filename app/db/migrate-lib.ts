@@ -24,6 +24,10 @@ const GRANTS = [
   'GRANT INSERT, UPDATE ON questions TO {role}',
   // Счётчики входа (пакет 3.1): приложение пишет в них одной атомарной операцией и чистит строки по давности.
   'GRANT INSERT, UPDATE, DELETE ON login_attempts, login_ip_windows, login_streaks TO {role}',
+  // Фото профиля (блиц 20.11): студент загружает, меняет и удаляет своё фото.
+  'GRANT INSERT, UPDATE, DELETE ON user_avatars TO {role}',
+  // Объявления (блиц 20.11): сотрудник пишет объявление своей группе или потоку.
+  'GRANT INSERT ON announcements TO {role}',
 ]
 
 export function roleFromUrl(url: string): string {

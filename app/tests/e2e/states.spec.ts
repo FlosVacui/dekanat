@@ -366,7 +366,9 @@ const ALL_PAGES = [...LOAD_CASES, ...NO_BOUNDARY_CASES]
 /** Дольше блокировка не держится сама: запрос приложения, ждущий 10 секунд, база обрывает. Тест снимает её раньше, вручную. */
 const LOCK_MAX_MS = 8000
 
-const SKELETON = 'main [role="status"]'
+// Было: 'main [role="status"]'. Стало: только карточка загрузки (она всегда aria-busy, loading-card.tsx). Пустая строка состояния
+// кнопки «Сказать» (`voice-status`, role="status") стоит на экране «Новая заявка» и скелетом не является.
+const SKELETON = 'main [role="status"][aria-busy="true"]'
 
 function pageOf(c: Pick<LoadCase, 'who'>): Page {
   return c.who === 'staff' ? staffPage : studentPage

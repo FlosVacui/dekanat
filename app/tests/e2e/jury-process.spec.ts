@@ -12,13 +12,13 @@ const [student1] = MAIN_COHORT.students
 if (!student1) throw new Error('В основном наборе нет студента')
 const staff = MAIN_COHORT.staff
 
+// 20.11.2026 по отзыву капитана: один шаг за раз с кнопкой «Далее», «Как это сделано» в сценарии нет.
 const STEPS = [
-  { label: 'Студент → Сегодня: что ждёт студента', href: '/' },
+  { label: 'Сегодня: что ждёт студента', href: '/' },
   { label: 'Успеваемость: долг и допуск', href: '/grades' },
-  { label: 'Справка за секунду с QR', href: '/requests/new?type=dean_certificate' },
+  { label: 'Справка одной фразой и с QR', href: '/requests/new?type=dean_certificate' },
   { label: 'Заявки: что требует ответа', href: '/requests' },
-  { label: 'Сотрудник: заявки, просроченные наверху', href: '/staff/requests' },
-  { label: 'Как это сделано', href: '/process' },
+  { label: 'Сотрудник: заявки и вопросы', href: '/staff/requests' },
 ] as const
 
 let server: RunningServer | null = null
@@ -63,14 +63,12 @@ async function expectNoHorizontalScroll(page: Page, width: number, where: string
 const panel = (page: Page) => page.getByRole('complementary', { name: 'Сценарий для жюри' })
 const chip = (page: Page) => page.getByRole('button', { name: 'Сценарий для жюри', exact: true })
 
-/** Номера шагов, у которых стоит aria-current="step". */
-async function currentSteps(page: Page): Promise<string[]> {
-  return panel(page).locator('a[aria-current="step"]').allInnerTexts()
-}
+const heading = (page: Page) => panel(page).getByRole('heading', { level: 2 })
+const progress = (page: Page) => panel(page).getByTestId('jury-progress')
 
 // ---------- панель ----------
 
-test('360, студент: по умолчанию свёрнута в кнопку; открытая — шесть ссылок по заданию, шаг 1 подсвечен, панель над нижней панелью вкладок, без прокрутки вбок', async ({ browser }) => {
+test('360, студент: по умолчанию свёрнута в кнопку; открытая — шаг 1 из 5 с подсказкой и «Далее», панель над нижней панелью вкладок, без прокрутки вбок', async ({ browser }) => {
   const context = await newContext(browser, 360)
   try {
     const page = await context.newPage()
@@ -80,19 +78,13 @@ test('360, студент: по умолчанию свёрнута в кноп�
     await expectNoHorizontalScroll(page, 360, '360 «Сегодня» со свёрнутой панелью')
     await chip(page).click()
     await expect(panel(page)).toBeVisible()
-    const links = panel(page).getByRole('link')
-    await expect(links).toHaveCount(STEPS.length)
-    let seen = 0
-    for (const [i, step] of STEPS.entries()) {
-      await expect(links.nth(i)).toHaveAttribute('href', step.href)
-      await expect(links.nth(i)).toContainText(step.label)
-      const box = (await links.nth(i).boundingBox())!
-      expect(box.height, `шаг ${i + 1}: зона касания`).toBeGreaterThanOrEqual(44)
-      seen += 1
-    }
-    expect(seen, 'шагов проверено').toBe(STEPS.length)
-    expect(await currentSteps(page)).toHaveLength(1)
-    await expect(links.nth(0)).toHaveAttribute('aria-current', 'step')
+    await expect(progress(page)).toContainText('шаг 1 из 5')
+    await expect(heading(page)).toHaveText(STEPS[0].label)
+    // На первом шаге «Назад» нет, «Далее» ведёт на шаг 2.
+    await expect(panel(page).getByRole('link', { name: 'Назад' })).toHaveCount(0)
+    const next = panel(page).getByRole('link', { name: 'Далее' })
+    await expect(next).toHaveAttribute('href', STEPS[1].href)
+    expect((await next.boundingBox())!.height, '«Далее»: зона касания').toBeGreaterThanOrEqual(44)
 
     // Панель не закрывает нижнюю панель вкладок.
     const tabbar = (await page.locator('[data-tabbar]').boundingBox())!
@@ -186,29 +178,33 @@ test('Escape в панели сворачивает её', async ({ browser }) =
   }
 })
 
-test('шаги ведут по адресам; подсвечен ровно один шаг, по адресу страницы', async ({ browser }) => {
+test('«Далее» и «Назад» ведут по шагам 1–4 под студентом; страница вне сценария предлагает «Начать»', async ({ browser }) => {
   const context = await newContext(browser, 1280)
   try {
     const page = await context.newPage()
     await signIn(page, student1!.login, student1!.password, '/')
-    // Шаги 2–4 и 6 — под студентом; шаг 5 проверяет следующий тест.
-    for (const index of [1, 2, 3, 5]) {
-      const step = STEPS[index]!
-      await panel(page).getByRole('link', { name: step.label }).click()
-      await expect(page).toHaveURL(`${BASE_URL}${step.href}`)
-      await expect(panel(page).getByRole('link', { name: step.label })).toHaveAttribute('aria-current', 'step')
-      expect(await currentSteps(page), `${step.href}: один подсвеченный шаг`).toHaveLength(1)
+    for (let i = 1; i <= 3; i += 1) {
+      await panel(page).getByRole('link', { name: 'Далее' }).click()
+      await expect(page).toHaveURL(`${BASE_URL}${STEPS[i]!.href}`)
+      await expect(progress(page)).toContainText(`шаг ${i + 1} из 5`)
+      await expect(heading(page)).toHaveText(STEPS[i]!.label)
     }
-    // Страница вне сценария: ни один шаг не подсвечен.
+    // Шаг 4: «Далее» ведёт к сотруднику (шаг 5 проверяет следующий тест), «Назад» — на шаг 3.
+    await expect(panel(page).getByRole('link', { name: 'Далее' })).toHaveAttribute('href', STEPS[4].href)
+    await panel(page).getByRole('link', { name: 'Назад' }).click()
+    await expect(page).toHaveURL(`${BASE_URL}${STEPS[2].href}`)
+    await expect(progress(page)).toContainText('шаг 3 из 5')
+    // Страница вне сценария: «Начать» ведёт на шаг 1.
     await page.goto('/schedule')
     await expect(panel(page)).toBeVisible()
-    expect(await currentSteps(page)).toHaveLength(0)
+    await expect(panel(page).getByRole('link', { name: 'Начать' })).toHaveAttribute('href', '/')
+    await expect(panel(page).getByRole('link', { name: 'Назад' })).toHaveCount(0)
   } finally {
     await context.close()
   }
 })
 
-test('сотрудник: панель на его экране, шаг 5 подсвечен, паролей в ней нет; «Как это сделано» открывается в его оболочке', async ({ browser }) => {
+test('сотрудник: шаг 5 из 5 на заявках и на вопросах, паролей в панели нет; «Готово» сворачивает панель', async ({ browser }) => {
   const context = await newContext(browser, 360)
   try {
     const page = await context.newPage()
@@ -216,16 +212,16 @@ test('сотрудник: панель на его экране, шаг 5 под
     // На 360 px панель по умолчанию свёрнута: открываем кнопкой.
     await chip(page).click()
     await expect(panel(page)).toBeVisible()
-    await expect(panel(page).getByRole('link', { name: STEPS[4].label })).toHaveAttribute('aria-current', 'step')
+    await expect(progress(page)).toContainText('шаг 5 из 5')
+    await expect(panel(page)).not.toContainText(/demo-|парол/i)
     await expect(panel(page).locator('input, textarea')).toHaveCount(0)
-    // У сотрудника нижней панели вкладок нет: панель сценария прижата к низу окна, а не поднята над несуществующей панелью.
+    // У сотрудника нижней панели вкладок нет: панель сценария прижата к низу окна.
     await expect(page.locator('[data-tabbar]')).toHaveCount(0)
     await expectNoHorizontalScroll(page, 360, '360 сотрудник с панелью')
-
-    await panel(page).getByRole('link', { name: STEPS[5].label }).click()
-    await expect(page).toHaveURL(`${BASE_URL}/process`)
-    await expect(page.getByRole('heading', { name: 'Как это сделано', level: 1 })).toBeVisible()
-    await expect(page.getByRole('button', { name: 'Выйти' })).toBeVisible()
+    await expect(panel(page).getByRole('link', { name: 'Далее' })).toHaveCount(0)
+    await panel(page).getByRole('button', { name: 'Готово' }).click()
+    await expect(panel(page)).toHaveCount(0)
+    await expect(chip(page)).toBeVisible()
   } finally {
     await context.close()
   }
@@ -264,11 +260,11 @@ test('/process: гость видит страницу без входа — з�
         await expect(link).toHaveAttribute('target', '_blank')
         await expect(link).toHaveAttribute('rel', /noopener/)
       }
-      // Гость: ссылка «Войти» и панель сценария со шагом 6.
+      // Гость: ссылка «Войти». Страница вне сценария: панель предлагает «Начать».
       await expect(page.getByRole('link', { name: 'Войти', exact: true })).toHaveAttribute('href', '/login')
       // До 1024 px панель по умолчанию свёрнута в кнопку.
       if (width < 1024) await chip(page).click()
-      await expect(panel(page).getByRole('link', { name: STEPS[5].label })).toHaveAttribute('aria-current', 'step')
+      await expect(panel(page).getByRole('link', { name: 'Начать' })).toBeVisible()
       await expectNoHorizontalScroll(page, width, `/process на ${width}`)
     } finally {
       await context.close()

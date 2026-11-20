@@ -1,6 +1,6 @@
 // Сценарий для жюри: какой шаг подсвечен по адресу и как читается сохранённое состояние панели. Чистая логика, база не нужна.
 import { describe, expect, it } from 'vitest'
-import { JURY_STEPS, JURY_STORAGE_KEY, currentJuryStep, normalizePath, parseStoredChoice, resolvePanelState } from '../../src/components/jury/steps'
+import { JURY_STEPS, JURY_STORAGE_KEY, currentJuryStep, juryNeighbours, normalizePath, parseStoredChoice, resolvePanelState } from '../../src/components/jury/steps'
 
 const stepOf = (path: string | null | undefined) => {
   const index = currentJuryStep(path)
@@ -8,21 +8,33 @@ const stepOf = (path: string | null | undefined) => {
 }
 
 describe('шаги сценария', () => {
-  it('шесть шагов с номерами 1–6, адреса по заданию, адреса не повторяются', () => {
-    expect(JURY_STEPS.map((s) => s.n)).toEqual([1, 2, 3, 4, 5, 6])
-    expect(JURY_STEPS.map((s) => s.href)).toEqual(['/', '/grades', '/requests/new?type=dean_certificate', '/requests', '/staff/requests', '/process'])
+  it('пять шагов с номерами 1–5, адреса по заданию, адреса не повторяются; «Как это сделано» в сценарии нет', () => {
+    expect(JURY_STEPS.map((s) => s.n)).toEqual([1, 2, 3, 4, 5])
+    expect(JURY_STEPS.map((s) => s.href)).toEqual(['/', '/grades', '/requests/new?type=dean_certificate', '/requests', '/staff/requests'])
     expect(new Set(JURY_STEPS.map((s) => s.href)).size).toBe(JURY_STEPS.length)
   })
 
-  it('подписи шагов — как в задании', () => {
-    expect(JURY_STEPS.map((s) => s.label)).toEqual([
-      'Студент → Сегодня: что ждёт студента',
-      'Успеваемость: долг и допуск',
-      'Справка за секунду с QR',
-      'Заявки: что требует ответа',
-      'Сотрудник: заявки, просроченные наверху',
-      'Как это сделано',
-    ])
+  it('у каждого шага есть подпись и подсказка, что смотреть; паролей в подсказках нет', () => {
+    for (const step of JURY_STEPS) {
+      expect(step.label.length).toBeGreaterThan(5)
+      expect(step.hint.length).toBeGreaterThan(20)
+      expect(step.hint).not.toMatch(/demo-|парол/i)
+    }
+  })
+})
+
+describe('juryNeighbours: кнопки «Назад» и «Далее»', () => {
+  it('вне сценария: назад нельзя, «Далее» — шаг 1', () => {
+    expect(juryNeighbours(null)).toEqual({ prev: null, next: JURY_STEPS[0] })
+  })
+  it('первый шаг: назад нельзя, далее — шаг 2', () => {
+    expect(juryNeighbours(0)).toEqual({ prev: null, next: JURY_STEPS[1] })
+  })
+  it('середина: оба соседа', () => {
+    expect(juryNeighbours(2)).toEqual({ prev: JURY_STEPS[1], next: JURY_STEPS[3] })
+  })
+  it('последний шаг: «Далее» нет', () => {
+    expect(juryNeighbours(JURY_STEPS.length - 1)).toEqual({ prev: JURY_STEPS[JURY_STEPS.length - 2], next: null })
   })
 })
 
@@ -33,7 +45,11 @@ describe('currentJuryStep: шаг по адресу', () => {
     ['/requests/new', 3],
     ['/requests', 4],
     ['/staff/requests', 5],
-    ['/process', 6],
+    ['/staff/questions', 5],
+    ['/staff', 5],
+    ['/staff/students', 5],
+    ['/staff/students/9f2c', 5],
+    ['/staff/announcements', 5],
   ])('адрес шага %s — шаг %i', (path, n) => {
     expect(stepOf(path)).toBe(n)
   })
@@ -67,8 +83,12 @@ describe('currentJuryStep: шаг по адресу', () => {
     expect(stepOf('/gradesheet')).toBeNull()
     expect(stepOf('/requests-archive')).toBeNull()
     expect(stepOf('/processing')).toBeNull()
-    expect(stepOf('/staff')).toBeNull()
-    expect(stepOf('/staff/questions/1')).toBeNull()
+    // 20.11, блиц: шаг 5 охватывает весь кабинет сотрудника (`also: ['/staff']`); было — `/staff` вне сценария.
+    expect(stepOf('/staff')).toBe(5)
+    expect(stepOf('/staffing')).toBeNull()
+    expect(stepOf('/stafford/requests')).toBeNull()
+    expect(stepOf('/staff/questions/1')).toBe(5)
+    expect(stepOf('/process')).toBeNull()
   })
 
   it('строка запроса, якорь и хвостовой слеш не мешают', () => {
