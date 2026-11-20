@@ -16,10 +16,14 @@ export const metadata: Metadata = {
       { url: '/favicon-16.png', sizes: '16x16', type: 'image/png' },
       { url: '/favicon-32.png', sizes: '32x32', type: 'image/png' },
     ],
+    // 20.11, установка на телефон: значок для экрана «Домой» на iPhone, 180×180.
+    apple: [{ url: '/apple-touch-icon.png', sizes: '180x180', type: 'image/png' }],
   },
+  appleWebApp: { capable: true, title: 'Деканат', statusBarStyle: 'default' },
 }
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1 }
+// themeColor — цвет --primary светлой темы (тот же, что theme_color в manifest.ts).
+export const viewport: Viewport = { width: 'device-width', initialScale: 1, themeColor: '#194CA6' }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   // 20.11, блиц: настройки отображения лежат в куке `ui`; сервер ставит класс на <html> сам, поэтому страница не мигает.

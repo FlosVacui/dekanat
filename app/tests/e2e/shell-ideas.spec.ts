@@ -18,7 +18,7 @@ if (!group) throw new Error('У студента нет группы в набо
 const SEMESTER = Math.max(...group.disciplines.map((d) => d.semester))
 
 const CONCEPT = 'Концепт для конкурса, не официальный сервис вуза'
-const IDEAS_TITLES = ['Помощник по правилам деканата', 'Сдача работ в кабинете', 'Напоминания по времени']
+const IDEAS_TITLES = ['Кабинет преподавателя', 'Сдача работ в кабинете', 'Напоминания по времени']
 
 let server: RunningServer | null = null
 
@@ -99,12 +99,14 @@ test('1280: колонка разделов — две группы, шесть 
     // Подписи двух групп и ссылки по порядку.
     for (const caption of ['Учёба', 'Деканат']) await expect(nav.getByText(caption, { exact: true })).toBeVisible()
     const links = nav.getByRole('link')
-    await expect(links).toHaveCount(6)
+    // 20.11: в группе «Деканат» добавлен «Помощник по правилам».
+    await expect(links).toHaveCount(7)
     const names = (await links.allTextContents()).map((t) => t.replace(/\s+/g, ' ').trim())
     expect(names.slice(0, 3)).toEqual(['Сегодня', 'Расписание', 'Успеваемость'])
     expect(names[3]).toBe('Заявки')
     expect(names[4]).toMatch(/^Уведомления/)
-    expect(names[5]).toBe('Идеи и планы')
+    expect(names[5]).toBe('Помощник по правилам')
+    expect(names[6]).toBe('Идеи и планы')
     await expect(nav.getByRole('link', { name: 'Идеи и планы', exact: true })).toHaveAttribute('href', '/ideas')
 
     // Счётчик: то же число, что у колокольчика; у него есть скрытая приставка «Новых: ».

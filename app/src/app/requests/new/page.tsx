@@ -8,6 +8,7 @@ import { LoadingCard } from '@/components/states/loading-card'
 import { StudentFrame } from '@/components/states/shell-parts'
 import { StudentShell } from '@/components/student-shell'
 import { SubmitButton } from '@/components/submit-button'
+import { VoiceInputButton } from '@/components/voice/voice-input-button'
 import { Button } from '@/components/ui/button'
 import { todayIn } from '@/lib/dates'
 import { INTENT_SOURCE_LABELS, intentExtras, type Intent, type IntentSource } from '@/lib/intent'
@@ -149,6 +150,8 @@ async function NewRequestContent({
               aria-describedby="request-phrase-hint"
               className="min-h-[var(--control-h)] w-full rounded-control border-2 border-border-strong bg-card px-[var(--sp-4)] text-[length:var(--fs-md)] text-text focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus"
             />
+            {/* 20.11, идея №17: кнопка микрофона под полем; в браузере без распознавания речи её нет. */}
+            <VoiceInputButton targetId="request-phrase" />
             <p id="request-phrase-hint" className="text-[length:var(--fs-sm)] text-muted">
               {aiEnabled() ? 'Фразу разбирает ИИ; если не выйдет, подберём по ключевым словам.' : 'Подбор по ключевым словам.'} Например: справка в налоговую к пятнице, 2 экземпляра
             </p>
