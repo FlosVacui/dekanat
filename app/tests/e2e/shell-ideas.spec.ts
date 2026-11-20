@@ -18,7 +18,8 @@ if (!group) throw new Error('У студента нет группы в набо
 const SEMESTER = Math.max(...group.disciplines.map((d) => d.semester))
 
 const CONCEPT = 'Концепт для конкурса, не официальный сервис вуза'
-const IDEAS_TITLES = ['Кабинет преподавателя', 'Сдача работ в кабинете', 'Напоминания по времени']
+// 20.11: «Напоминания по времени» сделаны (календарь и лента) и убраны с «Идей и планов»: было три карточки, стало две.
+const IDEAS_TITLES = ['Кабинет преподавателя', 'Сдача работ в кабинете']
 
 let server: RunningServer | null = null
 
@@ -86,7 +87,7 @@ async function bellNumber(page: Page): Promise<number> {
 
 // ---------- 1280: колонка разделов, шапка, «Ждёт вас» ----------
 
-test('1280: колонка разделов — две группы, шесть ссылок, одна навигация; счётчик «Уведомлений» равен числу у колокольчика', async ({ browser }) => {
+test('1280: колонка разделов — две группы, восемь ссылок, одна навигация; счётчик «Уведомлений» равен числу у колокольчика', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 1280)
   try {
     const nav = sections(page)
@@ -100,13 +101,15 @@ test('1280: колонка разделов — две группы, шесть 
     for (const caption of ['Учёба', 'Деканат']) await expect(nav.getByText(caption, { exact: true })).toBeVisible()
     const links = nav.getByRole('link')
     // 20.11: в группе «Деканат» добавлен «Помощник по правилам».
-    await expect(links).toHaveCount(7)
+    // 20.11, поддержка: после «Помощника по правилам» добавлена «Поддержка» — ссылок восемь.
+    await expect(links).toHaveCount(8)
     const names = (await links.allTextContents()).map((t) => t.replace(/\s+/g, ' ').trim())
     expect(names.slice(0, 3)).toEqual(['Сегодня', 'Расписание', 'Успеваемость'])
     expect(names[3]).toBe('Заявки')
     expect(names[4]).toMatch(/^Уведомления/)
     expect(names[5]).toBe('Помощник по правилам')
-    expect(names[6]).toBe('Идеи и планы')
+    expect(names[6]).toBe('Поддержка')
+    expect(names[7]).toBe('Идеи и планы')
     await expect(nav.getByRole('link', { name: 'Идеи и планы', exact: true })).toHaveAttribute('href', '/ideas')
 
     // Счётчик: то же число, что у колокольчика; у него есть скрытая приставка «Новых: ».
@@ -228,20 +231,19 @@ test('1280 «Сегодня»: «Ждёт вас» стоит над «биле�
 
 // ---------- «Идеи и планы» ----------
 
-test('1280 /ideas: заголовок, вступление, три идеи — две в первом ряду, одна во втором, в карточках нет ссылок и кнопок', async ({ browser }) => {
+test('1280 /ideas: заголовок, вступление, две идеи — обе в одном ряду, в карточках нет ссылок и кнопок', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 1280)
   try {
     await page.goto('/ideas')
     await expect(page.getByRole('heading', { name: 'Идеи и планы', level: 1 })).toBeVisible()
     await expect(page.getByText('Что мы добавили бы в кабинет, будь у нас больше времени. Это планы, а не работающие функции', { exact: true })).toBeVisible()
     const cards = page.locator('main article')
-    await expect(cards).toHaveCount(3)
+    await expect(cards).toHaveCount(2)
     for (const title of IDEAS_TITLES) await expect(page.getByRole('heading', { name: title, level: 2 })).toBeVisible()
     await expect(page.locator('main article a, main article button, main article [role="button"], main article [role="link"]')).toHaveCount(0)
-    // Две в первом ряду, одна во втором: у первых двух карточек одна верхняя граница, у третьей — другая, ниже.
-    const boxes = await Promise.all([0, 1, 2].map((i) => cards.nth(i).boundingBox()))
+    // Две карточки в одном ряду (было: две в первом ряду, одна во втором): одна верхняя граница, вторая правее первой.
+    const boxes = await Promise.all([0, 1].map((i) => cards.nth(i).boundingBox()))
     expect(Math.round(boxes[0]!.y)).toBe(Math.round(boxes[1]!.y))
-    expect(boxes[2]!.y).toBeGreaterThan(boxes[0]!.y + boxes[0]!.height - 1)
     expect(boxes[1]!.x).toBeGreaterThan(boxes[0]!.x + boxes[0]!.width - 1)
     // Пунктирная рамка.
     await expect(cards.first()).toHaveCSS('border-top-style', 'dashed')
@@ -287,11 +289,11 @@ test('360: блок «Ждёт вас» виден, нижняя панель и
     await expect(page.getByRole('link', { name: 'Идеи и планы', exact: true })).toHaveAttribute('aria-current', 'page')
     await expectNoHorizontalScroll(page, 360, '360 /ideas')
 
-    // Три карточки друг под другом, без ссылок и кнопок.
+    // Две карточки друг под другом (было три), без ссылок и кнопок.
     const cards = page.locator('main article')
-    await expect(cards).toHaveCount(3)
-    const boxes = await Promise.all([0, 1, 2].map((i) => cards.nth(i).boundingBox()))
-    for (let i = 1; i < 3; i += 1) expect(boxes[i]!.y, `карточка ${i} под предыдущей`).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height - 1)
+    await expect(cards).toHaveCount(2)
+    const boxes = await Promise.all([0, 1].map((i) => cards.nth(i).boundingBox()))
+    for (let i = 1; i < 2; i += 1) expect(boxes[i]!.y, `карточка ${i} под предыдущей`).toBeGreaterThanOrEqual(boxes[i - 1]!.y + boxes[i - 1]!.height - 1)
     await expect(page.locator('main article a, main article button')).toHaveCount(0)
     await expect(nav.getByRole('link')).toHaveCount(4)
   } finally {
@@ -304,7 +306,7 @@ test('360 /ideas без прокрутки вбок и на 390', async ({ brows
     const { context, page } = await openAsStudent(browser, width)
     try {
       await page.goto('/ideas')
-      await expect(page.locator('main article')).toHaveCount(3)
+      await expect(page.locator('main article')).toHaveCount(2)
       await expectNoHorizontalScroll(page, width, `/ideas на ${width}`)
     } finally {
       await context.close()

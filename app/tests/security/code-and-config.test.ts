@@ -185,6 +185,7 @@ describe('Т-01: тестовый аккаунт не может испорти�
         // 19.11, ИИ-функции: «Черновик ИИ» ничего не пишет в базу и не отправляет, только возвращает текст форме.
         'app/staff/questions/[id]/actions.ts:draftAnswerAction',
         'app/staff/announcements/actions.ts:createAnnouncementAction', // 20.11, блиц: объявление группе или потоку, набор и предел — в слое доступа
+        'app/staff/(home)/actions.ts:weekSummaryAction', // 20.11, сводка: «Сводка недели от ИИ» — читает числа набора из сессии, ничего не пишет и не принимает из формы
         'app/staff/requests/[id]/actions.ts:changeStatusAction',
         // 20.11, блиц: фото профиля (только своё, тип и размер проверяет слой доступа) и настройки отображения (кука `ui` из списка значений).
         'app/profile/actions.ts:deleteAvatarAction',

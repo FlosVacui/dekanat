@@ -33,7 +33,7 @@ describe('часовой пояс', () => {
 
 describe('текст файла', () => {
   it('экранирование: обратная косая, точка с запятой, запятая, перевод строки', () => {
-    expect(escapeIcsText('a;b,c\\d\ne')).toBe('a\;b\\,c\\\\d\\ne')
+    expect(escapeIcsText('a;b,c\\d\ne')).toBe('a\\;b\\,c\\\\d\\ne')
   })
 
   it('строки длиннее 75 байт переносятся с пробелом, знак из двух байт не разрезается', () => {
@@ -114,6 +114,6 @@ describe('календарь', () => {
 
   it('запятая и точка с запятой в названии не ломают строку', () => {
     const ics = buildIcs(buildSchedule([lesson({ id: 'x', date: '2026-11-20', discipline: 'Право; теория, практика' })], TODAY, 14), 'Europe/Moscow', NOW)
-    expect(ics).toContain('SUMMARY:Право\; теория\\, практика (Семинар)')
+    expect(ics).toContain('SUMMARY:Право\\; теория\\, практика (Семинар)')
   })
 })

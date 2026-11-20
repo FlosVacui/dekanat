@@ -968,3 +968,64 @@ export async function getStudentForTicketVerification(studentId: string): Promis
     .limit(1)
   return rows[0] ?? null
 }
+
+// ---------- Рейтинг в группе (20.11, поддержка и рейтинг) ----------
+
+/** Рейтинг студента в своей группе за семестр. Наружу — только свои значения, место и размер группы. */
+export interface GroupRating {
+  /**
+   * Семестр, по которому считан рейтинг: текущий семестр группы (наибольший `disciplines.semester`), а если итоговых оценок
+   * по нему у группы ещё нет — последний семестр, где они есть. Экран подписывает его: «За 4 семестр».
+   */
+  semester: number
+  /** Среднее арифметическое итоговых оценок 2–5 студента за семестр (по выставленным). */
+  average: number
+  /** Место в группе: 1 + число студентов с более высоким средним. Равные средние — одно место (1, 2, 2, 4). */
+  place: number
+  /** Сколько студентов в группе (все, в том числе пока без оценок: они ниже в списке). */
+  groupSize: number
+}
+
+/**
+ * Рейтинг студента в группе: один запрос. Студент и группа — из сессии. Считаются итоговые оценки '2'–'5' по дисциплинам
+ * группы за один семестр: текущий (наибольший у группы), а если в нём у группы нет ни одной итоговой оценки (сессия впереди) —
+ * последний семестр, где они есть (20.11, решение участника А: в демо рейтинг виден). Зачёты и «ещё нет итога» не входят. Средние сравниваются без округления:
+ * `сумма_a * число_b` против `сумма_b * число_a`, поэтому равенство точное и дробей с плавающей точкой нет.
+ * Чужие баллы из запроса наружу не выходят: приложение получает только число студентов, место и свои сумму и счёт.
+ * Нет ни одной итоговой оценки у студента в этом семестре (или нет дисциплин) — null: «Рейтинг появится после первых итоговых оценок».
+ */
+export async function getMyRating(actor: Actor): Promise<GroupRating | null> {
+  const { studentId, groupId } = requireStudent(actor)
+  const result = await getDb().execute<{ semester: number | null; total: number; n: number; higher: number; size: number }>(sql`
+    with cur as (
+      select max(d.semester) as semester
+      from disciplines d
+      where d.group_id = ${groupId}
+        and exists (select 1 from grades gr where gr.discipline_id = d.id and gr.outcome in ('2', '3', '4', '5'))
+    ),
+    per_student as (
+      select s.user_id as student_id,
+             coalesce(sum(case when g.outcome in ('2', '3', '4', '5') then g.outcome::int end), 0)::int as total,
+             count(case when g.outcome in ('2', '3', '4', '5') then 1 end)::int as n
+      from students s
+      left join grades g
+        on g.student_id = s.user_id
+       and g.discipline_id in (
+         select d.id from disciplines d, cur where d.group_id = ${groupId} and d.semester = cur.semester
+       )
+      where s.group_id = ${groupId}
+      group by s.user_id
+    )
+    select (select semester from cur)::int as semester,
+           me.total,
+           me.n,
+           (select count(*) from per_student o where me.n > 0 and o.n > 0 and o.total * me.n > me.total * o.n)::int as higher,
+           (select count(*) from per_student)::int as size
+    from per_student me
+    where me.student_id = ${studentId}
+  `)
+  const row = result.rows[0]
+  if (!row || row.semester === null || Number(row.n) === 0) return null
+  const n = Number(row.n)
+  return { semester: Number(row.semester), average: Number(row.total) / n, place: Number(row.higher) + 1, groupSize: Number(row.size) }
+}

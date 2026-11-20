@@ -1,13 +1,17 @@
 import type { Metadata } from 'next'
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { Card, CardTitle, PageTitle } from '@/components/card'
 import { LinkButton } from '@/components/link-button'
 import { StudentShell } from '@/components/student-shell'
 import { SubmitButton } from '@/components/submit-button'
+import { CrisisNumbers } from '@/app/support/crisis-numbers'
 import { VoiceInputButton } from '@/components/voice/voice-input-button'
 import { itemHref, type RegItem } from '@/lib/regulations/data'
 import { ASSISTANT_EXAMPLES, ASSISTANT_QUESTION_MAX, assistantHref, cleanQuestion, escalationHref, excerpt } from '@/lib/regulations/question'
+import { isCrisisText } from '@/lib/support/crisis'
+import { PSYCH_SERVICE } from '@/lib/support/data'
 import { askRegulations, type AssistantAnswer } from '@/server/ai'
 import { requireStudentActor } from '@/server/auth/page-guards'
 
@@ -36,6 +40,25 @@ function Note({ children }: { children: ReactNode }) {
     <p data-testid="assistant-note" className="m-0 text-[length:var(--fs-xs)] leading-[1.35] text-muted">
       {children}
     </p>
+  )
+}
+
+// 20.11, поддержка: вместо ответа — карточка с номерами помощи. Текст здесь постоянный: ИИ в этой теме ничего не пишет.
+function HelpCard() {
+  return (
+    <Card>
+      <div className="flex flex-col gap-[var(--sp-2)]" data-testid="assistant-help">
+        <CardTitle>Похоже, вам сейчас тяжело. Вы не одни</CardTitle>
+        <p className="m-0 text-[length:var(--fs-md)] leading-[1.45]">Если плохо прямо сейчас, позвоните:</p>
+        <CrisisNumbers />
+        <p className="m-0 text-[length:var(--fs-md)] leading-[1.45]">
+          <strong>{PSYCH_SERVICE.title}.</strong> {PSYCH_SERVICE.privacy}.
+        </p>
+        <Link href="/support" data-testid="assistant-help-support" className="inline-flex min-h-[var(--tap)] items-center text-[length:var(--fs-md)] font-bold text-primary">
+          Открыть страницу «Поддержка»
+        </Link>
+      </div>
+    </Card>
   )
 }
 
@@ -84,10 +107,14 @@ function Result({ result }: { result: AssistantAnswer }) {
   )
 }
 
-export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ q?: string | string[] }> }) {
+export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; help?: string | string[] }> }) {
   // Вход проверяется первым: не вошёл — 307 на вход, сотрудник — 403. Границы ожидания нет: форма должна работать без скриптов.
   const actor = await requireStudentActor()
-  const { q } = await searchParams
+  const { q, help } = await searchParams
+  // 20.11, поддержка: тяжёлый вопрос не доходит ни до модели, ни до поиска по положению, ни до «спросить деканат». Переход на адрес без
+  // текста вопроса: он не остаётся в адресной строке и истории браузера. Проверяются все значения параметра, не только первое.
+  if ((Array.isArray(q) ? q : [q]).some((value) => isCrisisText(value))) redirect('/assistant?help=1')
+  const showHelp = help === '1'
   const question = cleanQuestion(Array.isArray(q) ? q[0] : q)
   const result = question ? await askRegulations(question, actor.userId) : null
 
@@ -102,6 +129,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
           </Link>{' '}
           и называет пункты. Это учебный пример, не настоящий документ вуза.
         </p>
+        {showHelp ? <HelpCard /> : null}
         <form method="get" action="/assistant" className="flex flex-col gap-[var(--gap)]">
           <Card>
             <div className="flex flex-col gap-1.5">
@@ -128,7 +156,7 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
           <SubmitButton>Спросить</SubmitButton>
         </form>
 
-        {!question ? (
+        {!question && !showHelp ? (
           <section aria-labelledby="assistant-examples" className="flex flex-col gap-[var(--sp-1)]">
             <h2 id="assistant-examples" className="text-[length:var(--fs-sm)] font-bold text-muted">
               Например

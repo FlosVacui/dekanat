@@ -8,7 +8,7 @@ import { StudentShell } from '@/components/student-shell'
 import { todayIn } from '@/lib/dates'
 import { requireStudentActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
-import { listMyGrades } from '@/server/dal/student'
+import { getMyRating, listMyGrades } from '@/server/dal/student'
 
 // Э-4 «Успеваемость» (пакет 3.3): блок «как у меня дела», виды «Семестр» и «Сессия», карточки ведут на Э-5 «Дисциплина».
 // Вид — параметр адреса ?view=session; мусор в нём даёт «Семестр». «Семестр» — название вида, а не фильтр: показаны все дисциплины
@@ -20,7 +20,7 @@ export default async function GradesPage({ searchParams }: { searchParams: Promi
   const { view: rawView } = await searchParams
   const view: GradesView = rawView === 'session' ? 'session' : 'semester'
   const today = todayIn(getConfig().timezone)
-  const items = await listMyGrades(actor, today)
+  const [items, rating] = await Promise.all([listMyGrades(actor, today), getMyRating(actor)])
   return (
     <StudentShell actor={actor} active="grades">
       <PageTitle>Успеваемость</PageTitle>
@@ -30,7 +30,7 @@ export default async function GradesPage({ searchParams }: { searchParams: Promi
         // От 1024 px сводка закреплена слева (sticky), предметы справа; на телефоне — столбцом.
         <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)] lg:items-start lg:gap-[var(--sp-5)]">
           <div className="lg:sticky lg:top-[var(--sp-4)]">
-            <Summary items={items} today={today} />
+            <Summary items={items} today={today} rating={rating} />
           </div>
           <div className="flex min-w-0 flex-col gap-[var(--gap)]">
             <ViewSwitch view={view} />

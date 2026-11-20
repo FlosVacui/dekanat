@@ -1,6 +1,7 @@
 import { headers, cookies } from 'next/headers'
 import { Suspense } from 'react'
 import { PageTitle } from '@/components/card'
+import { LinkButton } from '@/components/link-button'
 import { LoadingCard } from '@/components/states/loading-card'
 import { StudentFrame } from '@/components/states/shell-parts'
 import { StudentShell } from '@/components/student-shell'
@@ -105,6 +106,11 @@ async function ProfileContent({ actor, avatarKey, uiKey }: { actor: Actor; avata
 
         {uiNotice ? <Notice {...uiNotice} /> : null}
         <SettingsCard current={parseUi(store.get(UI_COOKIE)?.value)} />
+
+        {/* 20.11, поддержка: вход на страницу с психологической службой и номерами помощи. */}
+        <LinkButton href="/support" variant="ghost" data-testid="profile-support-link" className="w-full">
+          Поддержка
+        </LinkButton>
 
         <form action={logoutAction}>
           <SubmitButton variant="ghost" className="w-full">

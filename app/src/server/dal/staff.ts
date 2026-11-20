@@ -1,7 +1,7 @@
 import 'server-only'
 import { and, asc, desc, eq, gte, inArray, lt, or, sql } from 'drizzle-orm'
 import { isIsoDate, todayIn } from '@/lib/dates'
-import { normalizeQuestionText, topicLabel } from '@/lib/questions'
+import { QUESTION_TOPICS, normalizeQuestionText, topicLabel, type QuestionTopic } from '@/lib/questions'
 import {
   ALLOWED_FROM,
   REQUEST_KIND_INFO,
@@ -11,7 +11,9 @@ import {
   isRejectReason,
   isRequestKind,
   isRequestStatus,
+  REQUEST_KINDS,
   REQUEST_STATUSES,
+  type RequestKind,
   type RequestStatus,
 } from '@/lib/requests'
 import { normalizeIp } from '../auth/ip'
@@ -668,4 +670,100 @@ export async function listCohortUnansweredQuestions(actor: Actor, limit = SUMMAR
     .where(and(eq(users.cohort, cohort), eq(questions.status, 'sent')))
     .orderBy(desc(questions.createdAt))
     .limit(take)
+}
+
+// ---------- Сводка недели для ИИ (20.11) ----------
+
+/** Заявки одного вида за 7 суток. Только числа: ни имён, ни номеров, ни текста. */
+export interface WeekDigestRequestKind {
+  kind: RequestKind
+  /** Подано за последние 7 суток. */
+  total: number
+  /** Из них сейчас в каждом статусе; нулевые статусы есть в карте. */
+  byStatus: Record<RequestStatus, number>
+  /** Подано за 7 суток до этого (8–14 суток назад): для слов «выросло». */
+  previousWeek: number
+  /** «В работе» с прошедшим сроком, любой давности: то же правило, что `getCohortSummary.overdue`. */
+  overdue: number
+}
+
+/** Вопросы одной темы за 7 суток. Темы — фиксированный список (`QUESTION_TOPICS`); текста вопросов здесь нет. */
+export interface WeekDigestTopic {
+  topic: QuestionTopic
+  total: number
+  /** Из поданных за неделю — без ответа сейчас. */
+  unanswered: number
+  previousWeek: number
+}
+
+export interface WeekDigest {
+  requests: WeekDigestRequestKind[]
+  questions: WeekDigestTopic[]
+}
+
+/**
+ * Обезличенные числа недели для «Сводки недели от ИИ». Набор — из сессии. Читаются только счётчики по виду, статусу и теме:
+ * ФИО, группы, номера записей, примечания и тексты вопросов в выборку не входят. Недели считаются от `now` назад (7 × 24 часа).
+ */
+export async function getCohortWeekDigest(actor: Actor, today: string, now: Date = new Date()): Promise<WeekDigest> {
+  const { cohort } = requireStaff(actor)
+  const db = getDb()
+  const weekAgo = new Date(now.getTime() - 7 * 86_400_000)
+  const twoWeeksAgo = new Date(now.getTime() - 14 * 86_400_000)
+  const [weekRows, previousRows, overdueRows, questionRows, previousQuestionRows] = await Promise.all([
+    db
+      .select({ kind: requests.kind, status: requests.status, n: sql<number>`count(*)::int` })
+      .from(requests)
+      .innerJoin(users, eq(users.id, requests.studentId))
+      .where(and(eq(users.cohort, cohort), gte(requests.createdAt, weekAgo)))
+      .groupBy(requests.kind, requests.status),
+    db
+      .select({ kind: requests.kind, n: sql<number>`count(*)::int` })
+      .from(requests)
+      .innerJoin(users, eq(users.id, requests.studentId))
+      .where(and(eq(users.cohort, cohort), gte(requests.createdAt, twoWeeksAgo), lt(requests.createdAt, weekAgo)))
+      .groupBy(requests.kind),
+    isIsoDate(today)
+      ? db
+          .select({ kind: requests.kind, n: sql<number>`count(*)::int` })
+          .from(requests)
+          .innerJoin(users, eq(users.id, requests.studentId))
+          .where(and(eq(users.cohort, cohort), eq(requests.status, 'in_progress'), lt(requests.dueDate, today)))
+          .groupBy(requests.kind)
+      : Promise.resolve([] as { kind: string; n: number }[]),
+    db
+      .select({ topic: questions.topic, status: questions.status, n: sql<number>`count(*)::int` })
+      .from(questions)
+      .innerJoin(users, eq(users.id, questions.studentId))
+      .where(and(eq(users.cohort, cohort), gte(questions.createdAt, weekAgo)))
+      .groupBy(questions.topic, questions.status),
+    db
+      .select({ topic: questions.topic, n: sql<number>`count(*)::int` })
+      .from(questions)
+      .innerJoin(users, eq(users.id, questions.studentId))
+      .where(and(eq(users.cohort, cohort), gte(questions.createdAt, twoWeeksAgo), lt(questions.createdAt, weekAgo)))
+      .groupBy(questions.topic),
+  ])
+
+  const kinds = REQUEST_KINDS.map((kind): WeekDigestRequestKind => {
+    const byStatus = Object.fromEntries(REQUEST_STATUSES.map((st) => [st, 0])) as Record<RequestStatus, number>
+    for (const row of weekRows) if (row.kind === kind && isRequestStatus(row.status)) byStatus[row.status] += Number(row.n)
+    return {
+      kind,
+      total: REQUEST_STATUSES.reduce((sum, st) => sum + byStatus[st], 0),
+      byStatus,
+      previousWeek: previousRows.filter((r) => r.kind === kind).reduce((sum, r) => sum + Number(r.n), 0),
+      overdue: overdueRows.filter((r) => r.kind === kind).reduce((sum, r) => sum + Number(r.n), 0),
+    }
+  })
+  const topics = QUESTION_TOPICS.map((topic): WeekDigestTopic => {
+    const mine = questionRows.filter((r) => r.topic === topic)
+    return {
+      topic,
+      total: mine.reduce((sum, r) => sum + Number(r.n), 0),
+      unanswered: mine.filter((r) => r.status === 'sent').reduce((sum, r) => sum + Number(r.n), 0),
+      previousWeek: previousQuestionRows.filter((r) => r.topic === topic).reduce((sum, r) => sum + Number(r.n), 0),
+    }
+  })
+  return { requests: kinds, questions: topics }
 }

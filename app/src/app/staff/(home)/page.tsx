@@ -7,9 +7,12 @@ import { StatLink } from '@/components/staff/stat-link'
 import { formatDate, todayIn } from '@/lib/dates'
 import { topicLabel } from '@/lib/questions'
 import { REQUEST_KIND_INFO, REQUEST_STATUSES, STATUS_LABELS, isRequestKind, isRequestStatus } from '@/lib/requests'
+import { aiEnabled } from '@/server/ai'
 import { requireStaffActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
 import { getCohortSummary, listCohortRequests, listCohortUnansweredQuestions } from '@/server/dal/staff'
+import { weekSummaryAction } from './actions'
+import { WeekSummary } from './week-summary'
 
 // Сводка сотрудника (20.11, блиц): заявки по статусам, просрочено, вопросы без ответа, объявления за неделю.
 // У каждого числа — ссылка на список. Набор и числа — из слоя доступа; адрес вход не расширяет.
@@ -63,6 +66,12 @@ export default async function StaffSummaryPage() {
             </li>
           </ul>
         </Card>
+        {/* 20.11: без ключа модели карточки нет. */}
+        {aiEnabled() ? (
+          <div className="lg:col-span-2">
+            <WeekSummary action={weekSummaryAction} />
+          </div>
+        ) : null}
         <Card>
           <CardTitle>Последние заявки</CardTitle>
           {recent.length === 0 ? (

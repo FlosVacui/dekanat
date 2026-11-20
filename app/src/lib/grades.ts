@@ -513,3 +513,27 @@ export function sessionStatus(d: DisciplineStateInput): SessionStatus {
   if (state.kind === 'ahead_no_admission') return { kind: 'not_admitted', word: 'Не допущен', missing: state.missing }
   return { kind: 'admitted', word: 'Допущен', missing: null }
 }
+
+// ---------- Рейтинг в группе (20.11) ----------
+// Рейтинг считает слой доступа (getMyRating); здесь — только слова. Шкала одна: итоговые оценки 2–5 (не баллы из 100):
+// выставленная оценка есть у каждой дисциплины с итогом, а баллы за семестр — промежуточные. Зачёты в средний не входят.
+
+export interface RatingLike {
+  semester: number
+  average: number
+  place: number
+  groupSize: number
+}
+
+/** Нет ни одной итоговой оценки у студента в семестре, по которому считается рейтинг. */
+export const RATING_EMPTY_TEXT = 'Рейтинг появится после первых итоговых оценок'
+
+/** «Средний балл 4,3 · место 7 из 24 в группе». */
+export function ratingLine(r: RatingLike): string {
+  return `Средний балл ${formatAverage(r.average)} · место ${r.place} из ${r.groupSize} в группе`
+}
+
+/** Подпись под строкой: за какой семестр и по какой шкале. */
+export function ratingNote(r: RatingLike): string {
+  return `За ${r.semester} семестр, по итоговым оценкам 2–5; зачёты не входят`
+}

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 // Раздел, на котором стоит студент. Нижняя панель знает четыре первых; «Уведомления» и «Идеи и планы» есть только в колонке
 // на компьютере (на телефоне — колокольчик в шапке и ссылка внизу страницы), но «активными» могут быть оба.
-export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests' | 'notifications' | 'ideas' | 'assistant'
+export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests' | 'notifications' | 'ideas' | 'assistant' | 'support'
 type BarTab = 'today' | 'schedule' | 'grades' | 'requests'
 
 // Значки вкладок — простые контуры 24×24 (штрих 2, скруглённые концы), по образцу макета V-AC; встроенные, без пакета значков.
@@ -48,6 +48,8 @@ const TAB_ICONS: Record<StudentTab, ReactNode> = {
       <path d="M8.5 10.5h.01M12 10.5h.01M15.5 10.5h.01" />
     </>
   ),
+  // 20.11, поддержка: сердце. Как и помощник, в нижней панели его нет: пункт колонки и ссылка внизу страницы.
+  support: <path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z" />,
   ideas: (
     <>
       <path d="M9 18h6M10 21h4" />
@@ -65,6 +67,7 @@ const ITEMS: Record<StudentTab, { label: string; href: string }> = {
   notifications: { label: 'Уведомления', href: '/notifications' },
   ideas: { label: 'Идеи и планы', href: '/ideas' },
   assistant: { label: 'Помощник по правилам', href: '/assistant' },
+  support: { label: 'Поддержка', href: '/support' },
 }
 
 // Нижняя панель на телефоне: четыре вкладки.
@@ -74,7 +77,7 @@ const TABS = BAR_TABS.map((id) => ({ id, ...ITEMS[id] }))
 // Колонка на компьютере: две группы с подписями, «Идеи и планы» внизу отдельно.
 const SIDE_GROUPS: { caption: string; ids: StudentTab[] }[] = [
   { caption: 'Учёба', ids: ['today', 'schedule', 'grades'] },
-  { caption: 'Деканат', ids: ['requests', 'notifications', 'assistant'] },
+  { caption: 'Деканат', ids: ['requests', 'notifications', 'assistant', 'support'] },
 ]
 
 // Рамка фокуса в шапке: 3 px, цвет --on-header (раздел 5, общие правила).
@@ -271,6 +274,7 @@ export function StudentFrame({
 }) {
   const ideasActive = active === 'ideas'
   const assistantActive = active === 'assistant'
+  const supportActive = active === 'support'
   return (
     <div className="mx-auto w-full max-w-3xl lg:grid lg:max-w-[1200px] lg:grid-cols-[220px_minmax(0,1fr)] xl:grid-cols-[240px_minmax(0,1fr)]">
       <div className="lg:col-span-2">
@@ -306,6 +310,23 @@ export function StudentFrame({
             {TAB_ICONS.assistant}
           </svg>
           {ITEMS.assistant.label}
+        </Link>
+      </div>
+      {/* 20.11, поддержка: то же, что у помощника, — от 1024 px пункт в колонке «Деканат», уже — ссылка под содержимым. */}
+      <div className="flex justify-center pb-[var(--sp-2)] lg:hidden">
+        <Link
+          href={ITEMS.support.href}
+          aria-current={supportActive ? 'page' : undefined}
+          data-support-link
+          className={cn(
+            'inline-flex min-h-[var(--tap)] items-center justify-center gap-1.5 rounded-pill px-[var(--sp-3)] text-[length:var(--fs-sm)]',
+            supportActive ? 'bg-nav-active-bg font-extrabold text-nav-active' : 'font-bold text-primary',
+          )}
+        >
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+            {TAB_ICONS.support}
+          </svg>
+          {ITEMS.support.label}
         </Link>
       </div>
       {footer ? <div className="lg:col-span-2">{footer}</div> : null}

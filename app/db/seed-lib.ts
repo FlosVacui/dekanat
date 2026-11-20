@@ -16,8 +16,9 @@
 // У таблицы groups нет признака набора, поэтому «группы набора» — группы, где до этого запуска учились студенты набора
 // (users.cohort), и группы из набора; «объявления набора» — адресованные этим группам или факультетам этих студентов.
 // Названия факультетов у наборов разные (seed-reserve-lib.ts), поэтому объявления других наборов не затрагиваются.
+import { randomBytes } from 'node:crypto'
 import type pg from 'pg'
-import { hashPassword } from '../src/server/auth/password'
+import { SCRYPT_KEYLEN, SCRYPT_N, SCRYPT_P, SCRYPT_R, hashPassword } from '../src/server/auth/password'
 import { buildCohortPlan, type CohortPlan, type CohortSpec } from './seed-plan'
 
 export * from './seed-plan'
@@ -72,6 +73,7 @@ export async function seedCohort(client: pg.Client | pg.PoolClient, spec: Cohort
 
     await upsertGroupsAndTimetable(q, plan)
     await upsertAccounts(q, spec, plan, hashes, accounts, mode)
+    await upsertClassmates(q, spec, plan)
 
     // Заявки и уведомления.
     const keptRequestIds: string[] = []
@@ -317,4 +319,49 @@ async function upsertAccounts(
       [s.userId, s.workResults.map((r) => r.assignmentId)],
     )
   }
+}
+
+/**
+ * Одногруппники без входа (рейтинг в группе). Вход им не нужен: у каждого служебный логин `arhiv-…` и строка хеша scrypt
+ * в обычном формате (свои параметры и соль), но с случайным значением вместо хеша какого-либо пароля: пароля, который даёт
+ * такое значение, не существует, поэтому войти нельзя. Хеш у существующей записи не меняется. Одногруппники, которых в наборе больше нет, удаляются вместе с оценками (CASCADE).
+ */
+async function upsertClassmates(q: Query, spec: CohortSpec, plan: CohortPlan): Promise<void> {
+  const keep = plan.classmates.map((c) => c.userId)
+  if (plan.classmates.length > 0) {
+    for (const c of plan.classmates) {
+      const hash = unusableHash()
+      await q(
+        `INSERT INTO users (id, login, password_hash, role, cohort, password_published) VALUES ($1, $2, $3, 'student', $4, false)
+         ON CONFLICT (id) DO UPDATE SET cohort = EXCLUDED.cohort`,
+        [c.userId, c.login, hash, spec.cohort],
+      )
+      await q(
+        `INSERT INTO students (user_id, full_name, faculty, programme, course, group_id) VALUES ($1, $2, $3, $4, $5, $6)
+         ON CONFLICT (user_id) DO UPDATE SET full_name = EXCLUDED.full_name, faculty = EXCLUDED.faculty,
+           programme = EXCLUDED.programme, course = EXCLUDED.course, group_id = EXCLUDED.group_id`,
+        [c.userId, c.spec.fullName, c.spec.faculty, c.spec.programme, c.spec.course, c.groupId],
+      )
+      for (const g of c.grades) {
+        await q(
+          `INSERT INTO grades (id, student_id, discipline_id, points, outcome, admitted) VALUES ($1, $2, $3, $4, $5, $6)
+           ON CONFLICT (student_id, discipline_id) DO UPDATE SET points = EXCLUDED.points, outcome = EXCLUDED.outcome,
+             admitted = EXCLUDED.admitted`,
+          [g.id, c.userId, g.disciplineId, g.points, g.outcome, g.admitted],
+        )
+      }
+      await q('DELETE FROM grades WHERE student_id = $1 AND id <> ALL($2::uuid[])', [c.userId, c.grades.map((g) => g.id)])
+    }
+  }
+  await q(`DELETE FROM users WHERE cohort = $1 AND login LIKE 'arhiv-%' AND id <> ALL($2::uuid[])`, [spec.cohort, keep])
+}
+
+/** Строка хеша в формате `hashPassword` со случайными солью и значением: ни один пароль её не даёт. Считать scrypt для сорока человек не нужно. */
+function unusableHash(): string {
+  return [
+    'scrypt',
+    `N=${SCRYPT_N},r=${SCRYPT_R},p=${SCRYPT_P},l=${SCRYPT_KEYLEN}`,
+    randomBytes(16).toString('base64url'),
+    randomBytes(SCRYPT_KEYLEN).toString('base64url'),
+  ].join('$')
 }

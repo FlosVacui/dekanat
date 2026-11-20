@@ -1,12 +1,23 @@
 import Link from 'next/link'
 import { Card } from '@/components/card'
-import { firstActionText, formatAverage, pickFirstAction, stipendLine, summarizeGrades, summaryPhrase } from '@/lib/grades'
-import type { GradeItem } from '@/server/dal/student'
+import {
+  RATING_EMPTY_TEXT,
+  firstActionText,
+  formatAverage,
+  pickFirstAction,
+  ratingLine,
+  ratingNote,
+  stipendLine,
+  summarizeGrades,
+  summaryPhrase,
+} from '@/lib/grades'
+import type { GradeItem, GroupRating } from '@/server/dal/student'
 import { GradeIcon } from './icons'
 
 // Блок «как у меня дела» на Э-4: фраза-итог, четыре числа, строка о стипендии (только при долге) и «что сделать первым».
 // Числа и фраза считаются из того же списка, что и карточки: одна цифра — один источник. Экран ничего не решает сам.
-export function Summary({ items, today }: { items: GradeItem[]; today: string }) {
+// 20.11: под числами — рейтинг в группе за текущий семестр (свой средний балл, место, размер группы). `rating` не передан — блока нет.
+export function Summary({ items, today, rating }: { items: GradeItem[]; today: string; rating?: GroupRating | null }) {
   const s = summarizeGrades(items)
   const stipend = stipendLine(s.debt)
   const action = pickFirstAction(items, today)
@@ -36,6 +47,23 @@ export function Summary({ items, today }: { items: GradeItem[]; today: string })
           <dd className="text-[length:var(--fs-lg)] font-extrabold tabular-nums">{formatAverage(s.average)}</dd>
         </div>
       </dl>
+      {rating !== undefined ? (
+        <div data-testid="group-rating" className="border-t border-border pt-[var(--sp-3)]">
+          <p className="mb-1 text-[length:var(--fs-xs)] font-bold uppercase tracking-wide text-muted">Рейтинг в группе</p>
+          {rating ? (
+            <>
+              <p data-testid="group-rating-line" className="text-[length:var(--fs-md)] font-bold [overflow-wrap:anywhere]">
+                {ratingLine(rating)}
+              </p>
+              <p className="mt-1 text-[length:var(--fs-sm)] text-muted">{ratingNote(rating)}</p>
+            </>
+          ) : (
+            <p data-testid="group-rating-empty" className="text-[length:var(--fs-md)]">
+              {RATING_EMPTY_TEXT}
+            </p>
+          )}
+        </div>
+      ) : null}
       {stipend ? (
         <p
           data-testid="stipend-line"
