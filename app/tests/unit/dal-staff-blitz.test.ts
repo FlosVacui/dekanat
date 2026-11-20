@@ -145,7 +145,10 @@ describe('студенты набора', () => {
     expect(byName.get('Корпоративные финансы')).toMatchObject({ outcome: 'pending', points: 22, admitted: false })
     // Заявки и вопросы — только этого студента.
     const own = await studentDal.listMyRequests(a)
-    expect(card!.requests.map((r) => r.id).sort()).toEqual(own.map((r) => r.id).sort())
+    // Карточка показывает не больше 50 последних заявок: другие файлы тестов копят заявки этого студента в тестовой базе.
+    const ownIds = new Set(own.map((r) => r.id))
+    expect(card!.requests.length).toBe(Math.min(own.length, 50))
+    expect(card!.requests.every((r) => ownIds.has(r.id))).toBe(true)
     const bCard = await staffDal.getCohortStudent(staff, b.userId)
     expect(bCard!.requests.some((r) => card!.requests.some((x) => x.id === r.id))).toBe(false)
     expect(Object.keys(card!).sort()).toEqual(['course', 'disciplines', 'faculty', 'fullName', 'groupName', 'id', 'programme', 'questions', 'requests'])
