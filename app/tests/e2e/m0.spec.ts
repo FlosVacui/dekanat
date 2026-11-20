@@ -328,8 +328,9 @@ test('сквозной сценарий М0: вход, расписание, о�
     await page.goto('/')
     await touch(touches, page.getByRole('link', { name: 'Профиль' }), 'аватар')
     await expect(page).toHaveURL(`${BASE_URL}/profile`)
+    // Данные — в студенческом билете: ФИО в заголовке билета, остальное парами «название — значение».
+    await expect(page.getByTestId('ticket-name'), 'поле «ФИО»').toHaveText(student1.fullName)
     const fields: [string, string][] = [
-      ['ФИО', student1.fullName],
       ['Факультет', student1.faculty],
       ['Направление', student1.programme],
       ['Курс', String(student1.course)],

@@ -114,6 +114,27 @@ for (const width of [360, 1280] as const) {
       await expect(page.getByRole('link', { name: /^Подана/ })).toHaveAttribute('href', '/staff/requests?status=submitted')
       await expect(page.getByRole('link', { name: /^Вопросы без ответа/ })).toHaveAttribute('href', '/staff/requests?view=questions')
       await expect(page.getByRole('link', { name: /^Объявления за неделю/ })).toHaveAttribute('href', '/staff/announcements')
+      // Шлифовка: «Последние заявки» (до 5) и «Вопросы без ответа» (до 5), каждая строка — ссылка на запись.
+      await expect(page.getByRole('heading', { name: 'Последние заявки', level: 2 })).toBeVisible()
+      await expect(page.getByRole('heading', { name: 'Вопросы без ответа', level: 2 })).toBeVisible()
+      const recent = page.getByTestId('summary-recent-requests').getByRole('link')
+      expect(await recent.count(), 'последних заявок').toBeGreaterThan(0)
+      expect(await recent.count(), 'последних заявок не больше пяти').toBeLessThanOrEqual(5)
+      for (const href of await recent.evaluateAll((els) => els.map((e) => e.getAttribute('href')))) expect(href).toMatch(/^\/staff\/requests\/[0-9a-f-]{36}$/)
+      const unanswered = page.getByTestId('summary-unanswered-questions').getByRole('link')
+      expect(await unanswered.count(), 'вопросов без ответа не больше пяти').toBeLessThanOrEqual(5)
+      for (const href of await unanswered.evaluateAll((els) => els.map((e) => e.getAttribute('href')))) expect(href).toMatch(/^\/staff\/questions\/[0-9a-f-]{36}$/)
+      // От 1024 px — две колонки: «Заявки по статусам» слева от «Что требует внимания», «Последние заявки» слева от «Вопросов без ответа».
+      const box = async (name: string) => (await page.getByRole('heading', { name, level: 2 }).boundingBox())!
+      const [byStatus, attention, lastRequests, lastQuestions] = [await box('Заявки по статусам'), await box('Что требует внимания'), await box('Последние заявки'), await box('Вопросы без ответа')]
+      if (width >= 1024) {
+        expect(attention.x, 'внимание правее статусов').toBeGreaterThan(byStatus.x + 100)
+        expect(lastQuestions.x, 'вопросы правее заявок').toBeGreaterThan(lastRequests.x + 100)
+        expect(lastRequests.y, 'ряд ниже первого').toBeGreaterThan(byStatus.y)
+      } else {
+        expect(lastQuestions.y, 'на телефоне столбцом').toBeGreaterThan(lastRequests.y)
+        expect(attention.y, 'на телефоне столбцом').toBeGreaterThan(byStatus.y)
+      }
       await expectNoHorizontalScroll(page, `сводка ${width}`, width)
       await shot(page, 'staff-summary', width)
 

@@ -52,6 +52,7 @@ describe('роль: функции блица только для сотрудн
     await expect(staffDal.getCohortSummary(a, today())).rejects.toBeInstanceOf(ForbiddenError)
     await expect(staffDal.listCohortStudents(a)).rejects.toBeInstanceOf(ForbiddenError)
     await expect(staffDal.getCohortStudent(a, a.userId)).rejects.toBeInstanceOf(ForbiddenError)
+    await expect(staffDal.listCohortUnansweredQuestions(a)).rejects.toBeInstanceOf(ForbiddenError)
     await expect(staffDal.listCohortAnnouncements(a)).rejects.toBeInstanceOf(ForbiddenError)
     await expect(staffDal.listCohortAudiences(a)).rejects.toBeInstanceOf(ForbiddenError)
     await expect(staffDal.canPostAnnouncements(a)).rejects.toBeInstanceOf(ForbiddenError)
@@ -86,6 +87,27 @@ describe('сводка', () => {
     expect(after.total).toBe(before.total + 1)
     expect(after.unanswered).toBe(before.unanswered + 1)
     expect(await staffDal.getCohortSummary(altStaff, today())).toEqual(altBefore)
+  })
+
+  it('вопросы без ответа для сводки: только свой набор и статус «Отправлен», не больше 5, новые сверху, текст — только начало', async () => {
+    const long = `${TAG}: ${'д'.repeat(300)}`
+    await studentDal.createMyQuestion(a, { topic: 'other', text: long }, 'blitz-test-3')
+    const list = await staffDal.listCohortUnansweredQuestions(staff)
+    expect(list.length).toBeGreaterThan(0)
+    expect(list.length).toBeLessThanOrEqual(5)
+    expect(list.every((q) => q.status === 'sent')).toBe(true)
+    expect(list.every((q) => q.excerpt.length <= 120)).toBe(true)
+    expect(list.map((q) => q.createdAt.getTime())).toEqual(list.map((q) => q.createdAt.getTime()).sort((x, y) => y - x))
+    const ours = list.find((q) => q.excerpt.startsWith(TAG))
+    expect(ours?.excerpt).toBe(long.slice(0, 120))
+    // Числа сводки и список согласованы; чужой набор в список не входит.
+    const own = new Set((await staffDal.listCohortQuestions(staff)).map((q) => q.id))
+    expect(list.every((q) => own.has(q.id))).toBe(true)
+    const alt = await staffDal.listCohortUnansweredQuestions(altStaff)
+    expect(alt.some((q) => q.id === ours?.id)).toBe(false)
+    // Предел нельзя поднять и нельзя сделать бессмысленным.
+    expect((await staffDal.listCohortUnansweredQuestions(staff, 1000)).length).toBeLessThanOrEqual(5)
+    expect((await staffDal.listCohortUnansweredQuestions(staff, -3)).length).toBeGreaterThanOrEqual(1)
   })
 
   it('просрочено: заявка «В работе» со сроком в прошлом', async () => {

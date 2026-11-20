@@ -642,3 +642,30 @@ export async function createCohortAnnouncement(
     .returning({ id: announcements.id })
   return { ok: true, id: inserted[0]!.id }
 }
+
+// ---------- Сводка: вопросы без ответа (шлифовка 20.11) ----------
+
+export interface StaffUnansweredQuestion extends StaffQuestionItem {
+  /** Начало текста вопроса: до 120 знаков, без хвоста. */
+  excerpt: string
+}
+
+export const SUMMARY_UNANSWERED_MAX = 5
+
+/**
+ * Вопросы студентов своего набора в статусе «Отправлен», новые сверху, не больше `limit` (по умолчанию и не более 5). Набор — из сессии.
+ * Текст вопроса целиком не отдаётся: только начало для строки сводки.
+ */
+export async function listCohortUnansweredQuestions(actor: Actor, limit = SUMMARY_UNANSWERED_MAX): Promise<StaffUnansweredQuestion[]> {
+  const { cohort } = requireStaff(actor)
+  const take = Number.isInteger(limit) ? Math.min(Math.max(limit, 1), SUMMARY_UNANSWERED_MAX) : SUMMARY_UNANSWERED_MAX
+  return getDb()
+    .select({ ...questionListColumns, excerpt: sql<string>`left(${questions.body}, 120)` })
+    .from(questions)
+    .innerJoin(students, eq(students.userId, questions.studentId))
+    .innerJoin(users, eq(users.id, students.userId))
+    .innerJoin(groups, eq(groups.id, students.groupId))
+    .where(and(eq(users.cohort, cohort), eq(questions.status, 'sent')))
+    .orderBy(desc(questions.createdAt))
+    .limit(take)
+}

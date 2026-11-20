@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, type ReactNode } from 'react'
 import { SubmitButton } from '@/components/submit-button'
 import { uploadAvatarAction } from './actions'
 
@@ -33,17 +33,22 @@ async function shrink(file: File): Promise<File | null> {
 }
 
 /**
- * Форма загрузки фото. Без скриптов — обычная форма с файлом, без уменьшения (тот же предел 150 КБ проверяет сервер).
- * Со скриптами выбранный файл заменяется уменьшенной копией до отправки.
+ * Кнопки фото рядом с аватаром. «Сменить фото» («Загрузить фото», если фото нет) — подпись над скрытым полем файла: свой русский
+ * текст вместо «Choose File». Поле остаётся в порядке обхода клавиатурой, рамку фокуса рисует подпись. Кнопка «Сохранить фото»
+ * показывается, когда файл выбран (`peer-valid`: поле обязательное, чистый CSS, скрипты не нужны). Без скриптов это обычная форма
+ * с файлом без уменьшения (тот же предел 150 КБ проверяет сервер). Со скриптами выбранный файл заменяется уменьшенной копией.
+ * `children` — рядом с кнопками (кнопка «Удалить фото» — своя форма).
  */
-export function AvatarForm() {
+export function AvatarForm({ hasAvatar, children }: { hasAvatar: boolean; children?: ReactNode }) {
   const input = useRef<HTMLInputElement>(null)
   // Пока файл уменьшается, кнопка недоступна: иначе быстрое нажатие отправило бы исходный файл.
   const [shrinking, setShrinking] = useState(false)
+  const [fileName, setFileName] = useState<string | null>(null)
 
   async function onChange() {
     const field = input.current
     const file = field?.files?.[0]
+    setFileName(file?.name ?? null)
     if (!field || !file) return
     setShrinking(true)
     try {
@@ -58,23 +63,40 @@ export function AvatarForm() {
   }
 
   return (
-    <form action={uploadAvatarAction} className="flex flex-col gap-[var(--sp-2)]">
-      <label htmlFor="avatar-file" className="text-[length:var(--fs-sm)] font-bold">
-        Новое фото (JPEG, PNG или WebP, до 150 КБ)
-      </label>
-      <input
-        ref={input}
-        id="avatar-file"
-        name="avatar"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        required
-        onChange={onChange}
-        className="block min-h-[var(--tap)] w-full min-w-0 rounded-control border-2 border-border-strong bg-card p-[var(--sp-2)] text-[length:var(--fs-sm)] text-text file:mr-[var(--sp-2)] file:min-h-9 file:rounded-pill file:border-0 file:bg-primary-soft file:px-[var(--sp-3)] file:font-bold file:text-primary"
-      />
-      <SubmitButton variant="soft" className="w-full" disabled={shrinking}>
-        Загрузить фото
-      </SubmitButton>
-    </form>
+    <div className="flex flex-col gap-[var(--sp-2)]">
+      <div className="flex flex-wrap items-center gap-[var(--sp-2)]">
+        <form action={uploadAvatarAction} className="contents">
+          <input
+            ref={input}
+            id="avatar-file"
+            name="avatar"
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            required
+            aria-describedby="avatar-hint"
+            onChange={onChange}
+            className="peer sr-only"
+          />
+          <label
+            htmlFor="avatar-file"
+            className="inline-flex min-h-[var(--tap)] min-w-11 cursor-pointer items-center justify-center rounded-pill border-2 border-transparent bg-primary-soft px-[var(--sp-4)] text-[length:var(--fs-sm)] font-bold leading-[1.2] text-primary active:translate-y-px peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-focus"
+          >
+            {hasAvatar ? 'Сменить фото' : 'Загрузить фото'}
+          </label>
+          <SubmitButton className="hidden min-h-[var(--tap)] px-[var(--sp-4)] text-[length:var(--fs-sm)] peer-valid:inline-flex" disabled={shrinking}>
+            Сохранить фото
+          </SubmitButton>
+        </form>
+        {children}
+      </div>
+      {fileName ? (
+        <p data-testid="avatar-file-name" className="min-w-0 text-[length:var(--fs-sm)] [overflow-wrap:anywhere]">
+          Выбран файл: {fileName}
+        </p>
+      ) : null}
+      <p id="avatar-hint" className="text-[length:var(--fs-sm)] text-muted">
+        JPEG, PNG или WebP, до 150 КБ
+      </p>
+    </div>
   )
 }

@@ -89,11 +89,11 @@ async function shot(page: Page, name: string, width: 360 | 1280): Promise<void> 
   await page.screenshot({ path: join(SHOT_DIR, `${name}-${width}.png`), fullPage: true })
 }
 
-async function signIn(browser: Browser, login: string, password: string, home: string, width: 360 | 1280 = 360): Promise<{ context: BrowserContext; page: Page }> {
+async function signIn(browser: Browser, login: string, password: string, home: string, width: 360 | 1280 = 360, javaScriptEnabled = true): Promise<{ context: BrowserContext; page: Page }> {
   const context = await browser.newContext(
     width === 360
-      ? { baseURL: BASE_URL, extraHTTPHeaders: addressHeaders(), viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, locale: 'ru-RU', timezoneId: 'Europe/Moscow' }
-      : { baseURL: BASE_URL, extraHTTPHeaders: addressHeaders(), viewport: { width: 1280, height: 800 }, locale: 'ru-RU', timezoneId: 'Europe/Moscow' },
+      ? { baseURL: BASE_URL, extraHTTPHeaders: addressHeaders(), viewport: { width: 360, height: 800 }, isMobile: true, hasTouch: true, locale: 'ru-RU', timezoneId: 'Europe/Moscow', javaScriptEnabled }
+      : { baseURL: BASE_URL, extraHTTPHeaders: addressHeaders(), viewport: { width: 1280, height: 800 }, locale: 'ru-RU', timezoneId: 'Europe/Moscow', javaScriptEnabled },
   )
   const page = await context.newPage()
   await page.goto('/login')
@@ -103,7 +103,7 @@ async function signIn(browser: Browser, login: string, password: string, home: s
   return { context, page }
 }
 
-const asStudent = (browser: Browser, who: typeof student1, width: 360 | 1280 = 360) => signIn(browser, who.login, who.password, '/', width)
+const asStudent = (browser: Browser, who: typeof student1, width: 360 | 1280 = 360, js = true) => signIn(browser, who.login, who.password, '/', width, js)
 
 test('студенческий билет: ФИО, курс, группа, QR; проверка по ссылке открыта без входа и показывает сокращённое ФИО', async ({ browser }) => {
   const { context, page } = await asStudent(browser, student1)
@@ -116,6 +116,18 @@ test('студенческий билет: ФИО, курс, группа, QR; �
     await expect(ticket).toContainText(student1.groupName)
     await expect(page.getByTestId('ticket-qr')).toBeVisible()
     await expect(page.getByTestId('ticket-no-qr')).toHaveCount(0)
+    // Данные студента показаны один раз: отдельного блока данных нет, ФИО только в билете.
+    await expect(page.getByText(student1.fullName)).toHaveCount(1)
+    // Фото меняется по своей русской кнопке; кнопки «Choose File» нет. «Сохранить фото» появляется, когда файл выбран.
+    await expect(page.getByText('Загрузить фото', { exact: true })).toBeVisible()
+    await expect(page.getByText('Choose File')).toHaveCount(0)
+    await expect(page.getByRole('button', { name: 'Сохранить фото' })).toBeHidden()
+    // Вместо длинной ссылки — кнопка-ссылка «Открыть проверку» с зоной касания не меньше 44 px.
+    const verifyLink = page.getByRole('link', { name: 'Открыть проверку' })
+    await expect(verifyLink).toBeVisible()
+    await expect(verifyLink).toHaveAttribute('href', await page.getByTestId('ticket-verify-link').getAttribute('href') ?? '')
+    expect((await verifyLink.boundingBox())!.height).toBeGreaterThanOrEqual(44)
+    await expect(page.getByText(/\/verify\/student\//)).toHaveCount(0)
     await expectNoHorizontalScroll(page, 'профиль')
     await shot(page, 'profile', 360)
 
@@ -161,16 +173,18 @@ test('фото профиля: загрузка, отдача только вл�
     expect((await page.request.get('/profile/avatar')).status()).toBe(404)
 
     // Не картинка под видом PNG — отказ с понятным текстом, ничего не сохранено.
-    await page.getByLabel('Новое фото', { exact: false }).setInputFiles({ name: 'fake.png', mimeType: 'image/png', buffer: Buffer.from('это не картинка') })
-    await page.getByRole('button', { name: 'Загрузить фото' }).click()
+    await page.getByLabel('Загрузить фото').setInputFiles({ name: 'fake.png', mimeType: 'image/png', buffer: Buffer.from('это не картинка') })
+    await page.getByRole('button', { name: 'Сохранить фото' }).click()
     await expect(page.getByTestId('profile-notice')).toHaveText('Подходят только JPEG, PNG и WebP.')
     await expect(page.getByTestId('profile-initials')).toBeVisible()
 
     // Верная картинка: браузер уменьшает её до JPEG 256×256 и отправляет.
-    await page.getByLabel('Новое фото', { exact: false }).setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: PNG })
-    await page.getByRole('button', { name: 'Загрузить фото' }).click()
+    await page.getByLabel('Загрузить фото').setInputFiles({ name: 'me.png', mimeType: 'image/png', buffer: PNG })
+    await page.getByRole('button', { name: 'Сохранить фото' }).click()
     await expect(page.getByTestId('profile-notice')).toHaveText('Фото сохранено.')
     await expect(page.getByTestId('profile-avatar')).toBeVisible()
+    // Фото есть: подпись над полем файла меняется на «Сменить фото», рядом — «Удалить фото».
+    await expect(page.getByText('Сменить фото', { exact: true })).toBeVisible()
     await expectNoHorizontalScroll(page, 'профиль с фото')
     await shot(page, 'profile-avatar', 360)
 
