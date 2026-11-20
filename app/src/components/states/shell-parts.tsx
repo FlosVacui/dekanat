@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils'
 
 // Раздел, на котором стоит студент. Нижняя панель знает четыре первых; «Уведомления» и «Идеи и планы» есть только в колонке
 // на компьютере (на телефоне — колокольчик в шапке и ссылка внизу страницы), но «активными» могут быть оба.
-export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests' | 'notifications' | 'ideas' | 'assistant' | 'support'
+export type StudentTab = 'today' | 'schedule' | 'grades' | 'requests' | 'scholarship' | 'notifications' | 'ideas' | 'assistant' | 'support'
 type BarTab = 'today' | 'schedule' | 'grades' | 'requests'
 
 // Значки вкладок — простые контуры 24×24 (штрих 2, скруглённые концы), по образцу макета V-AC; встроенные, без пакета значков.
@@ -33,6 +33,13 @@ const TAB_ICONS: Record<StudentTab, ReactNode> = {
     <>
       <path d="M7 3h7l4 4v14H7z" />
       <path d="M14 3v4h4M10 12h5M10 16h5" />
+    </>
+  ),
+  // 20.11, стипендия: монета со знаком рубля. В нижней панели её нет: пункт колонки и ссылка внизу страницы.
+  scholarship: (
+    <>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M10 17V7.5h3a2.5 2.5 0 0 1 0 5h-3M8 14.5h5.5" />
     </>
   ),
   notifications: (
@@ -64,6 +71,7 @@ const ITEMS: Record<StudentTab, { label: string; href: string }> = {
   schedule: { label: 'Расписание', href: '/schedule' },
   grades: { label: 'Успеваемость', href: '/grades' },
   requests: { label: 'Заявки', href: '/requests' },
+  scholarship: { label: 'Стипендия', href: '/scholarship' },
   notifications: { label: 'Уведомления', href: '/notifications' },
   ideas: { label: 'Идеи и планы', href: '/ideas' },
   assistant: { label: 'Помощник по правилам', href: '/assistant' },
@@ -77,7 +85,7 @@ const TABS = BAR_TABS.map((id) => ({ id, ...ITEMS[id] }))
 // Колонка на компьютере: две группы с подписями, «Идеи и планы» внизу отдельно.
 const SIDE_GROUPS: { caption: string; ids: StudentTab[] }[] = [
   { caption: 'Учёба', ids: ['today', 'schedule', 'grades'] },
-  { caption: 'Деканат', ids: ['requests', 'notifications', 'assistant', 'support'] },
+  { caption: 'Деканат', ids: ['requests', 'scholarship', 'notifications', 'assistant', 'support'] },
 ]
 
 // Рамка фокуса в шапке: 3 px, цвет --on-header (раздел 5, общие правила).
@@ -273,6 +281,7 @@ export function StudentFrame({
   footer?: ReactNode
 }) {
   const ideasActive = active === 'ideas'
+  const scholarshipActive = active === 'scholarship'
   const assistantActive = active === 'assistant'
   const supportActive = active === 'support'
   return (
@@ -293,6 +302,23 @@ export function StudentFrame({
           )}
         >
           {ITEMS.ideas.label}
+        </Link>
+      </div>
+      {/* 20.11, стипендия: от 1024 px пункт в колонке «Деканат» после «Заявок»; уже — ссылка под содержимым, как у помощника. */}
+      <div className="flex justify-center pb-[var(--sp-2)] lg:hidden">
+        <Link
+          href={ITEMS.scholarship.href}
+          aria-current={scholarshipActive ? 'page' : undefined}
+          data-scholarship-link
+          className={cn(
+            'inline-flex min-h-[var(--tap)] items-center justify-center gap-1.5 rounded-pill px-[var(--sp-3)] text-[length:var(--fs-sm)]',
+            scholarshipActive ? 'bg-nav-active-bg font-extrabold text-nav-active' : 'font-bold text-primary',
+          )}
+        >
+          <svg aria-hidden="true" focusable="false" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-none">
+            {TAB_ICONS.scholarship}
+          </svg>
+          {ITEMS.scholarship.label}
         </Link>
       </div>
       {/* 20.11, помощник: от 1024 px пункт в колонке «Деканат»; уже — ссылка под содержимым (в нижней панели четыре вкладки). */}

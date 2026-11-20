@@ -284,7 +284,9 @@ export interface WaitingRow {
   detail: string | null
   /** Вторая мелкая строка: стипендия у первого долга, ближайшая работа у дисциплины без допуска. */
   note: string | null
-  /** Единственная ссылка строки. */
+  /** Ссылка у второй строки (20.11): у строки о стипендии — на `/scholarship`; у остальных `null`. */
+  noteHref: string | null
+  /** Главная ссылка строки (глагол). */
   href: string
   /** Глагол ссылки: «Подготовиться к пересдаче», «Открыть работы», «Забрать справку», «Прочитать ответ». */
   action: string
@@ -324,6 +326,7 @@ export function buildWaiting(input: {
       title: g.name,
       detail: retakeText(g.examDate, today),
       note: firstDebt ? STIPEND_DEBT_LINE : null,
+      noteHref: firstDebt ? '/scholarship' : null,
       href: `/grades/${g.disciplineId}`,
       action: 'Подготовиться к пересдаче',
     })
@@ -341,6 +344,7 @@ export function buildWaiting(input: {
       title: g.name,
       detail: state.missing !== null ? `До допуска не хватает ${state.missing} ${pointsWord(state.missing)}` : 'Допуска пока нет',
       note: g.nextDue ? `Ближайшая работа: ${g.nextDue.title}, до ${formatDayMonth(g.nextDue.dueDate)}` : null,
+      noteHref: null,
       href: '/grades',
       action: 'Открыть работы',
     })
@@ -363,6 +367,7 @@ export function buildWaiting(input: {
         rejectReason: r.rejectReason,
       }),
       note: null,
+      noteHref: null,
       href: `/requests/${r.id}`,
       action: r.kind === 'financial_aid' ? 'Открыть заявку' : 'Забрать справку',
     })
@@ -379,6 +384,7 @@ export function buildWaiting(input: {
       title: 'Деканат ответил на ваш вопрос',
       detail: topicLabel(answered.topic),
       note: null,
+      noteHref: null,
       href: `/questions/${answered.id}`,
       action: 'Прочитать ответ',
     })

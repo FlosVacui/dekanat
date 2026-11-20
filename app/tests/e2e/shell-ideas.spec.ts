@@ -87,7 +87,7 @@ async function bellNumber(page: Page): Promise<number> {
 
 // ---------- 1280: колонка разделов, шапка, «Ждёт вас» ----------
 
-test('1280: колонка разделов — две группы, восемь ссылок, одна навигация; счётчик «Уведомлений» равен числу у колокольчика', async ({ browser }) => {
+test('1280: колонка разделов — две группы, девять ссылок, одна навигация; счётчик «Уведомлений» равен числу у колокольчика', async ({ browser }) => {
   const { context, page } = await openAsStudent(browser, 1280)
   try {
     const nav = sections(page)
@@ -102,14 +102,16 @@ test('1280: колонка разделов — две группы, восем�
     const links = nav.getByRole('link')
     // 20.11: в группе «Деканат» добавлен «Помощник по правилам».
     // 20.11, поддержка: после «Помощника по правилам» добавлена «Поддержка» — ссылок восемь.
-    await expect(links).toHaveCount(8)
+    // 20.11, стипендия: в «Деканате» после «Заявок» добавлена «Стипендия» — было 8 ссылок, стало 9; «Уведомления» сдвинулись с индекса 4 на 5 и так далее.
+    await expect(links).toHaveCount(9)
     const names = (await links.allTextContents()).map((t) => t.replace(/\s+/g, ' ').trim())
     expect(names.slice(0, 3)).toEqual(['Сегодня', 'Расписание', 'Успеваемость'])
     expect(names[3]).toBe('Заявки')
-    expect(names[4]).toMatch(/^Уведомления/)
-    expect(names[5]).toBe('Помощник по правилам')
-    expect(names[6]).toBe('Поддержка')
-    expect(names[7]).toBe('Идеи и планы')
+    expect(names[4]).toBe('Стипендия')
+    expect(names[5]).toMatch(/^Уведомления/)
+    expect(names[6]).toBe('Помощник по правилам')
+    expect(names[7]).toBe('Поддержка')
+    expect(names[8]).toBe('Идеи и планы')
     await expect(nav.getByRole('link', { name: 'Идеи и планы', exact: true })).toHaveAttribute('href', '/ideas')
 
     // Счётчик: то же число, что у колокольчика; у него есть скрытая приставка «Новых: ».
@@ -205,8 +207,12 @@ test('1280 «Сегодня»: плиток KPI нет; блок «Ждёт ва
     let seen = 0
     for (let i = 0; i < total; i += 1) {
       const links = rows.nth(i).getByRole('link')
-      await expect(links, `строка ${i + 1}: одна ссылка`).toHaveCount(1)
+      // 20.11, стипендия: у первого долга вторая строка — ссылка на /scholarship (было: у каждой строки одна ссылка, стало: у такой строки две).
+      const stipend = rows.nth(i).getByTestId('waiting-stipend')
+      const extra = await stipend.count()
+      await expect(links, `строка ${i + 1}: ссылка-глагол${extra ? ' и ссылка на стипендию' : ''}`).toHaveCount(1 + extra)
       await expect(links.first(), `строка ${i + 1}: адрес внутри кабинета`).toHaveAttribute('href', /^\//)
+      if (extra) await expect(stipend, `строка ${i + 1}: стипендия`).toHaveAttribute('href', '/scholarship')
       seen += 1
     }
     expect(seen, 'строк проверено').toBe(total)

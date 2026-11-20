@@ -231,3 +231,34 @@ describe('Н-02 и данные (попутно)', () => {
     expect(seed).not.toMatch(/(\+7|8)[\s(-]*\d{3}[\s)-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}/)
   })
 })
+
+// 20.11, стипендия: страница `/scholarship` читает только оценки студента через слой доступа, владельца берёт из сессии
+// и ничего не принимает из адреса; платежей и реквизитов в ней нет.
+describe('20.11, стипендия: владелец из сессии, без записи и без платежей', () => {
+  const page = src.find((f) => f.rel === 'app/scholarship/page.tsx')
+  const lib = src.find((f) => f.rel === 'lib/scholarship.ts')
+
+  it('страница есть, охрана студента стоит первой, данные — только через слой доступа', () => {
+    expect(page, 'app/scholarship/page.tsx').toBeDefined()
+    const text = page!.text
+    expect(text).toMatch(/await\s+requireStudentActor\(\)/)
+    expect(text).toMatch(/listMyGrades\(actor,/)
+    expect(text).not.toMatch(/from\s+'@\/server\/dal\/(client|schema)'|getDb\(|drizzle-orm/)
+  })
+
+  it('из адреса и формы страница ничего не читает: ни searchParams, ни params, ни cookies, ни headers; серверных действий нет', () => {
+    const text = page!.text
+    expect(text).not.toMatch(/searchParams|\bparams\b|cookies\(|headers\(|'use server'|<form\b|method=/)
+    expect(src.some((f) => f.rel.startsWith('app/scholarship/') && /'use server'/.test(f.text))).toBe(false)
+  })
+
+  it('расчёт — чистый модуль: ни базы, ни сервера, ни часов', () => {
+    expect(lib, 'lib/scholarship.ts').toBeDefined()
+    expect(lib!.text).not.toMatch(/server-only|@\/server|drizzle|new Date\(\)|Date\.now\(/)
+  })
+
+  it('в разделе нет кнопок оплаты, реквизитов и квитанций', () => {
+    const text = `${page!.text}\n${lib!.text}`.replace(/^\s*(\/\/|\{\/\*).*$/gm, '')
+    expect(text).not.toMatch(/Оплатить|реквизит|квитанц|номер\s+карты|\bIBAN\b|\bБИК\b/i)
+  })
+})

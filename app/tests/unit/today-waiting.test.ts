@@ -60,10 +60,13 @@ describe('«Ждёт вас»: долг', () => {
       label: 'Долг',
       detail: 'Пересдача 21 ноября',
       note: STIPEND_DEBT_LINE,
+      // 20.11: строка о стипендии не дублируется, а ведёт на раздел «Стипендия».
+      noteHref: '/scholarship',
       href: '/grades/id-Статистика',
       action: 'Подготовиться к пересдаче',
     })
     expect(rows[1]?.note).toBeNull()
+    expect(rows[1]?.noteHref).toBeNull()
     expect(rows[1]?.detail).toBe('Пересдача 25 ноября')
   })
 
