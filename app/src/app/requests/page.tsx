@@ -6,6 +6,7 @@ import { LinkButton } from '@/components/link-button'
 import { QuestionStatusChip } from '@/components/questions/status-chip'
 import { RequestIcon } from '@/components/requests/icons'
 import { RequestStatusChip } from '@/components/requests/status-chip'
+import { WITHDRAWN_LABEL, isWithdrawn, requestStatusText } from '@/components/requests/withdrawn'
 import { LoadingCard } from '@/components/states/loading-card'
 import { StudentFrame } from '@/components/states/shell-parts'
 import { StudentShell } from '@/components/student-shell'
@@ -21,7 +22,6 @@ import {
   isRequestStatus,
   parseRequestFilter,
   requestFieldLine,
-  statusText,
   type RequestFilter,
 } from '@/lib/requests'
 import { cn } from '@/lib/utils'
@@ -115,13 +115,19 @@ async function RequestsContent({ actor, filter }: { actor: Actor; filter: Reques
                     className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card active:bg-primary-soft focus-visible:-outline-offset-3"
                   >
                     <span className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
-                      {status ? <RequestStatusChip status={status} /> : <span className="text-[length:var(--fs-sm)] font-bold">{r.status}</span>}
+                      {status ? (
+                        isWithdrawn(r) ? (
+                          <RequestStatusChip status={status} label={WITHDRAWN_LABEL} className="bg-primary-soft text-primary" />
+                        ) : (
+                          <RequestStatusChip status={status} />
+                        )
+                      ) : <span className="text-[length:var(--fs-sm)] font-bold">{r.status}</span>}
                       <span className="text-[length:var(--fs-md)] font-bold leading-[1.3]">{kind ? REQUEST_KIND_INFO[kind].title : 'Заявка'}</span>
                       {fieldLine ? <span className="break-words text-[length:var(--fs-sm)] text-muted">{fieldLine}</span> : null}
                       <span className="text-[length:var(--fs-sm)] text-muted">Подана {formatDate(todayIn(getConfig().timezone, r.createdAt))}</span>
                       {kind && status ? (
                         <span className="text-[length:var(--fs-sm)]">
-                          {statusText({
+                          {requestStatusText({
                             kind,
                             status,
                             dueDate: r.dueDate,

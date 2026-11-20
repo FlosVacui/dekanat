@@ -1,6 +1,6 @@
-// Меню сотрудника (20.11, блиц): пункты и правило «какой пункт активен по адресу». Чистая логика, без React.
+// Меню сотрудника (20.11, блиц; 20.11, деканат — «Стипендии»): пункты и правило «какой пункт активен по адресу». Чистая логика, без React.
 
-export type StaffNavKey = 'summary' | 'requests' | 'questions' | 'students' | 'announcements'
+export type StaffNavKey = 'summary' | 'requests' | 'questions' | 'students' | 'scholarships' | 'announcements'
 
 export interface StaffNavItem {
   key: StaffNavKey
@@ -14,6 +14,7 @@ export const STAFF_NAV: readonly StaffNavItem[] = [
   { key: 'requests', label: 'Заявки', href: '/staff/requests' },
   { key: 'questions', label: 'Вопросы', href: '/staff/requests?view=questions' },
   { key: 'students', label: 'Студенты', href: '/staff/students' },
+  { key: 'scholarships', label: 'Стипендии', href: '/staff/scholarships' },
   { key: 'announcements', label: 'Объявления', href: '/staff/announcements' },
 ]
 
@@ -38,6 +39,7 @@ export function activeStaffNav(pathname: string | null | undefined, view?: strin
   if (under(path, '/staff/requests')) return path === '/staff/requests' && view === 'questions' ? 'questions' : 'requests'
   if (under(path, '/staff/questions')) return 'questions'
   if (under(path, '/staff/students')) return 'students'
+  if (under(path, '/staff/scholarships')) return 'scholarships'
   if (under(path, '/staff/announcements')) return 'announcements'
   return null
 }

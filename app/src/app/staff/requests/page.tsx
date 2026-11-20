@@ -6,6 +6,8 @@ import { QuestionStatusChip } from '@/components/questions/status-chip'
 import { RequestIcon } from '@/components/requests/icons'
 import { RequestStatusChip } from '@/components/requests/status-chip'
 import { StaffShell } from '@/components/staff-shell'
+import { BulkBar } from '@/components/staff/bulk-bar'
+import { describeBulkResult } from '@/components/staff/bulk-result'
 import { LoadingCard } from '@/components/states/loading-card'
 import { formatDate, todayIn } from '@/lib/dates'
 import { topicLabel } from '@/lib/questions'
@@ -15,6 +17,7 @@ import {
   STATUS_LABELS,
   isRequestKind,
   isRequestStatus,
+  nextStatuses,
   overdueDays,
   overdueLabel,
   sortOverdueFirst,
@@ -26,6 +29,7 @@ import { requireStaffActor } from '@/server/auth/page-guards'
 import type { Actor } from '@/server/auth/session'
 import { getConfig } from '@/server/config'
 import { listCohortQuestions, listCohortRequests } from '@/server/dal/staff'
+import { bulkStatusAction } from './actions'
 
 // Э-11 «Заявки — сотрудник»: заявки студентов своего набора. Фильтр по статусу со счётчиками и поиск по ФИО студента —
 // параметрами адреса `?status=` и `?q=`, обычные ссылки и форма GET: работают и без скриптов (шаг 2 JURY-3.10).
@@ -33,7 +37,16 @@ import { listCohortQuestions, listCohortRequests } from '@/server/dal/staff'
 // Пакет 4.1: фишка «Вопросы» (`?view=questions`) показывает вопросы студентов набора вместо заявок; поиск `?q=` работает и там.
 export const dynamic = 'force-dynamic'
 
-type Params = { status?: string | string[]; q?: string | string[]; view?: string | string[] }
+type Params = {
+  status?: string | string[]
+  q?: string | string[]
+  view?: string | string[]
+  // 20.11, деканат: исход пачки (см. components/staff/bulk-result.ts)
+  bulk?: string | string[]
+  done?: string | string[]
+  skipped?: string | string[]
+  why?: string | string[]
+}
 
 export default async function StaffRequestsPage({ searchParams }: { searchParams: Promise<Params> }) {
   // Вход проверяется выше границы ожидания: после начала потока отказ уже не получил бы код 307 или 403 (пакет 3.7).
@@ -93,6 +106,7 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
     ...REQUEST_STATUSES.map((s) => ({ status: s, label: STATUS_LABELS[s], count: counts.get(s) ?? 0 })),
     { status: 'questions', label: 'Вопросы', count: foundQuestions.length },
   ]
+  const bulkResult = describeBulkResult(params)
   return (
     <StaffShell juryMode={getConfig().juryMode}>
       <PageTitle>Заявки студентов</PageTitle>
@@ -100,6 +114,15 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
         <EmptyState title="Заявок пока нет" text="Когда студенты подадут заявки, они появятся здесь" />
       ) : (
         <div className="flex flex-col gap-[var(--gap)]">
+          {bulkResult ? (
+            <p
+              role="status"
+              data-testid="bulk-result"
+              className={cn('m-0 rounded-surface border-2 px-[var(--sp-4)] py-[var(--sp-3)] text-[length:var(--fs-md)] font-bold', bulkResult.ok ? 'border-success bg-success-bg text-success' : 'border-error bg-error-bg text-error')}
+            >
+              {bulkResult.text}
+            </p>
+          ) : null}
           <form action="/staff/requests" method="get" role="search" className="flex flex-col gap-[var(--sp-2)] sm:flex-row sm:items-end">
             {status ? <input type="hidden" name="status" value={status} /> : null}
             {questionsView ? <input type="hidden" name="view" value="questions" /> : null}
@@ -171,13 +194,32 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
               text={q ? `Нет заявок студентов, в ФИО которых есть «${q}»${status ? `, со статусом «${STATUS_LABELS[status]}»` : ''}` : 'Заявок с таким статусом нет'}
             />
           ) : (
+        <form id="bulk-form" action={bulkStatusAction} className="flex flex-col gap-[var(--gap)]">
+          {/* 20.11, деканат: заявки пачкой. Фильтр и поиск возвращаются на страницу после действия. */}
+          {status ? <input type="hidden" name="status" value={status} /> : null}
+          {q ? <input type="hidden" name="q" value={q} /> : null}
+          <BulkBar formId="bulk-form" />
         <ul className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2">
           {items.map((r) => (
-            <li key={r.id}>
+            <li key={r.id} className="flex items-stretch gap-[var(--sp-2)]">
+              {isRequestStatus(r.status) && nextStatuses(r.status).some((t) => t !== 'rejected') ? (
+                <label className="flex min-w-[var(--tap)] flex-none items-start justify-center pt-[var(--card-pad)]">
+                  <input
+                    type="checkbox"
+                    name="id"
+                    value={r.id}
+                    data-testid="bulk-check"
+                    aria-label={`Отметить заявку: ${r.studentName}`}
+                    className="size-6 accent-[var(--primary)]"
+                  />
+                </label>
+              ) : (
+                <span aria-hidden="true" className="min-w-[var(--tap)] flex-none" />
+              )}
               {/* Карточка-ссылка: рамка фокуса внутри карточки, отступ −3 px. Текст «Статус: Подана» — одним узлом: по нему скрипт снимков находит заявку. */}
               <Link
                 href={`/staff/requests/${r.id}`}
-                className="flex min-h-[var(--tap)] items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card active:bg-primary-soft focus-visible:-outline-offset-3"
+                className="flex min-h-[var(--tap)] min-w-0 flex-1 items-start gap-[var(--sp-2)] rounded-surface border border-border bg-card p-[var(--card-pad)] shadow-card active:bg-primary-soft focus-visible:-outline-offset-3"
               >
                 <span className="flex min-w-0 flex-1 flex-col gap-[var(--sp-1)]">
                   <span className="text-[length:var(--fs-md)] font-bold leading-[1.3]">{r.studentName}</span>
@@ -203,6 +245,7 @@ async function StaffRequestsContent({ actor, params }: { actor: Actor; params: P
             </li>
           ))}
         </ul>
+        </form>
           )}
         </div>
       )}

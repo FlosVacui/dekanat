@@ -4,7 +4,9 @@ import { redirect } from 'next/navigation'
 import type { ReactNode } from 'react'
 import { Card, CardTitle, PageTitle } from '@/components/card'
 import { LinkButton } from '@/components/link-button'
+import { StaffShell } from '@/components/staff-shell'
 import { StudentShell } from '@/components/student-shell'
+import { BackLink } from '@/components/requests/back-link'
 import { SubmitButton } from '@/components/submit-button'
 import { CrisisNumbers } from '@/app/support/crisis-numbers'
 import { VoiceInputButton } from '@/components/voice/voice-input-button'
@@ -13,11 +15,12 @@ import { ASSISTANT_EXAMPLES, ASSISTANT_QUESTION_MAX, assistantHref, cleanQuestio
 import { isCrisisText } from '@/lib/support/crisis'
 import { PSYCH_SERVICE } from '@/lib/support/data'
 import { askRegulations, type AssistantAnswer } from '@/server/ai'
-import { requireStudentActor } from '@/server/auth/page-guards'
+import { getCurrentActor } from '@/server/auth/cookie'
+import { getConfig } from '@/server/config'
 
 // «Помощник по правилам» (20.11, идея №21): вопрос по вымышленному «Положению о студентах факультета» и ответ с номерами пунктов.
-// Форма обычная, метод GET: работает без скриптов, вопрос лежит в адресе (`?q=`). Читает страницу только студент: гость уходит на вход,
-// сотрудник получает 403. Вопрос не сохраняется. Ответ строит `askRegulations`: ИИ включён — пересказ по найденным пунктам, нет — сами пункты.
+// Форма обычная, метод GET: работает без скриптов, вопрос лежит в адресе (`?q=`). Читает страницу вошедший: гость уходит на вход,
+// студент видит её в своей оболочке, сотрудник (20.11, деканат) — в своей, без кнопки «спросить деканат». Вопрос не сохраняется. Ответ строит `askRegulations`: ИИ включён — пересказ по найденным пунктам, нет — сами пункты.
 export const dynamic = 'force-dynamic'
 export const metadata: Metadata = { title: 'Помощник по правилам' }
 
@@ -108,8 +111,10 @@ function Result({ result }: { result: AssistantAnswer }) {
 }
 
 export default async function AssistantPage({ searchParams }: { searchParams: Promise<{ q?: string | string[]; help?: string | string[] }> }) {
-  // Вход проверяется первым: не вошёл — 307 на вход, сотрудник — 403. Границы ожидания нет: форма должна работать без скриптов.
-  const actor = await requireStudentActor()
+  // Вход проверяется первым: не вошёл — 307 на вход. Студент и сотрудник — каждый в своей оболочке. Границы ожидания нет: форма должна работать без скриптов.
+  const actor = await getCurrentActor()
+  if (!actor) redirect('/login')
+  const isStaff = actor.role === 'staff'
   const { q, help } = await searchParams
   // 20.11, поддержка: тяжёлый вопрос не доходит ни до модели, ни до поиска по положению, ни до «спросить деканат». Переход на адрес без
   // текста вопроса: он не остаётся в адресной строке и истории браузера. Проверяются все значения параметра, не только первое.
@@ -118,9 +123,9 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
   const question = cleanQuestion(Array.isArray(q) ? q[0] : q)
   const result = question ? await askRegulations(question, actor.userId) : null
 
-  return (
-    <StudentShell actor={actor} active="assistant">
+  const content = (
       <div className="flex flex-col gap-[var(--gap)]">
+        {isStaff ? <BackLink href="/staff">К сводке</BackLink> : null}
         <PageTitle>Помощник по правилам</PageTitle>
         <p className="m-0 max-w-[60ch] text-[length:var(--fs-md)] leading-[1.45]">
           Отвечает на вопросы по{' '}
@@ -182,12 +187,20 @@ export default async function AssistantPage({ searchParams }: { searchParams: Pr
         {result ? (
           <>
             <Result result={result} />
-            <LinkButton href={escalationHref(question)} variant="ghost" data-testid="assistant-escalate">
-              Не помогло — спросить деканат
-            </LinkButton>
+            {isStaff ? null : (
+              <LinkButton href={escalationHref(question)} variant="ghost" data-testid="assistant-escalate">
+                Не помогло — спросить деканат
+              </LinkButton>
+            )}
           </>
         ) : null}
       </div>
+  )
+  return isStaff ? (
+    <StaffShell juryMode={getConfig().juryMode}>{content}</StaffShell>
+  ) : (
+    <StudentShell actor={actor} active="assistant">
+      {content}
     </StudentShell>
   )
 }

@@ -5,7 +5,7 @@ import { usePathname, useSearchParams } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { STAFF_NAV, activeStaffNav, isStaffArea, type StaffNavKey } from './nav-items'
 
-// Меню сотрудника: пять пунктов в строку с переносом, зона касания не ниже --tap, без прокрутки вбок на 360 px.
+// Меню сотрудника: шесть пунктов в строку с переносом, зона касания не ниже --tap, без прокрутки вбок на 360 px.
 // Активный пункт — по адресу (aria-current). Вне кабинета сотрудника (общий каркас на странице «Как это сделано») меню нет.
 function NavView({ active, bare = false }: { active: StaffNavKey | null; bare?: boolean }) {
   return (

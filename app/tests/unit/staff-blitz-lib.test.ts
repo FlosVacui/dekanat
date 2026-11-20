@@ -5,9 +5,10 @@ import { STAFF_NAV, activeStaffNav, isStaffArea } from '../../src/components/sta
 import { filterStudents, oneParam } from '../../src/components/staff/students-filter'
 
 describe('меню сотрудника', () => {
-  it('пять пунктов в заданном порядке; адреса не повторяются', () => {
-    expect(STAFF_NAV.map((i) => i.label)).toEqual(['Сводка', 'Заявки', 'Вопросы', 'Студенты', 'Объявления'])
-    expect(new Set(STAFF_NAV.map((i) => i.href)).size).toBe(5)
+  it('шесть пунктов в заданном порядке; адреса не повторяются', () => {
+    // 20.11, деканат: добавлен пункт «Стипендии» (было пять пунктов).
+    expect(STAFF_NAV.map((i) => i.label)).toEqual(['Сводка', 'Заявки', 'Вопросы', 'Студенты', 'Стипендии', 'Объявления'])
+    expect(new Set(STAFF_NAV.map((i) => i.href)).size).toBe(6)
   })
 
   it.each([
@@ -20,6 +21,8 @@ describe('меню сотрудника', () => {
     ['/staff/questions/9f2c', null, 'questions'],
     ['/staff/students', null, 'students'],
     ['/staff/students/9f2c', null, 'students'],
+    ['/staff/scholarships', null, 'scholarships'],
+    ['/staff/scholarships/print', null, 'scholarships'],
     ['/staff/announcements', null, 'announcements'],
     ['/staff/announcements?result=ok', null, 'announcements'],
   ])('адрес %s, view=%s — пункт %s', (path, view, key) => {

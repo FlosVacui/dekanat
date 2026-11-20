@@ -1,6 +1,8 @@
 import 'server-only'
 import { and, asc, desc, eq, gte, inArray, isNull, lte, sql } from 'drizzle-orm'
 import { checkAvatar, type AvatarCheck, type AvatarMime } from '@/app/profile/avatar-rules'
+import { RATING_DOWN, RATING_UP, ratingFromDb, type Rating } from '@/components/requests/rating'
+import { WITHDRAWN_REASON } from '@/components/requests/withdrawn'
 import { isIsoDate, todayIn } from '@/lib/dates'
 import { isQuestionTopic, normalizeQuestionText, type QuestionTopic } from '@/lib/questions'
 import { currentYearIn, isRequestKind, normalizeFields, type RequestKind } from '@/lib/requests'
@@ -374,6 +376,8 @@ export interface RequestItem {
   purpose: string | null
   /** «Год оплаты»; только у справки об оплате обучения. */
   paymentYear: number | null
+  /** Оценка выдачи (20.11): 1 — «👍», -1 — «👎», `null` — не оценена. Бывает только у выданной заявки. */
+  rating: Rating | null
 }
 
 export interface RequestEventItem {
@@ -400,15 +404,22 @@ const requestColumns = {
   rejectReason: requests.rejectReason,
   purpose: requests.purpose,
   paymentYear: requests.paymentYear,
+  rating: requests.rating,
+}
+
+/** Строка заявки из базы -> `RequestItem`: оценка приводится к 1, -1 или null. */
+function toRequestItem<T extends { rating: number | null }>(row: T): Omit<T, 'rating'> & { rating: Rating | null } {
+  return { ...row, rating: ratingFromDb(row.rating) }
 }
 
 export async function listMyRequests(actor: Actor): Promise<RequestItem[]> {
   const { studentId } = requireStudent(actor)
-  return getDb()
+  const rows = await getDb()
     .select(requestColumns)
     .from(requests)
     .where(eq(requests.studentId, studentId))
     .orderBy(desc(requests.createdAt))
+  return rows.map(toRequestItem)
 }
 
 /** Заявка по номеру: «номер и владелец» в одном запросе. Чужая и несуществующая — одинаково null. */
@@ -429,7 +440,46 @@ export async function getMyRequest(actor: Actor, requestId: string): Promise<Req
     .from(requestEvents)
     .where(eq(requestEvents.requestId, row.id))
     .orderBy(asc(requestEvents.createdAt))
-  return { ...row, events }
+  return { ...toRequestItem(row), events }
+}
+
+/**
+ * Отзыв заявки (20.11): студент снимает свою заявку, пока она «Подана» и деканат не взял её в работу. Нового статуса нет:
+ * заявка становится «Отклонена» с причиной `withdrawn`, в историю пишется строка с тем же статусом и пометкой.
+ * Один `UPDATE … WHERE` с номером, владельцем из сессии и статусом «Подана»: если деканат успел взять заявку в работу,
+ * строк изменено ноль и отзыв не проходит (false). Чужая, несуществующая и уже взятая в работу — одинаково false.
+ */
+export async function withdrawMyRequest(actor: Actor, requestId: string, ip: string): Promise<boolean> {
+  const { studentId } = requireStudent(actor)
+  if (!isUuid(requestId)) return false
+  const safeIp = normalizeIp(ip).slice(0, 64) || 'unknown'
+  return getDb().transaction(async (tx) => {
+    const updated = await tx
+      .update(requests)
+      .set({ status: 'rejected', rejectReason: WITHDRAWN_REASON, updatedAt: new Date() })
+      .where(and(eq(requests.id, requestId), eq(requests.studentId, studentId), eq(requests.status, 'submitted')))
+      .returning({ id: requests.id })
+    const changed = updated[0]
+    if (!changed) return false
+    await tx.insert(requestEvents).values({ requestId: changed.id, status: 'rejected', byUserId: studentId, note: WITHDRAWN_REASON, ip: safeIp })
+    return true
+  })
+}
+
+/**
+ * Оценка выдачи (20.11): «👍» (1) или «👎» (-1) у своей заявки в статусе «Выдана». Одна оценка на заявку, повторная
+ * заменяет прежнюю. Значение не из двух допустимых, чужая заявка и заявка не в статусе «Выдана» — false, ничего не меняется.
+ */
+export async function rateMyRequest(actor: Actor, requestId: string, rating: number): Promise<boolean> {
+  const { studentId } = requireStudent(actor)
+  if (!isUuid(requestId)) return false
+  if (rating !== RATING_UP && rating !== RATING_DOWN) return false
+  const updated = await getDb()
+    .update(requests)
+    .set({ rating, ratedAt: new Date() })
+    .where(and(eq(requests.id, requestId), eq(requests.studentId, studentId), eq(requests.status, 'issued')))
+    .returning({ id: requests.id })
+  return updated.length === 1
 }
 
 /** Лимит записи (ADR-0003): заявок в сутки на пару «аккаунт и адрес» и на аккаунт. Числа — выбор проекта. */

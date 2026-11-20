@@ -3,14 +3,17 @@ import { Chip } from '@/components/grades/chip'
 import { PageTitle } from '@/components/card'
 import { LinkButton } from '@/components/link-button'
 import { RequestStatusChip } from '@/components/requests/status-chip'
+import { isWithdrawn, requestStatusText } from '@/components/requests/withdrawn'
 import { dayHref } from '@/components/schedule/hrefs'
 import { StudentShell } from '@/components/student-shell'
+import { EntitlementsBlock } from '@/components/today/entitlements-block'
 import { NextLessonBlock } from '@/components/today/next-lesson'
 import { ChangesBlock, ChangeTile, EmptyRow, RowLink, RowList, RowMeta, TodayBlock } from '@/components/today/row-list'
 import { WaitingBlock } from '@/components/today/waiting-block'
+import { buildEntitlements } from '@/lib/entitlements'
 import { endOfWeek, formatDayMonth, nowTimeIn, todayIn, weekdayShort, weekInfo } from '@/lib/dates'
 import { headerLine } from '@/lib/header-line'
-import { isRequestKind, isRequestStatus, REQUEST_KIND_INFO, statusText } from '@/lib/requests'
+import { isRequestKind, isRequestStatus, REQUEST_KIND_INFO } from '@/lib/requests'
 import { scheduleRange } from '@/lib/schedule'
 import { buildToday, buildWaiting, dateHeading } from '@/lib/today'
 import { requireStudentActor } from '@/server/auth/page-guards'
@@ -59,7 +62,9 @@ export default async function TodayPage() {
     today,
   })
   const subtitle = headerLine({ groupName: profile?.groupName ?? '', week: weekInfo(today), semester: null })
-  const news = requests.filter((r) => ['in_progress', 'ready', 'rejected'].includes(r.status))
+  // Отозванную студентом заявку новостью не считаем: он сам её снял.
+  const news = requests.filter((r) => ['in_progress', 'ready', 'rejected'].includes(r.status) && !isWithdrawn(r))
+  const entitlements = buildEntitlements({ grades, requests, today })
 
   return (
     <StudentShell actor={actor} active="today">
@@ -75,6 +80,7 @@ export default async function TodayPage() {
       <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-[minmax(0,1.45fr)_minmax(0,1fr)] lg:items-start lg:gap-[var(--sp-5)]">
         <div className="flex flex-col gap-[var(--gap)]">
           <WaitingBlock rows={waiting} />
+          <EntitlementsBlock rows={entitlements} />
           <NextLessonBlock next={view.next} finished={view.todayFinished} />
         </div>
 
@@ -123,7 +129,7 @@ export default async function TodayPage() {
                   meta={
                     isRequestKind(r.kind) && isRequestStatus(r.status) ? (
                       <RowMeta>
-                        {statusText({
+                        {requestStatusText({
                           kind: r.kind,
                           status: r.status,
                           dueDate: r.dueDate,

@@ -173,7 +173,7 @@ test('вопрос не по теме → «В положении ответа �
   }
 })
 
-test('/rules: все пункты положения, якоря; студент и сотрудник видят, гость уходит на вход; /assistant сотруднику — 403', async ({ browser }) => {
+test('/rules: все пункты положения, якоря; студент и сотрудник видят, гость уходит на вход; /assistant сотруднику открыт (20.11, деканат)', async ({ browser }) => {
   const guest = await newContext(browser, 360)
   try {
     const page = await guest.newPage()
@@ -206,7 +206,10 @@ test('/rules: все пункты положения, якоря; студент
     await expect(page.locator('article[data-point]')).toHaveCount(REG_ITEMS.length)
     await expect(page.getByTestId('rules-notice')).toBeVisible()
     const assistant = await page.goto('/assistant?q=' + encodeURIComponent('справка'))
-    expect(assistant?.status()).toBe(403)
+    // Было 403; 20.11, деканат: сотруднику помощник открыт в его оболочке (без кнопки «спросить деканат»).
+    expect(assistant?.status()).toBe(200)
+    await expect(page.getByTestId('assistant-result')).toBeVisible()
+    await expect(page.getByTestId('assistant-escalate')).toHaveCount(0)
   } finally {
     await staffContext.close()
   }

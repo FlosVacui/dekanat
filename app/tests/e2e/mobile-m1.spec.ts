@@ -411,7 +411,7 @@ for (const vp of VIEWPORTS) {
         ready: page.getByRole('heading', { name: 'Сегодня', level: 1 }),
         action: page.getByRole('region', { name: 'Следующая пара' }),
       })
-      const walk = await tabWalk(page, 30)
+      const walk = await tabWalk(page, 50) // 20.11: на «Сегодня» больше ссылок («Вам положено», «Стипендия», «Поддержка») — 30 шагов не доходили до нижней панели
       rec('focus', vp.width, 'today', walk)
       expect(walk.length, `${vp.width}: Tab на «Сегодня» дошёл до конца`).toBeGreaterThan(6)
       expect(walk[0]!.label, 'первым получает фокус колокольчик').toContain('Уведомления')
@@ -646,7 +646,8 @@ for (const vp of VIEWPORTS) {
       rec('focus', vp.width, 'staff-request', walk)
       expect(walk[0]!.label, 'первым в заявке сотрудника — «Выйти»').toContain('Выйти')
       // 20.11, блиц: от 1024 px после «Выйти» идут пять пунктов меню сотрудника в шапке, затем ссылка к списку.
-      const afterMenu = vp.width >= 1024 ? 6 : 1
+      // 20.11, деканат: в меню шесть пунктов («Стипендии»).
+      const afterMenu = vp.width >= 1024 ? 7 : 1
       expect(walk[afterMenu]!.label, 'после «Выйти» и меню — ссылка к списку').toContain('К списку заявок')
       expect(walk.filter((f) => !f.ring).map((f) => f.label), `${vp.width}: у элементов нет видимой рамки фокуса`).toEqual([])
       await sp.close()
