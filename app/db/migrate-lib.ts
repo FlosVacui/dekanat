@@ -28,6 +28,8 @@ const GRANTS = [
   'GRANT INSERT, UPDATE, DELETE ON user_avatars TO {role}',
   // Объявления (блиц 20.11): сотрудник пишет объявление своей группе или потоку.
   'GRANT INSERT ON announcements TO {role}',
+  // Снять объявление (20.11, деканат): сотрудник удаляет объявление своего набора; отметки о прочтении уходят каскадом.
+  'GRANT DELETE ON announcements TO {role}',
 ]
 
 export function roleFromUrl(url: string): string {

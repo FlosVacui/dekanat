@@ -1,3 +1,4 @@
+import Image from 'next/image'
 import Link from 'next/link'
 import { Card, CardTitle, PageTitle } from '@/components/card'
 import { QuestionStatusChip } from '@/components/questions/status-chip'
@@ -10,9 +11,12 @@ import { formatDate, todayIn } from '@/lib/dates'
 import { formatAverage } from '@/lib/grades'
 import { topicLabel } from '@/lib/questions'
 import { REQUEST_KIND_INFO, isRequestKind, isRequestStatus } from '@/lib/requests'
+import { itemHref } from '@/lib/regulations/data'
+import { describeStatus, formatRub } from '@/lib/scholarship'
+import { cn } from '@/lib/utils'
 import { denyRecord, requireStaffActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
-import { getCohortStudent } from '@/server/dal/staff'
+import { cohortStudentHasAvatar, getCohortStudent, getCohortStudentRating, getCohortStudentScholarship } from '@/server/dal/staff'
 
 // Карточка студента для сотрудника (20.11, блиц): ФИО, курс, группа, краткая успеваемость, заявки и вопросы со ссылками.
 // Студент ищется слоем доступа вместе с набором сотрудника; чужой набор и несуществующий номер — событие и 404, как у заявки.
@@ -26,6 +30,13 @@ export default async function StaffStudentPage({ params }: { params: Promise<{ i
   const { id } = await params
   const student = await getCohortStudent(actor, id)
   if (!student) return denyRecord(actor)
+  // 20.11, деканат: фото, стипендия и рейтинг. Каждый запрос слоя сам сверяет студента с набором сотрудника.
+  const [hasPhoto, scholarship, rating] = await Promise.all([
+    cohortStudentHasAvatar(actor, id),
+    getCohortStudentScholarship(actor, id),
+    getCohortStudentRating(actor, id),
+  ])
+  const statusView = scholarship ? describeStatus(scholarship.status) : null
   const tz = getConfig().timezone
   const brief = briefGrades(student.disciplines)
   return (
@@ -35,6 +46,17 @@ export default async function StaffStudentPage({ params }: { params: Promise<{ i
         <PageTitle>{student.fullName}</PageTitle>
         <div className="flex flex-col gap-[var(--gap)] lg:grid lg:grid-cols-2 lg:items-start">
           <Card>
+            {hasPhoto ? (
+              <Image
+                src={`/staff/students/${student.id}/photo`}
+                alt={`Фото: ${student.fullName}`}
+                width={96}
+                height={96}
+                unoptimized
+                data-testid="student-photo"
+                className="mb-[var(--sp-3)] size-24 rounded-full border border-border object-cover"
+              />
+            ) : null}
             <dl className="flex flex-col gap-[var(--sp-3)]">
               <div>
                 <dt className="text-[length:var(--fs-sm)] text-muted">Группа</dt>
@@ -53,6 +75,36 @@ export default async function StaffStudentPage({ params }: { params: Promise<{ i
                 <dd className="text-[length:var(--fs-md)] [overflow-wrap:anywhere]">{student.programme}</dd>
               </div>
             </dl>
+          </Card>
+
+          <Card>
+            <CardTitle>Стипендия и рейтинг</CardTitle>
+            <div className="flex flex-col gap-[var(--sp-2)] text-[length:var(--fs-md)]">
+              {scholarship && statusView ? (
+                <>
+                  <p data-testid="student-scholarship" className={cn('m-0 font-bold [overflow-wrap:anywhere]', statusView.tone === 'ok' ? 'text-success' : 'text-error')}>
+                    {statusView.title}
+                  </p>
+                  <p className="m-0 text-[length:var(--fs-sm)] leading-[1.4]">
+                    {statusView.text}{' '}
+                    <Link href={itemHref(statusView.point)} data-testid="student-scholarship-point" className="font-bold text-primary">
+                      п. {statusView.point}
+                    </Link>
+                  </p>
+                  <p className="m-0 text-[length:var(--fs-sm)]">
+                    Сумма: {scholarship.amount > 0 ? `${formatRub(scholarship.amount)} в месяц (пример для прототипа)` : '—'}
+                  </p>
+                  <p data-testid="student-raised" className="m-0 text-[length:var(--fs-sm)]">
+                    Условие повышенной по оценкам: {scholarship.status.excellent ? <strong>выполнено</strong> : 'нет'}
+                  </p>
+                </>
+              ) : null}
+              <p data-testid="student-rating" className="m-0">
+                {rating
+                  ? `Рейтинг в группе: ${rating.place} из ${rating.groupSize}, средняя ${formatAverage(rating.average)} (${rating.semester} семестр)`
+                  : 'Рейтинг появится после первых итоговых оценок'}
+              </p>
+            </div>
           </Card>
 
           <Card>

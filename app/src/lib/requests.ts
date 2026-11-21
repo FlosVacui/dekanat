@@ -301,6 +301,8 @@ export function statusText(input: StatusTextInput): string {
       return input.kind === 'financial_aid' ? `Заявление закрыто ${on}`.trim() : `Вы получили документ ${on}`.trim()
     }
     case 'rejected': {
+      // 20.11: студент сам отозвал заявку, пока её не взяли в работу.
+      if (input.rejectReason === 'withdrawn') return 'Заявку отозвал студент'
       if (input.rejectReason === 'other') return 'Заявка отклонена. Причину уточните в деканате. Можно подать снова'
       const reason = isRejectReason(input.rejectReason) ? REJECT_REASON_LABELS[input.rejectReason] : 'не указана'
       return `Заявка отклонена. Причина: ${reason}. Можно подать снова`
@@ -466,8 +468,11 @@ export function matchesRequestFilter(status: string, filter: RequestFilter): boo
   }
 }
 
-export function filterRequests<T extends { status: string }>(items: readonly T[], filter: RequestFilter): T[] {
-  return items.filter((item) => matchesRequestFilter(item.status, filter))
+export function filterRequests<T extends { status: string; rejectReason?: string | null }>(items: readonly T[], filter: RequestFilter): T[] {
+  // Отозванную студентом заявку (20.11) не показываем в «Требуют ответа»: ход за студентом уже сделан.
+  return items.filter(
+    (item) => matchesRequestFilter(item.status, filter) && !(filter === 'action' && item.rejectReason === 'withdrawn'),
+  )
 }
 
 // ---------- Просрочка (список сотрудника) ----------

@@ -1,7 +1,9 @@
+import Link from 'next/link'
 import { Card, CardTitle, PageTitle } from '@/components/card'
 import { SelectField } from '@/components/requests/select-field'
 import { StaffShell } from '@/components/staff-shell'
 import { SubmitButton } from '@/components/submit-button'
+import { LinkButton } from '@/components/link-button'
 import { formatDate, todayIn } from '@/lib/dates'
 import { requireStaffActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
@@ -10,10 +12,12 @@ import {
   ANNOUNCEMENT_BODY_MAX,
   ANNOUNCEMENT_TITLE_MAX,
   canPostAnnouncements,
+  canRemoveAnnouncements,
   listCohortAnnouncements,
   listCohortAudiences,
 } from '@/server/dal/staff'
 import { createAnnouncementAction } from './actions'
+import { removeAnnouncementAction } from './remove-action'
 
 // Объявления сотрудника (20.11, блиц): форма «группа или весь поток», заголовок до 120 знаков, текст до 2000; ниже — отправленные за 30 дней.
 // Студенты видят объявление в ленте «Объявления». Форма — обычная, работает без скриптов; исход приходит параметром `?result=`.
@@ -24,18 +28,30 @@ const MESSAGES: Record<string, { text: string; ok: boolean }> = {
   invalid: { text: `Проверьте поля: заголовок до ${ANNOUNCEMENT_TITLE_MAX} знаков и текст до ${ANNOUNCEMENT_BODY_MAX} знаков, оба не пустые`, ok: false },
   audience: { text: 'Выберите группу или поток из списка', ok: false },
   unavailable: { text: 'Отправка объявлений сейчас выключена: у приложения нет права записи', ok: false },
+  removed: { text: 'Объявление снято: студенты его больше не увидят', ok: true },
+  missing: { text: 'Такого объявления нет среди объявлений вашего набора', ok: false },
+  'remove-unavailable': { text: 'Снятие объявлений сейчас выключено: у приложения нет права удаления', ok: false },
   limit: { text: `Сегодня уже отправлено ${ANNOUNCEMENTS_PER_DAY} объявлений. Попробуйте позже`, ok: false },
 }
 
 const fieldClass =
   'block w-full rounded-control border-2 border-border-strong bg-card px-[var(--sp-4)] text-[length:var(--fs-md)] text-text focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-focus'
 
-export default async function StaffAnnouncementsPage({ searchParams }: { searchParams: Promise<{ result?: string | string[] }> }) {
+export default async function StaffAnnouncementsPage({ searchParams }: { searchParams: Promise<{ result?: string | string[]; remove?: string | string[] }> }) {
   const actor = await requireStaffActor()
-  const raw = (await searchParams).result
+  const params = await searchParams
+  const raw = params.result
+  const removeRaw = params.remove
+  // Номер объявления на подтверждение: только из списка набора, остальное игнорируется (вторая кнопка — на этой же странице, без скриптов).
+  const removeId = Array.isArray(removeRaw) ? (removeRaw[0] ?? '') : (removeRaw ?? '')
   const key = Array.isArray(raw) ? (raw[0] ?? '') : (raw ?? '')
   const message = Object.hasOwn(MESSAGES, key) ? MESSAGES[key] : undefined
-  const [audiences, sent, canPost] = await Promise.all([listCohortAudiences(actor), listCohortAnnouncements(actor), canPostAnnouncements(actor)])
+  const [audiences, sent, canPost, canRemove] = await Promise.all([
+    listCohortAudiences(actor),
+    listCohortAnnouncements(actor),
+    canPostAnnouncements(actor),
+    canRemoveAnnouncements(actor),
+  ])
   const tz = getConfig().timezone
   return (
     <StaffShell juryMode={getConfig().juryMode}>
@@ -127,6 +143,30 @@ export default async function StaffAnnouncementsPage({ searchParams }: { searchP
                     {formatDate(todayIn(tz, a.publishedAt))}, {a.audience}
                   </span>
                   <span className="whitespace-pre-wrap text-[length:var(--fs-sm)] leading-[1.4] [overflow-wrap:anywhere]">{a.body}</span>
+                  {canRemove ? (
+                    removeId === a.id ? (
+                      <form action={removeAnnouncementAction} data-testid="remove-confirm" className="flex flex-col gap-[var(--sp-2)] rounded-control border-2 border-error p-[var(--sp-3)]">
+                        <input type="hidden" name="announcementId" value={a.id} />
+                        <p className="m-0 text-[length:var(--fs-sm)] font-bold">Снять объявление «{a.title}»? Студенты его больше не увидят.</p>
+                        <div className="flex flex-wrap gap-[var(--sp-2)]">
+                          <SubmitButton data-testid="remove-yes">Да, снять</SubmitButton>
+                          <LinkButton href="/staff/announcements" variant="ghost">
+                            Отмена
+                          </LinkButton>
+                        </div>
+                      </form>
+                    ) : (
+                      <Link
+                        href={`/staff/announcements?remove=${a.id}`}
+                        prefetch={false}
+                        data-testid="remove-link"
+                        aria-label={`Снять объявление: ${a.title}`}
+                        className="inline-flex min-h-[var(--tap)] w-fit items-center text-[length:var(--fs-sm)] font-bold text-error"
+                      >
+                        Снять
+                      </Link>
+                    )
+                  ) : null}
                 </li>
               ))}
             </ul>

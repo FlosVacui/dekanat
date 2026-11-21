@@ -10,6 +10,7 @@ import {
   integer,
   pgTable,
   primaryKey,
+  smallint,
   text,
   time,
   timestamp,
@@ -260,6 +261,10 @@ export const requests = pgTable(
     purpose: text('purpose'),
     /** «Год оплаты»: не раньше 2024. Заполнено только у справки об оплате обучения. */
     paymentYear: integer('payment_year'),
+    /** 20.11: оценка выдачи, одна на заявку. `1` — «👍», `-1` — «👎», пусто — не оценена. Ставится только у выданной заявки. */
+    rating: smallint('rating'),
+    /** Когда студент поставил или сменил оценку; нужен окну «за N дней» на сводке деканата. Пусто, пока оценки нет. */
+    ratedAt: timestamp('rated_at', { withTimezone: true }),
   },
   (t) => [
     index('requests_student_idx').on(t.studentId, t.createdAt),
@@ -273,6 +278,8 @@ export const requests = pgTable(
     ),
     // Год не раньше 2024 — PAYMENT_YEAR_MIN в src/lib/requests.ts.
     check('requests_payment_year_check', sql`${t.paymentYear} is null or ${t.paymentYear} >= 2024`),
+    // 20.11: оценка — только «👍» (1) или «👎» (-1) и только у выданной заявки; время оценки стоит вместе с ней.
+    check('requests_rating_check', sql`${t.rating} is null or (${t.rating} in (-1, 1) and ${t.status} = 'issued' and ${t.ratedAt} is not null)`),
     check(
       'requests_fields_by_kind_check',
       sql`(${t.kind} = 'dean_certificate' and ${t.purpose} is not null and ${t.paymentYear} is null)

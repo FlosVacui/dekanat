@@ -1,8 +1,11 @@
+import Link from 'next/link'
 import { Card, CardTitle, PageTitle } from '@/components/card'
 import { QuestionStatusChip } from '@/components/questions/status-chip'
 import { StaffAnswerForm } from '@/components/questions/staff-answer-form'
 import { BackLink } from '@/components/requests/back-link'
 import { StaffShell } from '@/components/staff-shell'
+import { InsertPointButton } from '@/components/staff/insert-point-button'
+import { hintsForQuestion } from '@/components/staff/regulation-hints'
 import { formatDate, todayIn } from '@/lib/dates'
 import { topicLabel } from '@/lib/questions'
 import { denyRecord, requireStaffActor } from '@/server/auth/page-guards'
@@ -23,6 +26,8 @@ export default async function StaffQuestionPage({ params }: { params: Promise<{ 
   // Слой вернул «не найдено»: вопрос другого набора или такого нет. Событие пишется, страница отвечает 404 (R-3.1-4).
   if (!question) return denyRecord(actor)
   const tz = getConfig().timezone
+  // 20.11, деканат: три пункта положения по тексту вопроса; пока вопрос без ответа.
+  const hints = question.answer === null ? hintsForQuestion(question.body) : []
   return (
     <StaffShell juryMode={getConfig().juryMode}>
       <div className="flex flex-col gap-[var(--gap)]">
@@ -67,7 +72,34 @@ export default async function StaffQuestionPage({ params }: { params: Promise<{ 
             </p>
           </Card>
         ) : (
-          <StaffAnswerForm questionId={question.id} answerAction={answerQuestionAction} draftAction={aiEnabled() ? draftAnswerAction : undefined} />
+          <>
+            <Card>
+              <CardTitle>Пункты положения по теме</CardTitle>
+              {hints.length === 0 ? (
+                <p data-testid="hints-empty" className="mb-[var(--sp-2)] text-[length:var(--fs-sm)] text-muted">
+                  По тексту вопроса пунктов не нашлось. Попробуйте помощника по правилам
+                </p>
+              ) : (
+                <ul data-testid="hints" className="m-0 flex list-none flex-col gap-[var(--sp-3)] p-0">
+                  {hints.map((h) => (
+                    <li key={h.num} data-point={h.num} className="flex flex-col gap-1 border-b border-border pb-[var(--sp-3)] last:border-b-0 last:pb-0">
+                      <Link href={h.href} className="inline-flex min-h-[var(--tap)] items-center text-[length:var(--fs-md)] font-bold text-primary">
+                        п. {h.num}. {h.title}
+                      </Link>
+                      <InsertPointButton phrase={h.phrase} targetId="answer-text" label={`Вставить в ответ: п. ${h.num}`} />
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <Link href="/assistant" className="mt-[var(--sp-2)] inline-flex min-h-[var(--tap)] items-center text-[length:var(--fs-sm)] font-bold text-primary">
+                Спросить помощника по правилам
+              </Link>
+              <noscript>
+                <style>{'[data-needs-js]{display:none}'}</style>
+              </noscript>
+            </Card>
+            <StaffAnswerForm questionId={question.id} answerAction={answerQuestionAction} draftAction={aiEnabled() ? draftAnswerAction : undefined} />
+          </>
         )}
       </div>
     </StaffShell>

@@ -39,7 +39,18 @@ export function WaitingBlock({ rows }: { rows: WaitingRow[] }) {
                 {row.title}
               </b>
               {row.detail ? <span className="col-start-2 text-[length:var(--fs-sm)] text-muted [overflow-wrap:anywhere]">{row.detail}</span> : null}
-              {row.note ? <span className="col-start-2 text-[length:var(--fs-sm)] text-muted [overflow-wrap:anywhere]">{row.note}</span> : null}
+              {row.note && row.noteHref ? (
+                // 20.11, стипендия: строка о стипендии у долга ведёт на раздел «Стипендия», а не дублируется отдельной строкой.
+                <Link
+                  href={row.noteHref}
+                  data-testid="waiting-stipend"
+                  className="col-start-2 inline-flex min-h-[var(--tap)] items-center text-[length:var(--fs-sm)] font-semibold text-primary underline [overflow-wrap:anywhere]"
+                >
+                  {row.note}
+                </Link>
+              ) : row.note ? (
+                <span className="col-start-2 text-[length:var(--fs-sm)] text-muted [overflow-wrap:anywhere]">{row.note}</span>
+              ) : null}
               <Link
                 href={row.href}
                 className="col-start-2 mt-1 inline-flex min-h-[var(--tap)] items-center gap-1 justify-self-start rounded-full bg-primary-soft px-[var(--sp-3)] text-[length:var(--fs-sm)] font-semibold text-primary"

@@ -89,11 +89,11 @@ async function signIn(
 const asStaff = (browser: Browser, width: 360 | 1280 = 360, js = true) => signIn(browser, staff.login, staff.password, '/staff/requests', width, js)
 
 for (const width of [360, 1280] as const) {
-  test(`меню и сводка на ${width} px: пять пунктов, активный по адресу, числа ведут в списки, без прокрутки вбок`, async ({ browser }) => {
+  test(`меню и сводка на ${width} px: шесть пунктов, активный по адресу, числа ведут в списки, без прокрутки вбок`, async ({ browser }) => {
     const { context, page } = await asStaff(browser, width)
     try {
       const menu = page.getByRole('navigation', { name: 'Меню сотрудника' })
-      await expect(menu.getByRole('link')).toHaveText(['Сводка', 'Заявки', 'Вопросы', 'Студенты', 'Объявления'])
+      await expect(menu.getByRole('link')).toHaveText(['Сводка', 'Заявки', 'Вопросы', 'Студенты', 'Стипендии', 'Объявления'])
       // Вход, как прежде, на список заявок: активна «Заявки».
       await expect(menu.getByRole('link', { name: 'Заявки' })).toHaveAttribute('aria-current', 'page')
       // Нижней панели вкладок студента у сотрудника нет.

@@ -86,6 +86,8 @@ describe('R-2.3-34: студент статус не передаёт; сотр�
     // 20.11, блиц: объявление — адресат, заголовок и текст; набора и сотрудника в форме нет.
     expect(formKeys('app/staff/announcements/actions.ts')).toEqual(['audience', 'body', 'title'])
     expect(formKeys('app/login/actions.ts')).toEqual(['login', 'password'])
+    // 20.11, студент: отзыв и оценка — номер заявки и слово оценки; статуса, оценки числом и владельца в форме нет.
+    expect(formKeys('app/requests/[id]/actions.ts')).toEqual(['requestId', 'requestId', 'value'])
   })
 
   it('статус новой заявки ставит слой; переход проверяется по списку допустимых в одном UPDATE', () => {
@@ -181,12 +183,18 @@ describe('Т-01: тестовый аккаунт не может испорти�
         'app/questions/new/actions.ts:createQuestionAction',
         'app/requests/new/actions.ts:createReadyCertificateAction',
         'app/requests/new/actions.ts:createRequestAction',
+        // 20.11, студент: отзыв своей заявки «Подана» и оценка своей выданной заявки; владелец — из сессии, в форме номер заявки и слово «up»/«down».
+        'app/requests/[id]/actions.ts:rateRequestAction',
+        'app/requests/[id]/actions.ts:withdrawRequestAction',
         'app/staff/questions/[id]/actions.ts:answerQuestionAction',
         // 19.11, ИИ-функции: «Черновик ИИ» ничего не пишет в базу и не отправляет, только возвращает текст форме.
         'app/staff/questions/[id]/actions.ts:draftAnswerAction',
         'app/staff/announcements/actions.ts:createAnnouncementAction', // 20.11, блиц: объявление группе или потоку, набор и предел — в слое доступа
         'app/staff/(home)/actions.ts:weekSummaryAction', // 20.11, сводка: «Сводка недели от ИИ» — читает числа набора из сессии, ничего не пишет и не принимает из формы
         'app/staff/requests/[id]/actions.ts:changeStatusAction',
+        // 20.11, деканат: заявки пачкой (каждая смена — тот же changeRequestStatus) и «Снять» объявление своего набора.
+        'app/staff/requests/actions.ts:bulkStatusAction',
+        'app/staff/announcements/remove-action.ts:removeAnnouncementAction',
         // 20.11, блиц: фото профиля (только своё, тип и размер проверяет слой доступа) и настройки отображения (кука `ui` из списка значений).
         'app/profile/actions.ts:deleteAvatarAction',
         'app/profile/actions.ts:saveUiSettingsAction',
@@ -196,7 +204,8 @@ describe('Т-01: тестовый аккаунт не может испорти�
     // Обработчик маршрута — тоже вход для записи. Промежуточный слой (proxy.ts) не запрещён: им можно закрыть R-3.10-1.
     // 20.11, блиц: два обработчика только на чтение (GET) — своё фото и своё расписание файлом календаря. Владелец — из сессии, записи нет.
     const routes = src.filter((f) => /(^|\/)route\.(ts|js|mjs)$/.test(f.rel))
-    expect(routes.map((f) => f.rel).sort()).toEqual(['app/profile/avatar/route.ts', 'app/schedule/calendar.ics/route.ts'])
+    // 20.11, деканат: третий обработчик только на чтение — фото студента своего набора для сотрудника (набор из сессии, чужой — 404).
+    expect(routes.map((f) => f.rel).sort()).toEqual(['app/profile/avatar/route.ts', 'app/schedule/calendar.ics/route.ts', 'app/staff/students/[id]/photo/route.ts'])
     for (const route of routes) {
       expect([...route.text.matchAll(/^export\s+(?:async\s+)?function\s+(\w+)/gm)].map((m) => m[1]), route.rel).toEqual(['GET'])
     }
@@ -229,5 +238,66 @@ describe('Н-02 и данные (попутно)', () => {
     const seed = readFileSync(join(APP, 'db/seed-data.ts'), 'utf8')
     expect(seed).not.toMatch(/[\w.+-]+@[\w-]+\.[\w.]+/)
     expect(seed).not.toMatch(/(\+7|8)[\s(-]*\d{3}[\s)-]*\d{3}[\s-]*\d{2}[\s-]*\d{2}/)
+  })
+})
+
+// 20.11, стипендия: страница `/scholarship` читает только оценки студента через слой доступа, владельца берёт из сессии
+// и ничего не принимает из адреса; платежей и реквизитов в ней нет.
+describe('20.11, стипендия: владелец из сессии, без записи и без платежей', () => {
+  const page = src.find((f) => f.rel === 'app/scholarship/page.tsx')
+  const lib = src.find((f) => f.rel === 'lib/scholarship.ts')
+
+  it('страница есть, охрана студента стоит первой, данные — только через слой доступа', () => {
+    expect(page, 'app/scholarship/page.tsx').toBeDefined()
+    const text = page!.text
+    expect(text).toMatch(/await\s+requireStudentActor\(\)/)
+    expect(text).toMatch(/listMyGrades\(actor,/)
+    expect(text).not.toMatch(/from\s+'@\/server\/dal\/(client|schema)'|getDb\(|drizzle-orm/)
+  })
+
+  it('из адреса и формы страница ничего не читает: ни searchParams, ни params, ни cookies, ни headers; серверных действий нет', () => {
+    const text = page!.text
+    expect(text).not.toMatch(/searchParams|\bparams\b|cookies\(|headers\(|'use server'|<form\b|method=/)
+    expect(src.some((f) => f.rel.startsWith('app/scholarship/') && /'use server'/.test(f.text))).toBe(false)
+  })
+
+  it('расчёт — чистый модуль: ни базы, ни сервера, ни часов', () => {
+    expect(lib, 'lib/scholarship.ts').toBeDefined()
+    expect(lib!.text).not.toMatch(/server-only|@\/server|drizzle|new Date\(\)|Date\.now\(/)
+  })
+
+  it('в разделе нет кнопок оплаты, реквизитов и квитанций', () => {
+    const text = `${page!.text}\n${lib!.text}`.replace(/^\s*(\/\/|\{\/\*).*$/gm, '')
+    expect(text).not.toMatch(/Оплатить|реквизит|квитанц|номер\s+карты|\bIBAN\b|\bБИК\b/i)
+  })
+})
+
+describe('20.11, студент: отзыв заявки и оценка выдачи', () => {
+  const actions = () => src.find((f) => f.rel === 'app/requests/[id]/actions.ts')!.text
+  const dal = () => src.find((f) => f.rel === 'server/dal/student.ts')!.text
+
+  it('действия начинаются с охраны студента и ходят только в слой доступа студента', () => {
+    for (const name of ['withdrawRequestAction', 'rateRequestAction']) {
+      const body = actions().slice(actions().indexOf(`export async function ${name}`))
+      expect(body.slice(0, 400), name).toMatch(/await requireStudentActor\(\)/)
+    }
+    expect(actions()).not.toMatch(/@\/server\/dal\/(staff|client|schema)/)
+  })
+
+  it('отзыв — один UPDATE с номером, владельцем из сессии и статусом «Подана»; оценка — с владельцем и статусом «Выдана»', () => {
+    const withdraw = dal().slice(dal().indexOf('export async function withdrawMyRequest'), dal().indexOf('export async function rateMyRequest'))
+    expect(withdraw).toMatch(/eq\(requests\.studentId, studentId\)/)
+    expect(withdraw).toMatch(/eq\(requests\.status, 'submitted'\)/)
+    const rate = dal().slice(dal().indexOf('export async function rateMyRequest'))
+    expect(rate.slice(0, 900)).toMatch(/eq\(requests\.studentId, studentId\)/)
+    expect(rate.slice(0, 900)).toMatch(/eq\(requests\.status, 'issued'\)/)
+  })
+
+  it('причины «withdrawn» нет в списке причин деканата: отозвать заявку может только студент', () => {
+    const lib = src.find((f) => f.rel === 'lib/requests.ts')!.text
+    // 20.11, оркестратор: lib/requests.ts теперь называет «withdrawn» в тексте статуса и фильтре — проверяем сам список причин.
+    const list = lib.match(/export const REJECT_REASONS = \[([^\]]*)\]/)
+    expect(list, 'список REJECT_REASONS найден').not.toBeNull()
+    expect(list![1]).not.toMatch(/withdrawn/)
   })
 })

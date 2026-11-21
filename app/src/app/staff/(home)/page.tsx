@@ -10,7 +10,7 @@ import { REQUEST_KIND_INFO, REQUEST_STATUSES, STATUS_LABELS, isRequestKind, isRe
 import { aiEnabled } from '@/server/ai'
 import { requireStaffActor } from '@/server/auth/page-guards'
 import { getConfig } from '@/server/config'
-import { getCohortSummary, listCohortRequests, listCohortUnansweredQuestions } from '@/server/dal/staff'
+import { getCohortRequestRatings, getCohortSummary, listCohortRequests, listCohortUnansweredQuestions } from '@/server/dal/staff'
 import { weekSummaryAction } from './actions'
 import { WeekSummary } from './week-summary'
 
@@ -29,10 +29,11 @@ const ROW_LINK =
 export default async function StaffSummaryPage() {
   const actor = await requireStaffActor()
   const tz = getConfig().timezone
-  const [summary, allRequests, unanswered] = await Promise.all([
+  const [summary, allRequests, unanswered, ratings] = await Promise.all([
     getCohortSummary(actor, todayIn(tz)),
     listCohortRequests(actor),
     listCohortUnansweredQuestions(actor),
+    getCohortRequestRatings(actor, 30),
   ])
   // Список слоя идёт от новых к старым: берутся пять первых.
   const recent = allRequests.slice(0, RECENT_REQUESTS)
@@ -66,6 +67,10 @@ export default async function StaffSummaryPage() {
             </li>
           </ul>
         </Card>
+        {/* 20.11, деканат: оценки выдачи, которые студенты ставят выданным заявкам. */}
+        <p data-testid="summary-ratings" className="m-0 text-[length:var(--fs-md)] font-bold lg:col-span-2">
+          Оценка выдачи за 30 дней: 👍 {ratings.up} · 👎 {ratings.down}
+        </p>
         {/* 20.11: без ключа модели карточки нет. */}
         {aiEnabled() ? (
           <div className="lg:col-span-2">

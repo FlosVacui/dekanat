@@ -16,12 +16,14 @@ import {
   type RequestKind,
   type RequestStatus,
 } from '@/lib/requests'
+import { SCHOLARSHIP_ORDER, evaluateScholarship, type ScholarshipGrade, type ScholarshipStatus } from '@/lib/scholarship'
 import { normalizeIp } from '../auth/ip'
 import type { Actor } from '../auth/session'
 import { getConfig } from '../config'
 import { getDb } from './client'
 import { isUuid, requireStaff } from './guards'
-import { announcements, disciplines, grades, groups, notifications, questions, requestEvents, requests, students, users } from './schema'
+import { announcements, disciplines, grades, groups, notifications, questions, requestEvents, requests, students, userAvatars, users } from './schema'
+import type { GroupRating } from './student'
 
 // Функции сотрудника (ADR-0002, «Область сотрудника»). Лежат отдельно от функций студента.
 // Первым делом проверяется роль. Граница — набор: сотрудник видит и меняет только заявки студентов своего набора.
@@ -766,4 +768,225 @@ export async function getCohortWeekDigest(actor: Actor, today: string, now: Date
     }
   })
   return { requests: kinds, questions: topics }
+}
+
+// ---------- 20.11, деканат: стипендии, рейтинг, фото, снятие объявлений ----------
+
+export interface StaffScholarshipRow {
+  id: string
+  fullName: string
+  groupName: string
+  status: ScholarshipStatus
+  /** Сумма в месяц: у назначенной академической — размер из приказа, иначе 0. Повышенную назначает комиссия, здесь её суммы нет. */
+  amount: number
+}
+
+/**
+ * Стипендии студентов набора одним запросом: студенты набора, дисциплины их групп и их оценки соединяются в одной выборке
+ * (без запроса на каждого студента). Статус считает та же чистая функция `evaluateScholarship`, что у студента.
+ * `onlyStudentId` — для карточки: тот же запрос, суженный одним студентом; набор проверяется тем же условием.
+ */
+async function loadScholarships(cohort: string, onlyStudentId?: string): Promise<StaffScholarshipRow[]> {
+  const rows = await getDb()
+    .select({
+      id: students.userId,
+      fullName: students.fullName,
+      groupName: groups.name,
+      disciplineId: disciplines.id,
+      name: disciplines.name,
+      controlKind: disciplines.controlKind,
+      semester: disciplines.semester,
+      examDate: disciplines.examDate,
+      points: grades.points,
+      outcome: grades.outcome,
+      admitted: grades.admitted,
+    })
+    .from(students)
+    .innerJoin(users, eq(users.id, students.userId))
+    .innerJoin(groups, eq(groups.id, students.groupId))
+    .leftJoin(disciplines, eq(disciplines.groupId, students.groupId))
+    .leftJoin(grades, and(eq(grades.disciplineId, disciplines.id), eq(grades.studentId, students.userId)))
+    .where(and(eq(users.cohort, cohort), eq(users.role, 'student'), onlyStudentId ? eq(students.userId, onlyStudentId) : undefined))
+    .orderBy(asc(students.fullName), asc(disciplines.name))
+
+  const byStudent = new Map<string, { id: string; fullName: string; groupName: string; grades: ScholarshipGrade[] }>()
+  for (const r of rows) {
+    let entry = byStudent.get(r.id)
+    if (!entry) {
+      entry = { id: r.id, fullName: r.fullName, groupName: r.groupName, grades: [] }
+      byStudent.set(r.id, entry)
+    }
+    if (r.disciplineId !== null && r.name !== null && r.controlKind !== null && r.semester !== null) {
+      entry.grades.push({
+        disciplineId: r.disciplineId,
+        name: r.name,
+        controlKind: r.controlKind,
+        semester: r.semester,
+        examDate: r.examDate,
+        points: r.points,
+        outcome: r.outcome ?? 'pending',
+        admitted: r.admitted ?? true,
+      })
+    }
+  }
+  return [...byStudent.values()].map((e) => {
+    const status = evaluateScholarship({ grades: e.grades })
+    return { id: e.id, fullName: e.fullName, groupName: e.groupName, status, amount: status.kind === 'academic' ? SCHOLARSHIP_ORDER.academic : 0 }
+  })
+}
+
+/** Стипендии всех студентов своего набора по алфавиту. Набор — из сессии. */
+export async function listCohortScholarships(actor: Actor): Promise<StaffScholarshipRow[]> {
+  const { cohort } = requireStaff(actor)
+  return loadScholarships(cohort)
+}
+
+/** Стипендия одного студента набора. Чужой набор, сотрудник под этим номером и несуществующий номер — одинаково null. */
+export async function getCohortStudentScholarship(actor: Actor, studentId: string): Promise<StaffScholarshipRow | null> {
+  const { cohort } = requireStaff(actor)
+  if (!isUuid(studentId)) return null
+  return (await loadScholarships(cohort, studentId))[0] ?? null
+}
+
+/**
+ * Рейтинг студента набора в его группе: тот же принцип и те же правила, что у `getMyRating` студента (место по среднему без округления,
+ * равные средние — одно место), но студент берётся из адреса и сначала сверяется с набором сотрудника в том же запросе:
+ * чужой набор и несуществующий номер — null. Наружу — место, среднее и размер группы; чужих баллов нет.
+ */
+export async function getCohortStudentRating(actor: Actor, studentId: string): Promise<GroupRating | null> {
+  const { cohort } = requireStaff(actor)
+  if (!isUuid(studentId)) return null
+  const result = await getDb().execute<{ semester: number | null; total: number; n: number; higher: number; size: number }>(sql`
+    with target as (
+      select s.user_id, s.group_id
+      from students s
+      join users u on u.id = s.user_id
+      where s.user_id = ${studentId} and u.cohort = ${cohort} and u.role = 'student'
+    ),
+    cur as (
+      select max(d.semester) as semester
+      from disciplines d
+      where d.group_id = (select group_id from target)
+        and exists (select 1 from grades gr where gr.discipline_id = d.id and gr.outcome in ('2', '3', '4', '5'))
+    ),
+    per_student as (
+      select s.user_id as student_id,
+             coalesce(sum(case when g.outcome in ('2', '3', '4', '5') then g.outcome::int end), 0)::int as total,
+             count(case when g.outcome in ('2', '3', '4', '5') then 1 end)::int as n
+      from students s
+      left join grades g
+        on g.student_id = s.user_id
+       and g.discipline_id in (
+         select d.id from disciplines d, cur where d.group_id = (select group_id from target) and d.semester = cur.semester
+       )
+      where s.group_id = (select group_id from target)
+      group by s.user_id
+    )
+    select (select semester from cur)::int as semester,
+           me.total,
+           me.n,
+           (select count(*) from per_student o where me.n > 0 and o.n > 0 and o.total * me.n > me.total * o.n)::int as higher,
+           (select count(*) from per_student)::int as size
+    from per_student me
+    where me.student_id = (select user_id from target)
+  `)
+  const row = result.rows[0]
+  if (!row || row.semester === null || Number(row.n) === 0) return null
+  const n = Number(row.n)
+  return { semester: Number(row.semester), average: Number(row.total) / n, place: Number(row.higher) + 1, groupSize: Number(row.size) }
+}
+
+/** Есть ли фото у студента набора. Чужой набор и несуществующий номер — false. */
+export async function cohortStudentHasAvatar(actor: Actor, studentId: string): Promise<boolean> {
+  const { cohort } = requireStaff(actor)
+  if (!isUuid(studentId)) return false
+  const rows = await getDb()
+    .select({ userId: userAvatars.userId })
+    .from(userAvatars)
+    .innerJoin(users, eq(users.id, userAvatars.userId))
+    .where(and(eq(userAvatars.userId, studentId), eq(users.cohort, cohort), eq(users.role, 'student')))
+    .limit(1)
+  return rows.length > 0
+}
+
+/** Фото студента своего набора для маршрута сотрудника. Чужой набор, нет фото и несуществующий номер — одинаково null. */
+export async function getCohortStudentAvatar(actor: Actor, studentId: string): Promise<{ mime: string; data: Buffer } | null> {
+  const { cohort } = requireStaff(actor)
+  if (!isUuid(studentId)) return null
+  const rows = await getDb()
+    .select({ mime: userAvatars.mime, data: userAvatars.data })
+    .from(userAvatars)
+    .innerJoin(users, eq(users.id, userAvatars.userId))
+    .where(and(eq(userAvatars.userId, studentId), eq(users.cohort, cohort), eq(users.role, 'student')))
+    .limit(1)
+  return rows[0] ?? null
+}
+
+/** Может ли роль приложения удалять из `announcements` (право задаёт `db/migrate-lib.ts`). Без права кнопки «Снять» нет. */
+export async function canRemoveAnnouncements(actor: Actor): Promise<boolean> {
+  requireStaff(actor)
+  const res = await getDb().execute(sql`select has_table_privilege(current_user, 'public.announcements', 'DELETE') as ok`)
+  return res.rows[0]?.ok === true
+}
+
+export type RemoveAnnouncementResult = { ok: true } | { ok: false; reason: 'not_found' | 'unavailable' }
+
+/**
+ * Снять объявление своего набора: одно `DELETE … WHERE` с номером и условием «адресовано группам или факультетам набора»
+ * (то же, что у списка). Чужое объявление и несуществующий номер — одинаково `not_found`. Отметки о прочтении уходят каскадом.
+ */
+export async function removeCohortAnnouncement(actor: Actor, announcementId: string): Promise<RemoveAnnouncementResult> {
+  const { cohort } = requireStaff(actor)
+  if (!isUuid(announcementId)) return { ok: false, reason: 'not_found' }
+  if (!(await canRemoveAnnouncements(actor))) return { ok: false, reason: 'unavailable' }
+  const removed = await getDb()
+    .delete(announcements)
+    .where(and(eq(announcements.id, announcementId), addressedToCohort(cohort)))
+    .returning({ id: announcements.id })
+  return removed.length > 0 ? { ok: true } : { ok: false, reason: 'not_found' }
+}
+
+/**
+ * Заявки набора по номерам: статус нужен пачке, чтобы заранее отсеять недопустимые переходы и не тратить предел «30 в минуту».
+ * Номера не из набора и не UUID в ответ не попадают.
+ */
+export async function getCohortRequestStatuses(actor: Actor, ids: readonly string[]): Promise<Map<string, string>> {
+  const { cohort } = requireStaff(actor)
+  const valid = [...new Set(ids.filter(isUuid))]
+  if (valid.length === 0) return new Map()
+  const rows = await getDb()
+    .select({ id: requests.id, status: requests.status })
+    .from(requests)
+    .innerJoin(users, eq(users.id, requests.studentId))
+    .where(and(inArray(requests.id, valid), eq(users.cohort, cohort)))
+  return new Map(rows.map((r) => [r.id, r.status]))
+}
+
+// ---------- Оценки выдачи заявок (20.11, деканат; поле `requests.rating` ставит студент) ----------
+
+export interface RequestRatings {
+  /** «👍»: оценка `1`. */
+  up: number
+  /** «👎»: оценка `-1`. */
+  down: number
+}
+
+/**
+ * Оценки студентов набора за последние `days` суток (по `rated_at`): сколько «👍» и «👎». Только числа, без имён и номеров заявок.
+ * Набор — из сессии. Окно ограничено 1–365 суток.
+ */
+export async function getCohortRequestRatings(actor: Actor, days = 30, now: Date = new Date()): Promise<RequestRatings> {
+  const { cohort } = requireStaff(actor)
+  const span = Number.isInteger(days) ? Math.min(Math.max(days, 1), 365) : 30
+  const since = new Date(now.getTime() - span * DAY_MS)
+  const rows = await getDb()
+    .select({ rating: requests.rating, n: sql<number>`count(*)::int` })
+    .from(requests)
+    .innerJoin(users, eq(users.id, requests.studentId))
+    .where(and(eq(users.cohort, cohort), inArray(requests.rating, [1, -1]), gte(requests.ratedAt, since)))
+    .groupBy(requests.rating)
+  return {
+    up: Number(rows.find((r) => r.rating === 1)?.n ?? 0),
+    down: Number(rows.find((r) => r.rating === -1)?.n ?? 0),
+  }
 }
