@@ -1,4 +1,5 @@
 import 'server-only'
+import { siteBaseUrl } from '@/lib/certificate'
 
 // Единственное место приложения с process.env (ADR-0004).
 // Скрипты в app/db/ и vitest.config.ts читают свои переменные сами: это не часть работающего приложения.
@@ -41,10 +42,7 @@ export function getConfig(): AppConfig {
     clientIpHeader: (process.env.CLIENT_IP_HEADER ?? '').trim().toLowerCase(),
     timezone: process.env.APP_TIMEZONE?.trim() || 'Europe/Moscow',
     // Не обязателен для остального приложения: нужен только функциям справки с QR. Короче 16 знаков — как пусто.
-    publicBaseUrl: (() => {
-      const site = (process.env.SITE_ADDRESS ?? '').trim().toLowerCase()
-      return /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(site) && site.includes('.') ? `https://${site}` : null
-    })(),
+    publicBaseUrl: siteBaseUrl(process.env.SITE_ADDRESS),
     certificateSecret: (process.env.CERTIFICATE_SECRET ?? '').trim().length >= 16 ? (process.env.CERTIFICATE_SECRET ?? '').trim() : '',
     juryMode: (process.env.JURY_MODE ?? 'on').trim().toLowerCase() !== 'off',
   }

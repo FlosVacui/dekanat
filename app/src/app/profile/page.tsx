@@ -68,7 +68,7 @@ async function ProfileContent({ actor, avatarKey, uiKey }: { actor: Actor; avata
   // Код билета подписан секретом; номер студента — из сессии. Адрес в QR — из заголовка Host, как в печатной справке.
   const { certificateSecret } = getConfig()
   // QR ведёт на публичный адрес сайта: за прокси заголовок Host мог прийти как localhost (20.11, телефон не открывал ссылку).
-  const base = getConfig().publicBaseUrl ?? baseUrlFrom(h.get('host'), h.get('x-forwarded-proto'))
+  const base = getConfig().publicBaseUrl ?? baseUrlFrom(h.get('x-forwarded-host') ?? h.get('host'), h.get('x-forwarded-proto'))
   const verifyUrl = certificateSecret && base ? `${base}/verify/student/${studentTicketCode(actor.userId, certificateSecret)}` : null
   const qr = verifyUrl ? qrPath(verifyUrl) : null
 
