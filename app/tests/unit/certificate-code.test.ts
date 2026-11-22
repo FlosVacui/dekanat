@@ -1,6 +1,6 @@
 // Код проверки справки: HMAC от номера заявки. Секрет в тесте — метка, не настоящее значение.
 import { describe, expect, it } from 'vitest'
-import { certificateCode, qrPath, shortName, studentTicketCode, verifyCertificateCode, verifyStudentTicketCode } from '@/lib/certificate'
+import { baseUrlFrom, certificateCode, qrPath, shortName, siteBaseUrl, studentTicketCode, verifyCertificateCode, verifyStudentTicketCode } from '@/lib/certificate'
 
 const SECRET = 'test-secret-label-not-real'
 const ID = '3f2b8c1e-9a47-4d6b-b1f0-5c8e2a7d9e10'
@@ -110,5 +110,33 @@ describe('studentTicketCode', () => {
   it('номер не UUID — ошибка при выпуске кода', () => {
     expect(() => studentTicketCode('1; drop table students', SECRET)).toThrow()
     expect(() => studentTicketCode(ID, '')).toThrow()
+  })
+})
+
+describe('siteBaseUrl', () => {
+  // 22.11.2026: SITE_ADDRESS с двумя именами отвергался целиком, QR справки вёл на https://localhost:3000.
+  it('одно имя — https://имя', () => {
+    expect(siteBaseUrl('moy-dekanat.ru')).toBe('https://moy-dekanat.ru')
+  })
+  it('несколько имён через запятую или пробел — первое', () => {
+    expect(siteBaseUrl('moy-dekanat.ru, www.moy-dekanat.ru')).toBe('https://moy-dekanat.ru')
+    expect(siteBaseUrl('Moy-Dekanat.ru www.moy-dekanat.ru')).toBe('https://moy-dekanat.ru')
+  })
+  it('схема, порт 443 и косая черта отбрасываются', () => {
+    expect(siteBaseUrl('https://moy-dekanat.ru:443/')).toBe('https://moy-dekanat.ru')
+  })
+  it('пусто, localhost и мусор — null', () => {
+    expect(siteBaseUrl('')).toBeNull()
+    expect(siteBaseUrl(undefined)).toBeNull()
+    expect(siteBaseUrl('localhost')).toBeNull()
+    expect(siteBaseUrl('moy-dekanat.ru:8080')).toBeNull()
+    expect(siteBaseUrl('<script>.ru')).toBeNull()
+  })
+})
+
+describe('baseUrlFrom: X-Forwarded-Host со списком', () => {
+  // Страницы QR берут X-Forwarded-Host от Caddy раньше Host: за прокси Host приходил как localhost:3000.
+  it('из списка имён берётся первое', () => {
+    expect(baseUrlFrom('moy-dekanat.ru, localhost:3000', 'https')).toBe('https://moy-dekanat.ru')
   })
 })

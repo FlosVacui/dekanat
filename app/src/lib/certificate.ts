@@ -100,11 +100,22 @@ export function qrPath(url: string, margin = 2): { size: number; d: string } {
 export const CERTIFICATE_TITLE = 'Справка об обучении'
 
 /**
- * Основа абсолютного адреса из заголовков запроса: `https://host`. Хост должен выглядеть как имя хоста с необязательным портом,
+ * Публичный адрес сайта для QR из переменной SITE_ADDRESS: `https://<первое имя>`. Caddy принимает в ней несколько адресов
+ * через запятую или пробел («moy-dekanat.ru, www.moy-dekanat.ru») и адрес со схемой или портом 443 — берётся первое имя.
+ * 22.11.2026: с двумя именами проверка отвергала всю строку, и QR справки вёл на https://localhost:3000. Не имя — null.
+ */
+export function siteBaseUrl(siteAddress: string | null | undefined): string | null {
+  const first = (siteAddress ?? '').trim().toLowerCase().split(/[\s,]+/).find((s) => s !== '') ?? ''
+  const site = first.replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/:443$/, '')
+  return /^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/.test(site) && site.includes('.') ? `https://${site}` : null
+}
+
+/**
+ * Основа абсолютного адреса из заголовков запроса: `https://host`. Из списка через запятую берётся первое имя. Хост должен выглядеть как имя хоста с необязательным портом,
  * иначе — null. Протокол: из `x-forwarded-proto` (http или https), без него — http для localhost и https для остальных.
  */
 export function baseUrlFrom(host: string | null, forwardedProto: string | null): string | null {
-  const h = (host ?? '').trim().toLowerCase()
+  const h = (host ?? '').split(',')[0]!.trim().toLowerCase()
   if (!/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?(:\d{1,5})?$/.test(h) && !/^\[[0-9a-f:]+\](:\d{1,5})?$/.test(h)) return null
   const proto = forwardedProto?.split(',')[0]?.trim().toLowerCase()
   const scheme = proto === 'http' || proto === 'https' ? proto : /^(localhost|127\.0\.0\.1|\[::1\])(:|$)/.test(h) ? 'http' : 'https'
