@@ -13,7 +13,8 @@
 - Шрифт — Nunito из app/node_modules, как в кабинете. Нет пакета — системный шрифт без засечек.
 
 Запуск: uv run tools/build_pdf.py [путь к PDF]   (по умолчанию — build/process.pdf, папки нет в git)
-Нужны pandoc и Chrome или Chromium.
+Нужны Chrome или Chromium и pandoc. Нет pandoc — Markdown разбирает пакет Markdown для Python (22.11:
+на машине участника Б pandoc нет): `uv run --with markdown tools/build_pdf.py`.
 """
 from __future__ import annotations
 
@@ -33,7 +34,7 @@ CSS = """
 @font-face { font-family: 'Nunito PDF'; src: url('{cyr}') format('woff2'); font-weight: 200 1000; unicode-range: U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116; }
 @font-face { font-family: 'Nunito PDF'; src: url('{lat}') format('woff2'); font-weight: 200 1000; }
 @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
-html { font-family: 'Nunito PDF', 'Noto Sans', 'DejaVu Sans', sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1F2433; }
+html { font-family: 'Nunito PDF', 'Noto Sans', 'Segoe UI', 'DejaVu Sans', sans-serif; font-size: 10.5pt; line-height: 1.45; color: #1F2433; }
 h1 { font-size: 20pt; margin: 0 0 6pt; color: #1A4FA8; }
 h2 { font-size: 15pt; margin: 18pt 0 6pt; color: #1A4FA8; break-after: avoid; }
 h3 { font-size: 12pt; margin: 12pt 0 4pt; break-after: avoid; }
@@ -62,9 +63,13 @@ def find_chrome() -> str:
         path = shutil.which(name)
         if path:
             return path
-    mac = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
-    if mac.exists():
-        return str(mac)
+    for known in (
+        Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"),
+        Path(r"C:\Program Files\Google\Chrome\Application\chrome.exe"),
+        Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),
+    ):
+        if known.exists():
+            return str(known)
     die("нет Chrome или Chromium")
     return ""
 
@@ -90,13 +95,34 @@ def repo_links(html: str) -> str:
 
 def main() -> None:
     out = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "build" / "process.pdf"
-    if not shutil.which("pandoc"):
-        die("нет pandoc")
-    # Комментарии-источники убираются до pandoc: внутри них бывает «--», и тогда браузер показал бы их текстом.
+    # Комментарии-источники убираются до разбора: внутри них бывает «--», и тогда браузер показал бы их текстом.
     text = re.sub(r"[ \t]*<!--.*?-->", "", SRC.read_text(encoding="utf-8"), flags=re.S)
-    body = subprocess.run(
-        ["pandoc", "-f", "gfm", "-t", "html5"], input=text, check=True, capture_output=True, text=True
-    ).stdout
+    if shutil.which("pandoc"):
+        body = subprocess.run(
+            ["pandoc", "-f", "gfm", "-t", "html5"], input=text, check=True, capture_output=True, text=True
+        ).stdout
+    else:
+        try:
+            import markdown  # type: ignore[import-not-found]
+            from markdown.extensions.toc import slugify_unicode  # type: ignore[import-not-found]
+        except ImportError:
+            die("нет pandoc и нет пакета markdown: uv run --with markdown tools/build_pdf.py")
+        # Python-Markdown строже GFM: перед списком нужна пустая строка, вложенный список — с отступом в 4 пробела.
+        lines: list[str] = []
+        for line in text.splitlines():
+            if re.match(r"^ {2}[-*] ", line):
+                line = "  " + line
+            is_item = re.match(r"^\s*([-*]|\d+\.) ", line) is not None
+            prev = lines[-1] if lines else ""
+            if is_item and prev.strip() and not re.match(r"^\s*([-*]|\d+\.) ", prev):
+                lines.append("")
+            lines.append(line)
+        # Якоря — как у GitHub и pandoc gfm: «## 9. Что не сделано» -> #9-что-не-сделано.
+        body = markdown.markdown(
+            "\n".join(lines),
+            extensions=["tables", "fenced_code", "sane_lists", "toc"],
+            extension_configs={"toc": {"slugify": slugify_unicode}},
+        )
     body = repo_links(body)
     css = CSS.replace("{cyr}", (FONTS / "nunito-cyrillic-wght-normal.woff2").as_uri()).replace(
         "{lat}", (FONTS / "nunito-latin-wght-normal.woff2").as_uri()
