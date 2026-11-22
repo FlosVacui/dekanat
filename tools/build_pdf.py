@@ -1,6 +1,7 @@
 #!/usr/bin/env -S uv run --script
 # /// script
 # requires-python = ">=3.11"
+# dependencies = ["markdown>=3.7"]
 # ///
 """Собирает PDF описания процесса из docs/submission/process.md.
 
@@ -17,6 +18,7 @@
 """
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import subprocess
@@ -65,6 +67,10 @@ def find_chrome() -> str:
     mac = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
     if mac.exists():
         return str(mac)
+    for base in ("PROGRAMFILES", "PROGRAMFILES(X86)", "LOCALAPPDATA"):  # Windows: Chrome не в PATH
+        win = Path(os.environ.get(base, "")) / "Google" / "Chrome" / "Application" / "chrome.exe"
+        if os.environ.get(base) and win.exists():
+            return str(win)
     die("нет Chrome или Chromium")
     return ""
 
@@ -90,13 +96,22 @@ def repo_links(html: str) -> str:
 
 def main() -> None:
     out = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "build" / "process.pdf"
-    if not shutil.which("pandoc"):
-        die("нет pandoc")
-    # Комментарии-источники убираются до pandoc: внутри них бывает «--», и тогда браузер показал бы их текстом.
+    # Комментарии-источники убираются до разбора: внутри них бывает «--», и тогда браузер показал бы их текстом.
     text = re.sub(r"[ \t]*<!--.*?-->", "", SRC.read_text(encoding="utf-8"), flags=re.S)
-    body = subprocess.run(
-        ["pandoc", "-f", "gfm", "-t", "html5"], input=text, check=True, capture_output=True, text=True
-    ).stdout
+    if shutil.which("pandoc"):
+        body = subprocess.run(
+            ["pandoc", "-f", "gfm", "-t", "html5"], input=text, check=True, capture_output=True, text=True
+        ).stdout
+    else:
+        # 22.11.2026: на машине участника А pandoc нет. Запасной путь — библиотека markdown; якоря заголовков —
+        # с кириллицей, как у GitHub, чтобы ссылки внутри документа работали.
+        import markdown
+        from markdown.extensions.toc import slugify_unicode
+
+        body = markdown.markdown(
+            text, extensions=["tables", "fenced_code", "sane_lists", "toc"],
+            extension_configs={"toc": {"slugify": slugify_unicode}},
+        )
     body = repo_links(body)
     css = CSS.replace("{cyr}", (FONTS / "nunito-cyrillic-wght-normal.woff2").as_uri()).replace(
         "{lat}", (FONTS / "nunito-latin-wght-normal.woff2").as_uri()
